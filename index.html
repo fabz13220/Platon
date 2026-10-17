@@ -1,0 +1,2652 @@
+<title>Platoz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600..900&family=Unbounded:wght@600..900&display=swap">
+<style>
+/* =====================================================================
+   PLATOZ · skin "NÉON" — night-club party energy
+   ---------------------------------------------------------------------
+   Palette    night #0B0720 / #140D33, lavender text #F6F3FF / #C9C0F2
+              neon tokens: pink #FF3B6E, gold #FFE04A, violet #A66BFF,
+              blue #4D8BFF, mint #2EE6A0
+              one gradient per game type (deep at the bottom so white text
+              stays AA): ultraviolet, sunset pink, gold, aqua-mint,
+              electric blue, hot magenta. Signature gradient pink→violet→indigo.
+   Type       Unbounded 700-900 (chunky rounded geometric display) +
+              Nunito 600-900 (rounded, very legible body, big bold buttons).
+   Shape      4 radii only: --r-xl 32 (cards, sheet, une, hero, secret),
+              --r-l 24 (tiles, options, panels, inputs), --r-s 16 (badges,
+              stats), 999px pills. No hard lines, glass hairlines.
+   Motion     cards bounce in (420ms, overshoot), buttons squish on press,
+              stamps flash like a neon sign turning on, false start shakes.
+              Reduced motion respected.
+   Signature  glowing gradient cards that behave like light sources, each
+              carrying its game symbol as a NEON TUBE outline (? ! § # VS ?!),
+              the same tubes on the home tiles, and a night background that
+              re-tints to the colour of the card on screen.
+   ===================================================================== */
+:root {
+  --paper: #EEE9FF;
+  --paper-2: #241B52;
+  --ink: #1A0F2E;
+  --ink-soft: #C9C0F2;
+  --red: #FF3B6E;
+  --yellow: #FFE04A;
+  --violet: #A66BFF;
+  --blue: #4D8BFF;
+  --green: #2EE6A0;
+  --radar: #6366F1;
+  --rank: #FF8A1F;
+  --yesno: #14B8A6;
+  --white: #FFFFFF;
+  --display: "Unbounded", "Arial Rounded MT Bold", "Arial Black", sans-serif;
+  --body: "Nunito", "Arial Rounded MT Bold", "Helvetica Neue", Arial, sans-serif;
+
+  --night: #0B0720;
+  --night-2: #140D33;
+  --glass: rgba(255,255,255,.07);
+  --glass-2: rgba(255,255,255,.12);
+  --hair: rgba(255,255,255,.14);
+  --text: #F6F3FF;
+  --muted: #C9C0F2;
+
+  --r-xl: 32px;
+  --r-l: 24px;
+  --r-s: 16px;
+
+  --g-uv: linear-gradient(165deg, #A552FF 0%, #6A2CF0 52%, #4419C9 100%);
+  --g-sunset: linear-gradient(165deg, #FF7A45 0%, #FF3577 38%, #E0186A 72%, #C0105C 100%);
+  --g-gold: linear-gradient(165deg, #FFEC6E 0%, #FFC83A 45%, #FF942E 100%);
+  --g-mint: linear-gradient(165deg, #A6FF8F 0%, #3CF0B0 42%, #14C6D0 100%);
+  --g-blue: linear-gradient(165deg, #42B4FF 0%, #2D6BFF 45%, #3A36D8 100%);
+  --g-magenta: linear-gradient(165deg, #F43FD2 0%, #C21FB0 50%, #8A1AB8 100%);
+  --g-hot: linear-gradient(100deg, #FF2E7A 0%, #F2402F 100%);
+  --g-signature: linear-gradient(140deg, #E8226E 0%, #A532E6 55%, #5B3BFF 100%);
+  --g-cool: linear-gradient(100deg, #3D7BFF 0%, #7B3BFF 100%);
+
+  --flame: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'><path d='M10.6 1c.9 4.6 6.9 7.3 6.9 14a7.5 7.5 0 0 1-15 0c0-3.4 1.8-5.8 3.6-7.5.1 2.4 1 3.9 2.5 4.4-.6-3.9.2-7.7 2-10.9z'/></svg>");
+
+  --amb1: rgba(140,60,255,.38);
+  --amb2: rgba(255,45,130,.26);
+  --amb3: rgba(40,120,255,.22);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+html { background: var(--night); }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--night); }
+/* night-club ambient light: three soft blobs + irregular sparkle, tinted by the card on screen */
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(70% 42% at 8% 4%, var(--amb1), transparent 70%),
+    radial-gradient(60% 40% at 100% 96%, var(--amb2), transparent 70%),
+    radial-gradient(48% 30% at 96% 30%, var(--amb3), transparent 72%),
+    radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.5px) 0 0 / 37px 41px,
+    radial-gradient(rgba(255,255,255,.035) 1px, transparent 1.5px) 13px 19px / 53px 47px;
+}
+body:has(.card[style*="--violet"]) { --amb1: rgba(150,70,255,.42); --amb2: rgba(80,50,240,.30); --amb3: rgba(200,90,255,.20); }
+body:has(.card[style*="--red"]) { --amb1: rgba(255,60,120,.36); --amb2: rgba(255,110,60,.24); --amb3: rgba(230,30,110,.20); }
+body:has(.card[style*="--yellow"]) { --amb1: rgba(255,120,60,.30); --amb2: rgba(255,60,140,.22); --amb3: rgba(255,210,80,.10); }
+body:has(.card[style*="--green"]) { --amb1: rgba(60,240,170,.24); --amb2: rgba(20,190,210,.26); --amb3: rgba(150,255,140,.12); }
+body:has(.card[style*="--blue"]) { --amb1: rgba(60,150,255,.34); --amb2: rgba(60,60,230,.30); --amb3: rgba(66,180,255,.18); }
+body:has(.card[style*="--ink"]) { --amb1: rgba(255,80,210,.32); --amb2: rgba(142,45,226,.32); --amb3: rgba(255,120,220,.16); }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+::selection { background: var(--red); color: #fff; }
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 22px;
+  gap: 16px;
+  position: relative;
+}
+#app > * { position: relative; z-index: 1; }
+
+/* ---------- type ---------- */
+.mast { font-family: var(--display); font-weight: 800; line-height: 1.05; letter-spacing: -.01em; overflow-wrap: break-word; }
+.eyebrow { font-weight: 900; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.muted { color: var(--muted); }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+
+/* ---------- masthead ---------- */
+.masthead { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 14px; text-align: center; }
+.masthead .logo {
+  font-family: var(--display); font-weight: 900; font-size: clamp(58px, 18vw, 84px); line-height: 1; letter-spacing: -.035em;
+  background: linear-gradient(100deg, #FFB547 0%, #FF3B7A 40%, #B04BFF 75%, #5E8BFF 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px rgba(255,59,122,.45));
+  padding: 4px 6px 6px;
+}
+.masthead .rule { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--muted); letter-spacing: .02em; }
+.masthead .rule span { background: none; border: 0; padding: 0; }
+.masthead .rule span + span::before { content: "·"; margin-right: 8px; color: #FF6FA0; font-weight: 900; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
+.topbar .title { font-family: var(--display); font-weight: 800; font-size: 21px; text-align: center; flex: 1; min-width: 0; }
+.iconbtn {
+  width: 48px; height: 48px; border-radius: 999px; border: 1px solid var(--hair); background: var(--glass-2); color: var(--text);
+  display: grid; place-items: center; font-weight: 900; font-size: 18px; flex: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: transform .12s;
+}
+.iconbtn:active { transform: scale(.9); }
+
+/* ---------- buttons ---------- */
+.btn {
+  --bg: var(--g-gold); --fg: var(--ink); --gl: rgba(255,190,50,.45);
+  border: 0; border-radius: 999px; background: var(--bg); color: var(--fg);
+  min-height: 62px; padding: 15px 22px; width: 100%;
+  font-family: var(--body); font-weight: 900; font-size: 19px; line-height: 1.15; letter-spacing: .005em;
+  box-shadow: 0 12px 30px -10px var(--gl), inset 0 2px 0 rgba(255,255,255,.4), inset 0 -4px 0 rgba(0,0,0,.14);
+  transition: transform .12s cubic-bezier(.3,1.6,.5,1), filter .12s;
+  text-wrap: balance;
+}
+.btn:active { transform: scale(.96); filter: brightness(1.06); }
+.btn.red { --bg: var(--g-hot); --fg: #fff; --gl: rgba(255,50,110,.55); text-shadow: 0 1px 2px rgba(120,0,40,.35); }
+.btn.ink, .btn.white { --bg: rgba(255,255,255,.1); --fg: #fff; --gl: transparent; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.34), inset 0 2px 0 rgba(255,255,255,.1); }
+.btn.green { --bg: var(--g-mint); --fg: var(--ink); --gl: rgba(40,230,170,.45); }
+.btn.blue { --bg: linear-gradient(100deg, #3D7BFF 0%, #4A3BF0 100%); --fg: #fff; --gl: rgba(70,110,255,.55); }
+/* binary choices get equal weight: the left option becomes a cool gradient twin */
+.actions .row > .btn.white:first-child:has(+ .btn:not(.green)) {
+  --bg: var(--g-cool); --fg: #fff; --gl: rgba(90,90,255,.55);
+  box-shadow: 0 12px 30px -10px var(--gl), inset 0 2px 0 rgba(255,255,255,.4), inset 0 -4px 0 rgba(0,0,0,.14);
+  text-shadow: 0 1px 2px rgba(20,0,80,.3);
+}
+.btn:disabled, .btn.red:disabled {
+  opacity: 1; filter: none; pointer-events: none;
+  --bg: rgba(255,255,255,.07); --fg: rgba(255,255,255,.5);
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.14); text-shadow: none;
+}
+.btn small { display: block; font-weight: 700; font-size: 14px; letter-spacing: 0; margin-top: 3px; opacity: .9; }
+.row { display: flex; gap: 12px; }
+.row > * { flex: 1; min-width: 0; }
+.actions { margin-top: auto; display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+.linkbtn { background: none; border: 0; font-weight: 800; font-size: 16px; color: var(--muted); text-decoration: underline; text-underline-offset: 4px; padding: 12px; }
+
+/* ---------- home ---------- */
+.hero-mode {
+  position: relative; overflow: hidden; text-align: left; border: 0; border-radius: var(--r-xl); color: #fff;
+  background: var(--g-signature); padding: 22px 22px 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 22px 60px -18px rgba(220,50,200,.7), inset 0 2px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.14);
+  transition: transform .14s cubic-bezier(.3,1.6,.5,1);
+}
+.hero-mode::before { content: ""; position: absolute; width: 260px; height: 260px; right: -80px; top: -110px; border-radius: 50%; border: 30px solid rgba(255,255,255,.12); pointer-events: none; }
+.hero-mode::after {
+  content: "▶"; position: absolute; right: 18px; top: 18px; width: 52px; height: 52px; border-radius: 50%;
+  background: #fff; color: #D2268F; display: grid; place-items: center; font-size: 18px; padding-left: 3px;
+  box-shadow: 0 6px 18px rgba(80,0,60,.35);
+}
+.hero-mode:active { transform: scale(.98); }
+.hero-mode > * { position: relative; }
+.hero-mode .mast { font-size: clamp(28px, 8.4vw, 34px); color: #fff; padding-right: 60px; line-height: 1.04; }
+.hero-mode p { font-size: 17px; line-height: 1.4; font-weight: 700; color: #fff; }
+.hero-mode .tagline {
+  align-self: flex-start; background: rgba(25,5,60,.32); color: #fff; font-weight: 900; font-size: 12px; letter-spacing: .14em;
+  padding: 6px 11px; border-radius: 999px; text-transform: uppercase;
+}
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile {
+  --tg: var(--g-uv); --tf: #fff; --tgl: rgba(140,70,255,.45); --tglyph: "!"; --tglow: rgba(255,255,255,.55);
+  position: relative; overflow: hidden; text-align: left; border: 0; border-radius: var(--r-l); background: var(--tg); color: var(--tf);
+  padding: 16px 14px 16px; display: flex; flex-direction: column; gap: 6px; min-height: 158px;
+  box-shadow: 0 14px 30px -16px var(--tgl), inset 0 2px 0 rgba(255,255,255,.32), inset 0 0 0 1px rgba(255,255,255,.12);
+  transition: transform .14s cubic-bezier(.3,1.6,.5,1);
+}
+/* each game's symbol as a neon tube */
+.tile::after {
+  content: var(--tglyph); position: absolute; right: 2px; bottom: -16px; pointer-events: none;
+  font-family: var(--display); font-weight: 900; font-size: 70px; line-height: 1; letter-spacing: -.06em;
+  color: transparent; -webkit-text-stroke: 2px rgba(255,255,255,.62);
+  filter: drop-shadow(0 0 5px var(--tglow)) drop-shadow(0 0 14px var(--tglow));
+  transform: rotate(10deg);
+}
+.tile:active { transform: scale(.95); }
+.tile[data-mode="jamais"] { --tglyph: "!"; --tg: linear-gradient(165deg, #8E3FFF 0%, #6A2CF0 50%, #4419C9 100%); --tgl: rgba(140,70,255,.55); }
+.tile[data-mode="av"] { --tglyph: "?!"; --tg: var(--g-gold); --tf: var(--ink); --tgl: rgba(255,180,40,.45); --tglow: rgba(255,110,0,.7); }
+.tile[data-mode="qui"] { --tglyph: "?"; --tg: linear-gradient(165deg, #F2205A 0%, #D0105E 55%, #A80C50 100%); --tgl: rgba(255,50,110,.55); }
+.tile[data-mode="pref"] { --tglyph: "VS"; --tg: linear-gradient(165deg, #E62CC6 0%, #C21FB0 50%, #9A1494 100%); --tgl: rgba(240,60,210,.5); }
+.tile[data-mode="imposteur"] { --tglyph: "#"; --tg: var(--g-mint); --tf: var(--ink); --tgl: rgba(40,230,170,.4); --tglow: rgba(0,140,160,.75); }
+.tile[data-mode="radar"] { --tglyph: "%"; --tg: linear-gradient(165deg, #22D3EE 0%, #6366F1 55%, #7C3AED 100%); --tgl: rgba(80,120,255,.5); grid-column: 1 / -1; }
+.tile[data-mode="classement"] { --tglyph: "1."; --tg: linear-gradient(165deg, #FFB03A 0%, #FF7A1A 55%, #E2480E 100%); --tgl: rgba(255,130,30,.5); }
+.tile[data-mode="ouinon"] { --tglyph: "O"; --tg: linear-gradient(165deg, #2DD4BF 0%, #14A89A 55%, #0E7C86 100%); --tgl: rgba(30,200,180,.45); }
+.tile[data-mode="menteur"] { --tglyph: "≠"; --tg: linear-gradient(165deg, #2D6BFF 0%, #3550F0 50%, #3A36D8 100%); --tgl: rgba(60,110,255,.55); }
+.tile[data-mode="jamais"]::after { right: 18px; }
+.tile[data-mode="pref"]::after { font-size: 48px; bottom: -6px; right: 0; }
+.tile[data-mode="av"]::after, .tile[data-mode="imposteur"]::after { -webkit-text-stroke-color: rgba(255,255,255,.95); }
+.tile .sw { display: none; }
+.tile .mast { font-size: 16px; line-height: 1.12; position: relative; z-index: 1; }
+.tile p { font-size: 14.5px; line-height: 1.32; font-weight: 700; color: inherit; position: relative; z-index: 1; max-width: 96%; }
+.tile:not([data-mode="av"]):not([data-mode="imposteur"]) p, .tile:not([data-mode="av"]):not([data-mode="imposteur"]) .mast { text-shadow: 0 1px 2px rgba(60,0,40,.35); }
+
+/* ---------- players ---------- */
+.field { display: flex; gap: 10px; }
+.field input, .duo-in {
+  flex: 1; min-width: 0; border: 1.5px solid rgba(255,255,255,.18); background: rgba(255,255,255,.07); color: #fff;
+  border-radius: var(--r-l); padding: 16px 18px; font: inherit; font-size: 19px; font-weight: 800;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.25);
+}
+.field input::placeholder, .duo-in::placeholder { color: rgba(220,212,255,.66); font-weight: 700; }
+.field input:focus, .duo-in:focus { border-color: var(--red); box-shadow: 0 0 0 4px rgba(255,59,110,.22); outline: none; }
+.field .btn { width: auto; padding: 0 22px; min-height: 58px; font-size: 17px; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--hair); background: var(--glass-2); color: #fff;
+  padding: 7px 7px 7px 16px; border-radius: 999px; font-weight: 900; font-size: 17px; min-height: 46px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+  animation: chipIn .3s cubic-bezier(.3,1.5,.5,1) both;
+}
+.chip .x { border: 0; background: rgba(255,255,255,.2); color: #fff; width: 32px; height: 32px; border-radius: 50%; font-weight: 900; font-size: 18px; display: grid; place-items: center; line-height: 1; }
+/* each player gets a colour */
+#chips .chip { border: 0; font-size: 19px; min-height: 52px; padding: 8px 8px 8px 18px; box-shadow: 0 10px 24px -12px var(--cg, rgba(0,0,0,.5)), inset 0 2px 0 rgba(255,255,255,.3); text-shadow: 0 1px 2px rgba(40,0,40,.3); }
+#chips .chip:nth-child(5n+1) { background: var(--g-sunset); --cg: rgba(255,50,110,.7); }
+#chips .chip:nth-child(5n+2) { background: var(--g-uv); --cg: rgba(130,60,255,.7); }
+#chips .chip:nth-child(5n+3) { background: var(--g-blue); --cg: rgba(50,110,255,.7); }
+#chips .chip:nth-child(5n+4) { background: var(--g-magenta); --cg: rgba(220,60,215,.7); }
+#chips .chip:nth-child(5n+5) { background: var(--g-gold); color: var(--ink); text-shadow: none; --cg: rgba(255,170,40,.6); }
+#chips .chip:nth-child(5n+5) .x { background: rgba(26,15,46,.14); color: var(--ink); }
+#chips > .hint { padding: 4px 2px; }
+.chip.pick { cursor: pointer; padding: 10px 18px; min-height: 50px; font-size: 18px; }
+.chip.pick[aria-pressed="true"] { background: #fff; color: #C2105C; border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.28), 0 8px 18px -6px rgba(0,0,0,.4); }
+@keyframes chipIn { from { transform: scale(.6); opacity: 0; } }
+.hint { font-size: 15px; line-height: 1.45; font-weight: 700; }
+/* players screen: fill the room with the neon sign */
+#app:has(#chips) .actions::before {
+  content: "La team"; display: block; text-align: center; margin: 0 auto 18px; pointer-events: none;
+  font-family: var(--display); font-weight: 900; font-size: clamp(44px, 14vw, 62px); line-height: 1; letter-spacing: -.03em;
+  color: transparent; -webkit-text-stroke: 2px rgba(255,140,190,.75);
+  filter: drop-shadow(0 0 6px rgba(255,59,122,.8)) drop-shadow(0 0 22px rgba(255,59,122,.45));
+  transform: rotate(-6deg); opacity: .9;
+}
+
+/* ---------- options ---------- */
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt {
+  --c: var(--violet);
+  text-align: left; border: 1px solid var(--hair); background: var(--glass); color: var(--text); border-radius: var(--r-l);
+  padding: 14px 16px; display: flex; gap: 14px; align-items: center; min-height: 78px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  transition: transform .14s cubic-bezier(.3,1.6,.5,1), background .2s;
+}
+.opt:active { transform: scale(.98); }
+.opt[aria-pressed="true"] {
+  background: var(--g-signature); border-color: transparent; color: #fff;
+  box-shadow: 0 14px 34px -14px rgba(220,50,200,.75), inset 0 2px 0 rgba(255,255,255,.3);
+}
+.opt[aria-pressed="true"] p { color: #fff; }
+.opt .mast { font-size: 17px; display: block; line-height: 1.15; }
+.opt p { font-size: 14.5px; line-height: 1.35; color: var(--muted); margin-top: 3px; font-weight: 700; }
+.opt .pepper {
+  position: relative; font-family: var(--display); font-weight: 800; font-size: 16px; width: 54px; height: 54px; flex: none; border-radius: var(--r-s);
+  display: grid; place-items: center; color: var(--red); background: rgba(255,255,255,.08);
+  letter-spacing: -.04em;
+}
+/* intensity: real flames, coloured by heat */
+.opt[data-l] .pepper { color: transparent; font-size: 0; }
+.opt[data-l] .pepper::before {
+  content: ""; height: 22px; width: calc(var(--n) * 17px); background: var(--c);
+  -webkit-mask: var(--flame) left center / 17px 21px repeat-x; mask: var(--flame) left center / 17px 21px repeat-x;
+  filter: drop-shadow(0 0 6px var(--c));
+}
+.opt[data-l="1"] { --n: 1; --c: var(--green); }
+.opt[data-l="2"] { --n: 2; --c: #FFB23A; }
+.opt[data-l="3"] { --n: 3; --c: var(--red); }
+.opt[data-l="3"] .pepper::before { width: 46px; -webkit-mask-size: 15.3px 19px; mask-size: 15.3px 19px; }
+.opt[aria-pressed="true"] .pepper { background: #fff; }
+.opt[aria-pressed="true"][data-l="1"] .pepper::before { background: #0A9E6A; filter: none; }
+.opt[aria-pressed="true"][data-l="2"] .pepper::before { background: #E46A00; filter: none; }
+.opt[aria-pressed="true"][data-l="3"] .pepper::before { background: #E0185E; filter: none; }
+/* solo & duo games: tinted strips with real icons instead of cryptic numbers */
+.opts .opt[data-solo] {
+  background: linear-gradient(100deg, rgba(255,255,255,.11), rgba(255,255,255,.04));
+  border-color: rgba(255,255,255,.18);
+  box-shadow: inset 4px 0 0 var(--c), inset 0 1px 0 rgba(255,255,255,.1), -6px 0 22px -14px var(--c);
+}
+.opt[data-solo="deux"] { --c: #FF4FD8; --ico: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='8' cy='7.5' r='3.6'/><circle cx='16.8' cy='8.6' r='3'/><path d='M1.2 20.5c0-4.3 3-7 6.8-7s6.8 2.7 6.8 7z'/><path d='M14.2 13.9c.8-.4 1.7-.6 2.6-.6 3.2 0 5.9 2.4 5.9 6.3h-6.4c0-2.4-.7-4.3-2.1-5.7z'/></svg>"); }
+.opt[data-solo="reflexe"] { --c: #4DB5FF; --ico: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M14 1 3.8 13.6h6.8L9 23 20.2 9.6h-6.9z'/></svg>"); }
+.opt[data-solo="test"] { --c: #FFB23A; --ico: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='6.5' cy='6.5' r='3.6'/><circle cx='17.5' cy='17.5' r='3.6'/><path d='M18.4 3.4l2.2 2.2L5.6 20.6l-2.2-2.2z'/></svg>"); }
+.opt[data-solo] .pepper { color: transparent !important; font-size: 0; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); }
+.opt[data-solo] .pepper::before {
+  content: ""; width: 28px; height: 28px; background: var(--c);
+  -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat;
+  filter: drop-shadow(0 0 6px var(--c));
+}
+.seg { display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid var(--hair); }
+.seg button { flex: 1; min-width: 0; border: 0; background: none; color: var(--muted); padding: 12px 6px; font-weight: 900; font-size: 15.5px; border-radius: 999px; transition: background .18s, color .18s; }
+.seg button[aria-pressed="true"] { background: var(--g-signature); color: #fff; box-shadow: 0 8px 20px -8px rgba(220,50,200,.75), inset 0 1px 0 rgba(255,255,255,.3); }
+.section-label { font-weight: 900; font-size: 12.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding: 6px 4px 0; }
+
+/* ---------- game card ---------- */
+.stage { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; min-height: 0; }
+.card {
+  --g: var(--g-signature); --glow: rgba(210,50,200,.55);
+  --tx: #fff; --tx2: #fff; --panel: rgba(28,6,58,.34); --chipbg: rgba(255,255,255,.17); --chipbd: rgba(255,255,255,.45);
+  --hl: rgba(30,5,60,.34); --mk: #FFE04A; --pill-ink: #1A0F2E;
+  --tube: rgba(255,255,255,.62); --tglow: rgba(255,255,255,.7); --tglow2: rgba(255,255,255,.32);
+  position: relative; isolation: isolate; overflow: hidden;
+  border-radius: var(--r-xl); color: var(--tx);
+  background: radial-gradient(90% 55% at 12% 0%, rgba(255,255,255,.14), transparent 60%), var(--g);
+  display: flex; flex-direction: column; gap: 18px; padding: 0 0 26px;
+  box-shadow: 0 28px 70px -22px var(--glow), 0 0 46px -10px var(--glow), inset 0 2px 0 rgba(255,255,255,.4), inset 0 0 0 1px rgba(255,255,255,.14);
+  animation: cardIn .42s cubic-bezier(.25,.9,.35,1) both;
+}
+.stage > .card { flex: 1 0 auto; min-height: min(520px, 62vh); }
+.stage > .card > :nth-child(2) { margin-top: auto; }
+.stage > .card > :last-child { margin-bottom: auto; }
+/* SIGNATURE: the game's symbol as a neon tube sign */
+.card::before {
+  content: var(--glyph, "*"); position: absolute; z-index: -1; right: 12px; bottom: 18px; pointer-events: none;
+  font-family: var(--display); font-weight: 900; font-size: 215px; line-height: .8; letter-spacing: -.06em;
+  color: transparent; -webkit-text-stroke: 3px var(--tube);
+  filter: drop-shadow(0 0 7px var(--tglow)) drop-shadow(0 0 22px var(--tglow2));
+  transform: rotate(10deg); transform-origin: 70% 70%;
+}
+.card.alt::before { transform: rotate(-8deg); }
+.card::after { content: ""; order: 99; flex: 0 0 92px; pointer-events: none; }
+.stage > .card:has(.vs)::after, .stage > .card:has(.timer)::after { flex-basis: 40px; }
+.stage > .card:has(.chips)::after { flex-basis: 12px; }
+.card[style*="--radar"] { --glyph: "%"; --g: linear-gradient(165deg, #22D3EE 0%, #6366F1 55%, #7C3AED 100%); --glow: rgba(70,140,255,.65); --pill-ink: #4F46E5; }
+.card[style*="--rank"] { --glyph: "1."; --g: linear-gradient(165deg, #FFB03A 0%, #FF7A1A 55%, #E2480E 100%); --glow: rgba(255,120,30,.6); --pill-ink: #C2410C; }
+.card[style*="--yesno"] { --glyph: "O"; --g: linear-gradient(165deg, #2DD4BF 0%, #14A89A 55%, #0E7C86 100%); --glow: rgba(30,200,180,.55); --pill-ink: #0F766E; }
+.card[style*="--violet"] { --glyph: "!"; --g: var(--g-uv); --glow: rgba(130,60,255,.7); --pill-ink: #5A22E0; }
+.card[style*="--violet"]::before { right: 34px; font-size: 205px; }
+.card[style*="--red"] { --glyph: "?"; --g: var(--g-sunset); --glow: rgba(255,50,110,.65); --pill-ink: #D0105E; }
+.card[style*="--blue"] { --glyph: "≠"; --g: var(--g-blue); --glow: rgba(50,110,255,.7); --pill-ink: #2D5BFF; }
+.card[style*="--ink"] { --glyph: "VS"; --g: var(--g-magenta); --glow: rgba(220,60,215,.62); --pill-ink: #A01A9E; }
+.card[style*="--ink"]::before { font-size: 150px; bottom: 26px; }
+.card[style*="--yellow"], .card[style*="--green"] {
+  --tx: var(--ink); --tx2: #24163F; --panel: rgba(255,255,255,.45); --chipbg: rgba(255,255,255,.5); --chipbd: rgba(26,15,46,.18);
+  --hl: rgba(26,15,46,.86); --mk: #FF3577; --pill-ink: var(--ink);
+  --tube: rgba(255,255,255,.92); --tglow: rgba(255,110,0,.75); --tglow2: rgba(255,80,0,.35);
+}
+.card[style*="--green"] { --tglow: rgba(0,130,150,.7); --tglow2: rgba(0,110,140,.3); }
+.card[style*="--yellow"] { --glyph: "?!"; --g: var(--g-gold); --glow: rgba(255,170,40,.55); }
+.card[style*="--yellow"]::before { font-size: 185px; }
+.card[style*="--green"] { --glyph: "#"; --g: var(--g-mint); --glow: rgba(30,220,190,.5); }
+.card:not([style*="--"]) { --pill-ink: #A01A9E; }
+
+.card .band { padding: 20px 22px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--tx); }
+.card .band .mast {
+  font-size: 13.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; line-height: 1.1;
+  background: #fff; color: var(--pill-ink); padding: 9px 14px 8px; border-radius: 999px; min-width: 0;
+  box-shadow: 0 6px 16px -8px rgba(30,0,60,.5);
+}
+/* intensity badge: flames instead of ✱ (text kept for screen readers, drawn as flames) */
+.card .band .eyebrow {
+  position: relative; flex: none; height: 34px; padding: 8px 12px; border-radius: 999px; background: var(--hl);
+  font-size: 1px; line-height: 18px; letter-spacing: 16px; color: transparent; overflow: hidden;
+}
+.card .band .eyebrow::before {
+  content: ""; position: absolute; inset: 8px 12px; background: var(--mk);
+  -webkit-mask: var(--flame) left center / 14.5px 18px; mask: var(--flame) left center / 14.5px 18px;
+  -webkit-mask-repeat: space no-repeat; mask-repeat: space no-repeat;
+}
+.card .who { font-family: var(--display); font-weight: 800; font-size: clamp(56px, 17vw, 76px); line-height: 1; letter-spacing: -.03em; padding: 0 22px; overflow-wrap: anywhere; }
+.card .who small { display: block; font-family: var(--body); font-size: 14px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 10px; opacity: .95; line-height: 1.2; }
+.card .text { font-size: clamp(30px, 9.2vw, 40px); line-height: 1.16; font-weight: 900; padding: 0 22px; text-wrap: pretty; overflow-wrap: break-word; letter-spacing: -.01em; }
+.stage > .card:has(.chips) .text { font-size: clamp(28px, 8.4vw, 36px); }
+.stage > .card:has(.chip:nth-child(6)) .text { font-size: clamp(26px, 7.4vw, 32px); }
+.stage > .card:has(.chip:nth-child(6)) .sub { font-size: 18px; }
+.card .text b { font-weight: 900; text-decoration: underline .13em var(--mk); text-underline-offset: .16em; text-decoration-skip-ink: none; }
+.card .sub { padding: 0 22px; font-size: 20px; line-height: 1.36; font-weight: 700; color: var(--tx2); }
+.card .sub[style*="--ink"] { color: var(--tx) !important; font-size: 15px !important; font-weight: 900 !important; letter-spacing: .12em !important; text-transform: uppercase; }
+/* Tu préfères: the band already says it */
+.card[style*="--ink"] > .sub[style*="--ink"] { display: none; }
+.card .chips { padding: 0 22px !important; }
+.card .chip.pick { background: var(--chipbg); border-color: var(--chipbd); color: var(--tx); }
+.card .chip.pick[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.card[style*="--violet"] .chip.pick[aria-pressed="true"], .card[style*="--rank"] .chip.pick[aria-pressed="true"], .card[style*="--yesno"] .chip.pick[aria-pressed="true"], .card[style*="--red"] .chip.pick[aria-pressed="true"],
+.card[style*="--blue"] .chip.pick[aria-pressed="true"], .card[style*="--ink"] .chip.pick[aria-pressed="true"], .card:not([style]) .chip.pick[aria-pressed="true"] { background: #fff; color: #1A0F2E; border-color: #fff; }
+.card .chip.pick[aria-pressed="true"]::before { content: "✓"; font-weight: 900; }
+.card .row { padding: 0 22px !important; }
+.card .btn.white { --bg: rgba(255,255,255,.22); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6); }
+.vs { display: flex; flex-direction: column; gap: 0; padding: 0 22px; align-items: stretch; }
+.vs .opt-a, .vs .opt-b {
+  border-radius: var(--r-l); padding: 20px 18px; font-size: 22px; font-weight: 900; line-height: 1.24; text-wrap: pretty;
+  background: #fff; color: var(--ink); box-shadow: 0 10px 24px -12px rgba(40,0,60,.6);
+}
+.vs .opt-a { padding-bottom: 26px; }
+.vs .opt-b { padding-top: 26px; }
+.vs .or {
+  align-self: center; margin: -14px 0; z-index: 1; width: 58px; height: 58px; border-radius: 50%;
+  display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 16px; text-transform: uppercase;
+  background: var(--yellow); color: var(--ink); box-shadow: 0 0 0 5px rgba(160,26,158,.55), 0 0 22px rgba(255,224,74,.6);
+}
+.penalty { margin: 0 22px; border-radius: var(--r-l); padding: 14px 18px; font-weight: 800; font-size: 18px; line-height: 1.36; background: var(--panel); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); color: var(--tx); }
+.penalty .eyebrow { display: block; margin-bottom: 5px; font-size: 13px; opacity: .92; }
+.pts-rule { margin: 0 22px; padding: 10px 14px; border-radius: var(--r-s); background: rgba(0,0,0,.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); font-size: 14px; font-weight: 800; line-height: 1.35; color: #fff; }
+.card[style*="--yellow"] .pts-rule, .card[style*="--green"] .pts-rule { background: rgba(255,255,255,.4); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(26,15,46,.12); }
+
+/* Le Radar */
+.dial-box { margin: 0 18px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.dial { width: 100%; display: block; overflow: visible; }
+.dial .needle { stroke: #fff; stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+.dial .hub { fill: #fff; }
+.dial .rz { fill: #fff; font-family: var(--display); font-weight: 900; font-size: 15px; text-anchor: middle; dominant-baseline: middle; }
+.radar-res { margin: 0 18px; display: flex; flex-direction: column; gap: 6px; }
+.radar-res div { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(0,0,0,.2); font-weight: 900; }
+.radar-res i { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(0,0,0,.25); }
+.radar-res .guide i { background: transparent; box-shadow: inset 0 0 0 2px #fff; }
+.radar-res span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.poles { display: flex; justify-content: space-between; gap: 16px; margin-top: 8px; font-weight: 900; font-size: 15px; line-height: 1.2; }
+.poles span { max-width: 46%; }
+.poles span + span { text-align: right; }
+/* roue du mode Mix */
+.wheel-stage { align-items: center; gap: 22px; }
+.wheel-box { position: relative; width: min(84vw, 340px); aspect-ratio: 1; }
+.wheel { width: 100%; height: 100%; display: block; border-radius: 50%; transition: transform 3.6s cubic-bezier(.12,.72,.08,1); box-shadow: 0 0 0 6px rgba(255,255,255,.1), 0 20px 60px -10px rgba(170,60,255,.6); cursor: pointer; }
+.wheel .wl { fill: #fff; font-family: var(--body); font-weight: 900; font-size: 12px; paint-order: stroke; stroke: rgba(10,5,30,.35); stroke-width: 2px; }
+.wheel-pin { position: absolute; left: 50%; top: -14px; width: 0; height: 0; margin-left: -16px; border: 16px solid transparent; border-top: 30px solid #fff; border-bottom: 0; z-index: 2; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+.wheel-res { margin: 0; text-align: center; font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1.15; min-height: 62px; }
+.wheel-res small { display: block; font-family: var(--body); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+/* classement */
+.rank { display: flex; flex-direction: column; gap: 22px; padding-top: 8px; }
+.rank-head { text-align: center; display: flex; flex-direction: column; gap: 6px; }
+.rank-head .mast { font-size: 38px; }
+.rank-date { color: var(--muted); font-weight: 800; font-size: 14px; }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 10px; }
+.pod { flex: 1; max-width: 120px; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.pod-name { font-family: var(--display); font-weight: 800; font-size: 17px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-pts { color: var(--muted); font-weight: 900; font-size: 14px; }
+.pod-step { width: 100%; border-radius: var(--r-s) var(--r-s) 6px 6px; display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 34px; color: var(--ink); margin-top: 6px; }
+.pod.r1 .pod-step { height: 150px; background: linear-gradient(165deg, #FFEC6E, #FFB32E); box-shadow: 0 10px 40px -8px rgba(255,190,40,.7); }
+.pod.r2 .pod-step { height: 112px; background: linear-gradient(165deg, #F2F3FF, #B9BEDD); }
+.pod.r3 .pod-step { height: 86px; background: linear-gradient(165deg, #FFC08A, #F07A3A); }
+.pod.r1 .pod-name { font-size: 20px; }
+.rank-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rank-list li { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: var(--r-l); background: var(--glass); box-shadow: inset 0 0 0 1px var(--hair); }
+.rank-list .rk { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.12); font-weight: 900; font-size: 15px; flex: none; }
+.rank-list .nm { flex: 1; font-weight: 900; font-size: 17px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-list b { font-family: var(--display); font-size: 18px; }
+.mini-rank { display: flex; flex-direction: column; gap: 4px; max-height: 26vh; overflow-y: auto; }
+.mini-rank div { display: flex; justify-content: space-between; padding: 8px 14px; border-radius: 12px; background: rgba(255,255,255,.06); font-weight: 800; color: #fff; }
+
+
+@keyframes cardIn {
+  0% { transform: translateY(34px) scale(.9) rotate(-2.5deg); opacity: 0; }
+  55% { transform: translateY(-6px) scale(1.015) rotate(.6deg); opacity: 1; }
+  80% { transform: translateY(2px) scale(.998) rotate(-.15deg); }
+  100% { transform: none; opacity: 1; }
+}
+.stamp {
+  position: fixed; left: 50%; top: 42%; z-index: 50; pointer-events: none;
+  font-family: var(--display); font-weight: 900; font-size: clamp(24px, 7.6vw, 38px); line-height: 1.04; letter-spacing: -.01em;
+  text-transform: uppercase; text-align: center;
+  color: #fff; width: max-content; max-width: calc(100vw - 48px); white-space: normal; overflow-wrap: normal; hyphens: none;
+  padding: 16px 22px; border-radius: var(--r-l); border: 3px solid var(--red);
+  background: rgba(14,6,36,.9);
+  text-shadow: 0 0 2px #fff, 0 0 10px var(--red), 0 0 26px rgba(255,59,110,.6);
+  box-shadow: 0 0 24px var(--red), inset 0 0 20px rgba(255,59,110,.45);
+  transform: translate(-50%,-50%) rotate(-7deg); animation: stamp .42s cubic-bezier(.2,1.5,.4,1) both;
+}
+.stamp.green { border-color: var(--green); text-shadow: 0 0 2px #fff, 0 0 10px var(--green), 0 0 26px rgba(46,230,160,.6); box-shadow: 0 0 24px var(--green), inset 0 0 20px rgba(46,230,160,.4); }
+.stamp.blue { border-color: var(--blue); text-shadow: 0 0 2px #fff, 0 0 10px var(--blue), 0 0 26px rgba(77,139,255,.6); box-shadow: 0 0 24px var(--blue), inset 0 0 20px rgba(77,139,255,.45); }
+@keyframes stamp {
+  0% { transform: translate(-50%,-50%) rotate(-7deg) scale(1.9); opacity: 0; }
+  45% { opacity: 1; }
+  60% { transform: translate(-50%,-50%) rotate(-7deg) scale(.94); }
+  100% { transform: translate(-50%,-50%) rotate(-7deg) scale(1); opacity: 1; }
+}
+
+.rule-banner {
+  border-radius: var(--r-l); background: var(--g-gold); color: var(--ink); padding: 12px 14px; font-weight: 800; font-size: 16px; line-height: 1.3;
+  display: flex; gap: 10px; align-items: baseline; box-shadow: 0 10px 26px -14px rgba(255,180,40,.7);
+}
+.rule-banner > span:last-child { text-wrap: pretty; }
+.rule-banner .eyebrow { flex: none; background: var(--ink); color: var(--yellow); padding: 4px 9px; border-radius: 999px; }
+.progress {
+  font-weight: 900; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; font-variant-numeric: tabular-nums;
+  background: var(--glass); border: 1px solid var(--hair); padding: 9px 16px; border-radius: 999px; text-align: center; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.big-count {
+  position: relative; z-index: 1;
+  font-family: var(--display); font-weight: 900; font-size: 180px; line-height: 1; text-align: center; color: #fff;
+  text-shadow: 0 0 3px #fff, 0 0 14px var(--red), 0 0 46px rgba(255,59,110,.7);
+  animation: pop .4s cubic-bezier(.2,1.5,.4,1) both; letter-spacing: -.04em;
+}
+.big-count[style] { font-size: clamp(34px, 11vw, 46px) !important; text-transform: uppercase; letter-spacing: 0; }
+.stage:has(.big-count)::before, .stage:has(.big-count)::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; pointer-events: none;
+  border: 3px solid rgba(255,140,190,.75);
+  box-shadow: 0 0 14px rgba(255,59,110,.8), inset 0 0 14px rgba(255,59,110,.6);
+  animation: ring .75s ease-out infinite;
+}
+.stage:has(.big-count)::after { width: 220px; height: 220px; margin: -110px 0 0 -110px; border-color: rgba(255,255,255,.18); box-shadow: none; animation: none; background: radial-gradient(closest-side, rgba(255,59,110,.28), transparent); }
+@keyframes ring { 0% { transform: scale(.82); opacity: 1; } 100% { transform: scale(1.18); opacity: 0; } }
+@keyframes pop { 0% { transform: scale(1.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.timer { font-family: var(--display); font-weight: 900; font-size: 104px; text-align: center; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -.04em; text-shadow: 0 0 30px rgba(255,255,255,.45); }
+.bar { height: 14px; border-radius: 999px; background: rgba(255,255,255,.16); margin: 0 22px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.25); }
+.card .bar { background: rgba(20,5,60,.3); }
+.bar i { display: block; height: 100%; min-width: 14px; border-radius: 999px; background: #fff; box-shadow: 0 0 14px rgba(255,255,255,.7); transition: width 1s linear; }
+/* test: the "n / 25" pill already says it, drop the duplicate track */
+#app > .bar { display: none; }
+
+.secret {
+  position: relative; overflow: hidden; border-radius: var(--r-xl); color: #fff; padding: 34px 22px; text-align: center;
+  display: flex; flex-direction: column; justify-content: center; gap: 14px;
+  border: 2px solid transparent;
+  background: linear-gradient(#150D38, #0F0A2A) padding-box, var(--g-signature) border-box;
+  box-shadow: 0 0 50px -12px rgba(200,60,230,.7), 0 0 0 1px rgba(255,255,255,.04);
+  animation: cardIn .42s cubic-bezier(.25,.9,.35,1) both;
+}
+.stage > .secret { flex: 1 0 auto; min-height: min(440px, 56vh); }
+.secret::before { content: ""; position: absolute; inset: -40% -20% auto; height: 70%; background: radial-gradient(closest-side, rgba(170,70,255,.3), transparent); pointer-events: none; }
+.secret::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 760px; height: 760px; margin: -380px 0 0 -380px; pointer-events: none; z-index: 0;
+  background: repeating-radial-gradient(circle, transparent 0 58px, rgba(190,120,255,.09) 58px 61px);
+  -webkit-mask: radial-gradient(closest-side, #000 30%, transparent); mask: radial-gradient(closest-side, #000 30%, transparent);
+}
+.secret > * { position: relative; z-index: 1; }
+.secret .eyebrow { font-size: 13px; opacity: .92; }
+.secret .mast { font-size: clamp(42px, 14vw, 60px); color: var(--yellow); text-shadow: 0 0 22px currentColor; overflow-wrap: anywhere; line-height: 1.04; }
+.secret p { font-size: 24px; line-height: 1.32; font-weight: 800; }
+
+/* ---------- sheet ---------- */
+.sheet-wrap {
+  position: fixed; inset: 0; z-index: 40; background: rgba(6,3,18,.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3);
+  display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease-out both;
+}
+.sheet {
+  width: 100%; max-width: 480px; background: linear-gradient(180deg, #1D1447 0%, #120B30 100%); color: var(--text);
+  border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: 0 -20px 60px -20px rgba(160,60,255,.55), inset 0 1px 0 rgba(255,255,255,.14);
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;
+  animation: up .26s cubic-bezier(.25,1.2,.4,1) both;
+}
+.sheet::before { content: ""; align-self: center; flex: none; width: 44px; height: 5px; border-radius: 999px; background: rgba(255,255,255,.25); margin-bottom: 6px; }
+.sheet > .mast { margin-bottom: 4px; text-align: center; font-size: 30px !important; }
+.sheet .text { color: #fff; }
+.sheet .seg button { white-space: nowrap; font-size: 14px; padding-inline: 4px; }
+.sheet .linkbtn { color: #FF8FAE; }
+.sheet .section-label { text-align: center; }
+.banlist { display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow-y: auto; }
+.banrow { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.06); border-radius: 14px; padding: 10px 12px; }
+.banrow p { flex: 1; margin: 0; color: #fff; font-weight: 600; font-size: 15px; line-height: 1.3; }
+.banrow small { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+.banrow .linkbtn { padding: 6px; font-size: 14px; }
+@keyframes up { from { transform: translateY(60px); opacity: 0; } }
+@keyframes fade { from { opacity: 0; } }
+.toast { pointer-events: none;
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60;
+  background: var(--g-signature); color: #fff; font-weight: 900; font-size: 16px; padding: 14px 20px; border-radius: 999px;
+  max-width: calc(100% - 32px); width: max-content; text-align: center; box-shadow: 0 12px 34px -10px rgba(210,50,200,.8);
+  animation: toastIn .28s cubic-bezier(.25,1.4,.4,1) both;
+}
+@keyframes toastIn { from { transform: translate(-50%, 30px); opacity: 0; } }
+
+/* ---------- La Une : the night's trophy card ---------- */
+.une {
+  position: relative; overflow: hidden; border-radius: var(--r-xl); display: flex; flex-direction: column; color: #fff;
+  border: 2px solid transparent;
+  background: linear-gradient(180deg, #1A1142 0%, #110B2E 100%) padding-box, var(--g-signature) border-box;
+  box-shadow: 0 0 60px -16px rgba(210,50,200,.75);
+  animation: cardIn .42s cubic-bezier(.25,.9,.35,1) both;
+}
+.une .une-mast {
+  position: relative; overflow: hidden; background: var(--g-sunset); color: #fff;
+  font-family: var(--display); font-weight: 900; font-size: clamp(28px, 8.6vw, 40px); line-height: 1; letter-spacing: -.035em; white-space: nowrap;
+  padding: 18px 12px 22px; text-align: center; text-shadow: 0 4px 18px rgba(120,0,50,.35);
+}
+.une .une-mast::before {
+  content: "Les résultats de la soirée"; display: block; font-family: var(--body); font-weight: 900; font-size: 12px; letter-spacing: .18em;
+  text-transform: uppercase; margin-bottom: 10px; text-shadow: none; opacity: .95;
+}
+.une .une-mast::after { display: none; }
+.une .une-date { display: flex; justify-content: space-between; gap: 8px; padding: 12px 18px 0; font-size: 12px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.une .une-date span:first-letter { text-transform: uppercase; }
+.une .head { padding: 16px 18px 18px; }
+.une .head .kicker { display: inline-block; background: var(--yellow); color: var(--ink); font-weight: 900; font-size: 12px; letter-spacing: .12em; padding: 6px 11px; border-radius: 999px; text-transform: uppercase; margin-bottom: 12px; box-shadow: 0 0 18px rgba(255,224,74,.45); }
+.une .head h2 { font-family: var(--display); font-weight: 800; font-size: clamp(25px, 7.6vw, 32px); line-height: 1.1; letter-spacing: -.02em; overflow-wrap: break-word; hyphens: auto; }
+.une .head p { font-size: 16px; margin-top: 10px; line-height: 1.4; color: var(--muted); font-weight: 700; }
+.une .awards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 18px 14px; }
+.une .aw {
+  --ac: var(--red);
+  position: relative; overflow: hidden; padding: 16px 13px 14px; border-radius: var(--r-l);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ac) 16%, transparent), rgba(255,255,255,.04) 70%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.09); display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.une .aw::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 4px; background: var(--ac); box-shadow: 0 0 16px var(--ac); }
+.une .aw:nth-child(4n+2) { --ac: var(--yellow); }
+.une .aw:nth-child(4n+3) { --ac: #3DE8C9; }
+.une .aw:nth-child(4n+4) { --ac: var(--violet); }
+.une .aw .n { font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1.1; overflow-wrap: anywhere; }
+.une .aw .t { font-weight: 900; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ac); line-height: 1.25; min-height: 2.5em; display: flex; align-items: flex-end; }
+.une .aw .d { font-size: 13.5px; line-height: 1.32; color: var(--muted); font-weight: 700; overflow-wrap: break-word; }
+.une .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 18px; }
+.une .stats div { padding: 12px 4px 11px; text-align: center; display: flex; flex-direction: column; gap: 4px; border-radius: var(--r-s); background: linear-gradient(180deg, rgba(166,107,255,.24), rgba(166,107,255,.08)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); min-width: 0; }
+.une .stats b { font-family: var(--display); font-weight: 900; font-size: 30px; color: var(--yellow); line-height: 1; font-variant-numeric: tabular-nums; text-shadow: 0 0 18px rgba(255,224,74,.5); }
+.une .stats span { font-size: clamp(10.5px, 2.85vw, 13px); font-weight: 800; line-height: 1.2; color: #E6E0FF; letter-spacing: -.005em; overflow-wrap: break-word; }
+.une .foot { padding: 14px 16px 18px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-align: center; color: var(--muted); }
+.preview-img { width: 100%; border-radius: var(--r-l); display: block; box-shadow: 0 0 40px -10px rgba(210,50,200,.6); }
+
+.mission-row { display: flex; align-items: center; gap: 12px; border-radius: var(--r-l); background: var(--glass); border: 1px solid var(--hair); padding: 12px 12px 12px 16px; flex-wrap: wrap; }
+.mission-row .who { font-family: var(--display); font-weight: 800; font-size: 19px; }
+.mission-row .m { font-size: 14.5px; color: var(--muted); line-height: 1.35; font-weight: 700; margin-top: 2px; }
+.mission-row > div { flex: 1 1 160px; min-width: 0; }
+.mission-row .seg { flex: none; }
+.mission-row .seg button { padding: 9px 12px; font-size: 14px; }
+
+/* ---------- reflex pads ---------- */
+.duo-in { width: 100%; }
+#app > .pad, #app > .duel { position: fixed; inset: 0; z-index: 30; }
+#app > .pad-quit { position: fixed; z-index: 35; }
+.pad { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; touch-action: none; user-select: none; -webkit-user-select: none; padding: env(safe-area-inset-top, 0px) 20px env(safe-area-inset-bottom, 0px); transition: background-color .08s; }
+.pad-big { font-family: var(--display); font-weight: 900; font-size: clamp(32px, 10vw, 64px); line-height: 1.04; letter-spacing: -.02em; overflow-wrap: break-word; hyphens: none; max-width: 100%; text-wrap: balance; }
+.pad-small { font-weight: 900; letter-spacing: .1em; text-transform: uppercase; font-size: 20px; font-variant-numeric: tabular-nums; }
+.pad-name { font-family: var(--display); font-weight: 800; font-size: 30px; color: #fff; opacity: 1; }
+.pad-quit { position: fixed; z-index: 35; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); }
+/* duel: quit sits on the centre divider, away from where hands slam */
+.duel ~ .pad-quit { top: 50%; transform: translateY(-50%); right: max(12px, env(safe-area-inset-right, 0px)); background: #1A1240; border-color: rgba(255,255,255,.3); }
+.duel ~ .pad-quit:active { transform: translateY(-50%) scale(.9); }
+.pad.idle, .half.pause { background: radial-gradient(80% 60% at 50% 40%, #2C1F72, #160F3D); color: #fff; }
+/* WAIT = dark, breathing, unmistakably "not yet" */
+.pad.wait { background: radial-gradient(80% 60% at 50% 45%, #0B2A5E, #06132E 70%, #030812); color: #9CC4FF; }
+.half.wait { background: radial-gradient(80% 60% at 50% 45%, #5A0A26, #2A0514 70%, #16020B); color: #FF9DB8; }
+.pad.wait .pad-big { color: #CFE2FF; animation: breathe 1.1s ease-in-out infinite alternate; }
+.half.wait .pad-big { color: #FFC2D2; animation: breathe 1.1s ease-in-out infinite alternate; }
+@keyframes breathe { to { opacity: .55; transform: scale(.97); } }
+/* GO = full flood. Solo copy says "attends le rouge" so solo stays red; the duel uses green */
+.pad.go { background: radial-gradient(90% 70% at 50% 45%, #FF5A4A, #F0123F 70%, #C80A3A); color: #fff; }
+.half.go { background: radial-gradient(90% 70% at 50% 45%, #7DFFC4, #16E08E 60%, #00B26E); color: #06140D; }
+.pad.go .pad-big, .half.go .pad-big { font-size: clamp(64px, 22vw, 110px); animation: pop .2s cubic-bezier(.2,1.5,.4,1) both; }
+.pad.go .pad-big { text-shadow: 0 6px 30px rgba(110,0,20,.45); }
+.half.go .pad-big { text-shadow: none; }
+.half.go .pad-name, .half.go .pad-small { color: #06140D; }
+.pad.early { background: var(--g-gold); color: var(--ink); animation: shake .2s ease-in-out; }
+@keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-10px); } 50% { transform: translateX(9px); } 75% { transform: translateX(-5px); } }
+.duel { display: flex; flex-direction: column; background: #06040F; }
+.half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; touch-action: none; user-select: none; -webkit-user-select: none; text-align: center; padding: 16px; transition: background-color .08s; }
+.half.top { transform: rotate(180deg); border-top: 3px solid var(--violet); box-shadow: 0 -2px 22px rgba(166,107,255,.8); position: relative; z-index: 1; }
+.half.top.pause, .half.pause { border-color: rgba(255,255,255,.18); }
+.half.pause + .half { border-top: 0; }
+.pad .iconbtn, .pad-quit { background: rgba(255,255,255,.14); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+
+/* Le Classement */
+.rank-order { margin: 0 22px; display: grid; gap: 6px; }
+.rank-order > div { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 14px; background: rgba(0,0,0,.2); font-weight: 900; font-size: 18px; }
+.rank-order b { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #C2410C; font-size: 15px; }
+.rank-opts { margin: 0 22px; display: grid; gap: 8px; }
+.rank-opts .btn { min-height: 52px; font-size: 16px; text-transform: none; background: #fff; color: #C2410C; border-color: #fff; box-shadow: 0 6px 16px -8px rgba(0,0,0,.4); }
+/* Outils */
+.tools-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tools-row .btn { min-height: 54px; }
+.tool-wrap { position: fixed; inset: 0; z-index: 60; background: var(--night); display: flex; flex-direction: column; gap: 18px; padding: 12px 0 calc(18px + env(safe-area-inset-bottom)); overflow: hidden; }
+.tool-wrap .actions { margin-top: auto; padding: 0 16px; }
+.dice { flex: 1; display: flex; align-items: center; justify-content: center; gap: 22px; cursor: pointer; }
+.die { width: 120px; height: 120px; border-radius: 26px; background: #fff; display: grid; grid-template-columns: repeat(3, 1fr); padding: 16px; gap: 6px; box-shadow: 0 0 30px rgba(255,80,200,.45), inset 0 -6px 0 rgba(0,0,0,.12); }
+.die i { border-radius: 50%; }
+.die i.on { background: var(--ink); }
+.dice.rolling .die { animation: shake .16s infinite; }
+@keyframes shake { 0% { transform: rotate(-12deg) } 50% { transform: rotate(12deg) } 100% { transform: rotate(-12deg) } }
+.dice-sum { text-align: center; font-family: var(--display); font-weight: 800; font-size: 26px; min-height: 34px; margin: 0; }
+.chooser { position: relative; flex: 1; margin: 0 12px; border-radius: 28px; border: 2px dashed rgba(255,255,255,.2); touch-action: none; user-select: none; -webkit-user-select: none; display: grid; place-items: center; overflow: hidden; }
+.chooser p { text-align: center; font-weight: 800; font-size: 18px; color: var(--muted); padding: 0 24px; pointer-events: none; }
+.finger { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; background: var(--fc); box-shadow: 0 0 0 8px color-mix(in srgb, var(--fc) 35%, transparent), 0 0 40px var(--fc); pointer-events: none; animation: pulse 1s infinite; transition: transform .4s, opacity .4s; }
+@keyframes pulse { 50% { transform: scale(1.12) } }
+.finger.win { animation: none; transform: scale(2.2); }
+.finger.lose { animation: none; opacity: .12; transform: scale(.6); }
+
+/* Changer de carte + votes */
+.changebtn { height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--hair); background: var(--glass-2); color: var(--text); font-family: var(--body); font-weight: 900; font-size: 15px; flex: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
+.changebtn:active { transform: scale(.94); }
+.changebtn:disabled { opacity: .35; }
+.ratebar { display: flex; gap: 10px; justify-content: center; }
+.ratebar button { flex: 1; max-width: 180px; min-height: 40px; border-radius: 999px; border: 1px solid var(--hair); background: var(--glass); color: var(--muted); font-family: var(--body); font-weight: 900; font-size: 15px; transition: transform .12s; }
+.ratebar button:active { transform: scale(.94); }
+.ratebar button[data-v="top"][aria-pressed="true"] { background: linear-gradient(135deg, #FF8A1F, #FF3B6E); color: #fff; border-color: transparent; box-shadow: 0 6px 18px -6px rgba(255,80,60,.7); }
+.ratebar button[data-v="mew"][aria-pressed="true"] { background: #4A4270; color: #fff; border-color: transparent; }
+.ratebar.big button { min-height: 62px; font-size: 18px; max-width: none; }
+.vote-list { display: flex; flex-direction: column; gap: 8px; }
+.vote-list > div { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--hair); }
+.vote-list p { flex: 1; margin: 0; font-weight: 800; font-size: 15px; }
+.vote-list small { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.vote-list .vt { white-space: nowrap; font-weight: 900; }
+/* Podium qui monte */
+.rank-say { text-align: center; margin: -8px 0 0; min-height: 30px; font-family: var(--display); font-weight: 800; font-size: 21px; color: var(--yellow); }
+.rank.anim .pod-step { transform: scaleY(0); transform-origin: bottom; transition: transform .8s cubic-bezier(.2,1.3,.4,1); }
+.rank.anim .pod-step span { opacity: 0; transition: opacity .3s .5s; }
+.rank.anim .pod-name, .rank.anim .pod-pts { opacity: 0; transform: translateY(14px) scale(.8); transition: opacity .4s .55s, transform .5s .55s cubic-bezier(.2,1.6,.4,1); }
+.rank.anim .pod.up .pod-step { transform: none; }
+.rank.anim .pod.up .pod-step span, .rank.anim .pod.up .pod-name, .rank.anim .pod.up .pod-pts { opacity: 1; transform: none; }
+.rank.anim .pod.r1.up .pod-step { animation: winglow 1.2s 1s infinite alternate; }
+@keyframes winglow { to { box-shadow: 0 10px 60px 4px rgba(255,200,40,.9); } }
+.rank.anim .rank-list li { opacity: 0; transform: translateX(-24px); transition: opacity .35s, transform .35s; }
+.rank.anim .rank-list li.up { opacity: 1; transform: none; }
+.actions.wait { opacity: 0; pointer-events: none; }
+.actions { transition: opacity .4s; }
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+.confetti i { position: absolute; top: -20px; width: 9px; height: 15px; border-radius: 2px; animation: fall linear forwards; }
+@keyframes fall { to { top: 105%; transform: translateX(30px) rotate(540deg); } }
+
+.tag { display: inline-block; } .tag, .pod .tag, .rank-list .tag { font-family: var(--display); font-weight: 800; font-size: 13px; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.pod .tag { margin-bottom: 4px; opacity: 0; transform: scale(.4) rotate(-6deg); transition: opacity .3s 1s, transform .5s 1s cubic-bezier(.2,1.8,.4,1); }
+.rank.anim .pod.up .tag, .rank:not(.anim) .pod .tag { opacity: 1; transform: rotate(-4deg); }
+.tag.win { background: var(--yellow); color: var(--ink); box-shadow: 0 0 22px rgba(255,220,60,.7); }
+.tag.lose { background: #4A4270; color: #fff; }
+.rank-list .tag { font-size: 12px; }
+.propose { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 24px; }
+.propose .chips { padding: 0; }
+.propose .chip.pick { min-height: 42px; font-size: 15px; padding: 8px 14px; }
+
+/* Puissance 4 */
+.p4-msg { text-align: center; margin: 0; font-family: var(--display); font-weight: 800; font-size: 21px; display: flex; gap: 10px; align-items: center; justify-content: center; min-height: 30px; }
+.p4c { width: 22px; height: 22px; border-radius: 50%; display: inline-block; }
+.p4c.p0, .p4 i.p0 { background: radial-gradient(circle at 35% 30%, #FF8FB0, #FF3B6E 60%, #C80F48); }
+.p4c.p1, .p4 i.p1 { background: radial-gradient(circle at 35% 30%, #FFF3A0, #FFC93C 60%, #D99A00); }
+.p4 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 8px; border-radius: 22px; background: linear-gradient(165deg, #3550F0, #2A2BB8); box-shadow: 0 20px 50px -14px rgba(60,80,255,.7), inset 0 2px 0 rgba(255,255,255,.25); }
+.p4col { border: 0; background: none; padding: 0; display: grid; grid-template-rows: repeat(6, 1fr); gap: 4px; border-radius: 12px; }
+.p4col:active { background: rgba(255,255,255,.12); }
+.p4 i { aspect-ratio: 1; border-radius: 50%; background: #0B0720; box-shadow: inset 0 3px 6px rgba(0,0,0,.6); }
+.p4 i.drop { animation: p4drop calc(.12s + var(--r) * .05s) cubic-bezier(.5,0,.75,0) both, p4bounce .25s calc(.12s + var(--r) * .05s); }
+@keyframes p4drop { from { transform: translateY(calc(var(--r) * -110%)); } }
+@keyframes p4bounce { 40% { transform: translateY(-10%); } }
+.p4 i.hl { box-shadow: 0 0 0 3px #fff, 0 0 18px #fff; }
+/* Uno */
+.uno { position: relative; width: 58px; height: 86px; flex: none; border-radius: 10px; border: 3px solid #fff; background: var(--uc); color: #fff; font-family: var(--display); font-weight: 900; font-size: 22px; display: grid; place-items: center; box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); padding: 0; }
+.uno span { width: 78%; height: 62%; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--uc); display: grid; place-items: center; transform: rotate(-18deg); }
+.uno.wild { background: conic-gradient(#FF3B6E 0 25%, #FFC93C 0 50%, #2EE6A0 0 75%, #4D8BFF 0); }
+.uno.wild span { color: #1A0F2E; }
+.uno.big { width: 92px; height: 136px; font-size: 34px; border-width: 4px; }
+.uno.no { opacity: .38; filter: saturate(.5); }
+.uno.ok { transform: translateY(-6px); box-shadow: 0 0 0 3px rgba(255,255,255,.4), 0 12px 22px -8px rgba(0,0,0,.7); }
+.uno-table { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.uno-top { display: flex; align-items: center; gap: 14px; }
+.uno-col { padding: 6px 12px; border-radius: 999px; color: #1A0F2E; font-weight: 900; text-transform: uppercase; font-size: 13px; letter-spacing: .08em; }
+.uno-players { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.uno-players span { padding: 5px 11px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-weight: 800; font-size: 14px; }
+.uno-players span.on { background: #fff; color: var(--ink); }
+.uno-log { margin: 0; text-align: center; color: var(--muted); font-weight: 700; font-size: 14.5px; padding: 0 12px; }
+.uno-hand { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px 0 4px; }
+.uno-colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.uno-colors button { min-height: 70px; border: 0; border-radius: 18px; color: #1A0F2E; font-weight: 900; font-size: 18px; text-transform: capitalize; }
+</style>
+
+<script>window.THEME = {
+  "bg": "#0B0720",
+  "dots": "",
+  "page": "#170E3D",
+  "line": "#E03ACB",
+  "shadow": "#000000",
+  "ink": "#FFFFFF",
+  "soft": "#D9D2FF",
+  "accent": "#FF2E7A",
+  "onAccent": "#FFFFFF",
+  "highlight": "#FFE04A",
+  "onHighlight": "#1A0F2E",
+  "band": "#2A1670",
+  "bandNum": "#FFE04A",
+  "bandText": "#FFFFFF",
+  "footer": "#FF2E7A",
+  "onFooter": "#FFFFFF",
+  "display": "Unbounded",
+  "displayWeight": "800",
+  "body": "Nunito",
+  "radius": 48,
+  "upper": false,
+  "shadowOffset": 0
+};</script>
+<div id="app"></div>
+
+<script>
+/* =====================================================================
+   CONTENU — chaque carte : [niveau 1-3, texte]. {p} = joueur visé, {q} = un autre joueur.
+   ===================================================================== */
+const C = {
+  jamais: [
+    [1,"fait le mort pour pas aller à une soirée"],[1,"appliqué la règle des 5 secondes sur un truc tombé par terre"],[1,"voulu me faire un piercing à la langue"],
+    [1,"eu mon permis du premier coup"],[1,"passé plus de 3 jours sans me doucher"],[1,"dormi dans une voiture"],[1,"menti sur mon âge"],
+    [1,"dit « j'arrive » alors que j'étais encore sous la douche"],[1,"fait semblant d'avoir vu un film pour suivre la conversation"],[1,"tapé mon propre nom sur Google"],
+    [1,"raté un avion ou un train"],[1,"pleuré devant un Disney"],[1,"chanté à fond en voiture au feu rouge et croisé le regard du voisin"],
+    [1,"appelé un prof « maman »"],[1,"eu les voisins qui tapent au mur à cause du bruit"],[1,"fait une nuit blanche sur un jeu vidéo"],
+    [1,"mangé un kebab à 5 h du mat"],[1,"fait du stop"],[1,"envoyé un vocal de plus de 5 minutes"],[1,"fait semblant de pas voir quelqu'un dans la rue"],
+    [1,"porté le même caleçon deux jours de suite"],[1,"loupé une marche devant tout le monde"],[1,"inventé une excuse bidon pour un retard"],
+    [1,"ri à un moment où fallait surtout pas"],[1,"fait pipi dans une piscine"],[1,"cassé un truc chez quelqu'un sans rien dire"],
+    [1,"eu une coupe tellement ratée que j'ai porté une casquette pendant une semaine"],[1,"mangé un truc périmé depuis plus d'un mois"],
+    [2,"fini en PLS avant même que la soirée commence"],[2,"fumé de la beuh"],[2,"volé dans un magasin"],[2,"pris la route bourré"],
+    [2,"épilé un pote"],[2,"vomi dans un Uber"],[2,"été refoulé d'une boîte"],[2,"ghosté quelqu'un"],[2,"dit du mal de quelqu'un ici"],
+    [2,"créé un faux compte pour stalker quelqu'un"],[2,"été viré d'un groupe WhatsApp"],[2,"balancé un secret qu'on m'avait confié"],
+    [2,"menti à mes parents sur où je dormais"],[2,"claqué plus de 100 balles en une soirée"],[2,"fait un tatouage que je regrette"],
+    [2,"été viré d'un taf"],[2,"pécho quelqu'un de ce groupe"],[2,"kiffé le mec ou la meuf d'un pote"],[2,"dit « je t'aime » sans le penser"],
+    [2,"séché les cours pour aller à la plage"],[2,"fini une soirée en pleurant"],[2,"utilisé {q} comme excuse pour me barrer d'un date pourri"],
+    [2,"triché à un exam"],[2,"conduit sans permis"],[2,"fait le mur"],[2,"menti dans ce jeu ce soir"],[2,"dormi chez {q} sans prévenir mes parents"],
+    [3,"pécho deux personnes dans la même soirée"],[3,"envoyé une photo coquine que je regrette"],[3,"oublié comment je suis rentré chez moi"],
+    [3,"couché avec quelqu'un dont j'ai oublié le prénom"],[3,"trompé quelqu'un"],[3,"simulé"],[3,"fait l'amour dans un lieu public"],
+    [3,"recouché avec un ex"],[3,"fait un plan à trois"],[3,"gonflé une capote pour faire rire tout le monde"],[3,"passé une nuit en garde à vue"],
+    [3,"commandé un truc sur le darknet"],[3,"eu une relation cachée à tout le monde"],[3,"couché le premier soir"],[3,"fait l'amour chez mes parents"],
+    [3,"dormi dehors après une soirée"]
+  ],
+  verite: [
+    [1,"C'est quoi le pire truc que t'aies mangé ?"],[1,"C'était quoi ton premier pseudo sur internet ?"],[1,"C'est quoi la chanson la plus honteuse que tu connais par cœur ?"],
+    [1,"Qui ici tu appelles pour t'aider à cacher un corps ?"],[1,"Qui ici meurt en premier dans un film d'horreur ?"],[1,"C'est quoi ta plus grosse phobie ?"],
+    [1,"C'est quoi ta pire honte au collège ?"],[1,"C'est quoi le dernier mytho que t'as raconté ?"],[1,"Tu gagnes un million demain : tu claques quoi en premier ?"],
+    [1,"C'est quoi le pire cadeau qu'on t'ait fait, et c'était de qui ?"],[1,"Qu'est-ce que tu fais quand t'es seul chez toi et que personne doit savoir ?"],
+    [1,"C'est quoi l'appli la plus honteuse sur ton téléphone ?"],[1,"Tu voulais faire quel métier quand t'étais petit ?"],
+    [1,"C'est quoi le plat que tout le monde adore et que toi tu peux pas saquer ?"],[1,"Qui ici ferait le pire coloc ?"],
+    [1,"C'était quoi ta pire note, et dans quelle matière ?"],[1,"Qui ici te ressemble le plus ?"],[1,"T'as cassé quoi de plus cher dans ta vie ?"],
+    [2,"Raconte ton plus gros râteau."],[2,"À qui ici t'as déjà menti ?"],[2,"C'est quoi ton crush le plus inavouable ?"],
+    [2,"Note le style de {q} sur 10, et justifie."],[2,"Qui ici t'énerve le plus ?"],[2,"Avec qui ici tu partirais jamais en vacances ?"],
+    [2,"C'est quoi le message que tu regrettes le plus d'avoir envoyé ?"],[2,"C'est quoi le pire coup que t'as fait à un pote ?"],
+    [2,"T'as combien sur ton compte, à 100 balles près ?"],[2,"C'est quoi le pire taf que t'aies fait ?"],[2,"Quelle rumeur sur toi était vraie ?"],
+    [2,"Qui ici a les pires goûts en amour ?"],[2,"C'est quoi le truc le plus con que t'as fait bourré ?"],[2,"T'as déjà été jaloux de quelqu'un ici ? De qui ?"],
+    [2,"Qu'est-ce que tu penses vraiment du dernier mec ou de la dernière meuf de {q} ?"],
+    [3,"Avec qui ici tu sortirais si t'étais obligé ?"],[3,"Raconte ta pire expérience au lit."],[3,"C'est quoi ton fantasme le plus inavouable ?"],
+    [3,"T'as déjà kiffé quelqu'un ici ? Qui ?"],[3,"Raconte ton dernier rêve érotique, prénoms compris."],[3,"C'est quel ex que tu regrettes le plus ?"],
+    [3,"C'est quoi le truc le plus illégal que t'aies fait ?"],[3,"Si tu devais couper les ponts avec quelqu'un ici, ce serait qui ?"],
+    [3,"C'est quoi le plus gros mytho que t'as raconté à tes parents ?"],[3,"Raconte ta pire soirée, du début à la fin."],
+    [3,"C'est quoi le pire truc que t'as pensé de quelqu'un ici ?"],[3,"C'est quoi l'endroit le plus improbable où t'as fait l'amour ?"]
+  ],
+  action: [
+    [1,"Fais un compliment chelou mais sincère à chaque joueur."],[1,"Commente ce que fait {q} pendant 30 secondes comme dans un docu animalier."],
+    [1,"Imite {q} jusqu'à ce que quelqu'un trouve qui c'est."],[1,"Parle avec l'accent marseillais jusqu'à ton prochain tour."],
+    [1,"Vends l'objet le plus proche de toi comme dans un téléachat. T'as 20 secondes."],[1,"Chante le refrain d'une chanson choisie par {q}."],
+    [1,"Danse sans musique pendant 20 secondes."],[1,"Fais un défilé de mannequin d'un bout à l'autre de la pièce."],[1,"Fais deviner un film à {q} uniquement en mimant."],
+    [1,"Imite un prof que t'as eu, les autres devinent sa matière."],[1,"Commente les 30 prochaines secondes de la soirée comme un match de foot."],
+    [1,"Fais un discours de témoin de mariage pour {q}."],[1,"Fais 15 secondes de beatbox."],[1,"Reste sur une jambe jusqu'à ton prochain tour."],
+    [1,"Fais ta pire grimace. Le groupe vote si ça passe."],[1,"{q} joue ton date pourri. T'as 30 secondes pour trouver une excuse et te barrer."],
+    [1,"Parle comme un GPS jusqu'à ton prochain tour."],[1,"Fais 10 pompes ou 20 squats, au choix."],
+    [2,"Laisse {q} te coiffer avec les moyens du bord."],[2,"Fais ton meilleur pas de danse de mariage. Le groupe note sur 10."],
+    [2,"Raconte un souvenir gênant avec {q} que personne ici connaît."],[2,"Mets ton t-shirt à l'envers jusqu'à la fin de la partie."],
+    [2,"Fais la voix off d'une pub de parfum, avec {q} en mannequin."],[2,"Fais un rap de 4 phrases sur {q}."],
+    [2,"Joue une scène de rupture bien dramatique avec {q}."],[2,"Masse les épaules de {q} pendant 30 secondes."],
+    [2,"Échange un vêtement avec {q} jusqu'à la fin de la partie."],[2,"Fais un slow de 20 secondes avec {q}."],
+    [2,"Fais une déclaration d'amour à {q}, à genoux."],[2,"{q} te pose une question. T'as pas le droit de mentir."],
+    [3,"Fais un bisou sur la joue de {q}, très lentement."],[3,"Fais une danse sensuelle de 15 secondes à une chaise. Le groupe note sur 10."],
+    [3,"Murmure un truc osé à l'oreille de {q}."],[3,"Retire un vêtement, le plus sexy possible (les chaussettes comptent)."],
+    [3,"Assieds-toi sur les genoux de {q} jusqu'à ton prochain tour."],[3,"Le groupe te pose 3 questions. T'as pas le droit d'en refuser une."]
+  ],
+  qui: [
+    [1,"sortir avec quelqu'un juste parce qu'il est connu"],[1,"prendre ce jeu trop au sérieux"],[1,"tenir un an sans acheter de fringues"],
+    [1,"parler en dormant"],[1,"être en retard à son propre mariage"],[1,"danser seulement quand il est bourré"],[1,"ne jamais danser en soirée"],
+    [1,"trouver l'amour sur Tinder"],[1,"être le plus nul en drague"],[1,"avoir encore peur du noir"],[1,"monter sa boîte"],
+    [1,"devenir le meilleur pâtissier du groupe"],[1,"finir avec le plus de tatouages"],[1,"finir sur BFM pour une connerie"],
+    [1,"se faire avoir par un faux SMS de colis"],[1,"s'endormir sur le canapé avant minuit"],[1,"tenter sa chance avec le serveur avant le dessert"],
+    [1,"se perdre même avec un GPS"],[1,"rater son avion"],[1,"finir dans une téléréalité"],[1,"claquer tout son salaire en un week-end"],
+    [1,"adopter trois chats d'un coup"],[1,"devenir millionnaire avant 30 ans"],[1,"partir vivre à l'autre bout du monde"],[1,"avoir 5 gosses"],
+    [1,"perdre son téléphone ce soir"],[1,"devenir influenceur"],[1,"gagner à un jeu télé"],[1,"rire à un enterrement"],
+    [1,"survivre le plus longtemps dans un film d'horreur"],[1,"finir les restes de tout le monde ce soir"],
+    [2,"vomir dans son lit ce soir"],[2,"commander un truc sur le darknet"],[2,"finir la soirée en pleurant"],[2,"se marier bourré à Las Vegas"],
+    [2,"avoir un compte Insta secret"],[2,"se faire virer pour une connerie"],[2,"mytho sur son CV"],[2,"avoir la pire gueule de bois demain"],
+    [2,"balancer un secret du groupe sans faire exprès"],[2,"ghoster quelqu'un après trois dates"],[2,"se faire tatouer le prénom de son mec ou de sa meuf"],
+    [2,"vider le frigo de ses potes"],[2,"se faire refouler de boîte"],[2,"gonfler des capotes pour rigoler"],
+    [3,"avoir la vie sexuelle la plus agitée"],[3,"recoucher avec son ex ce mois-ci"],[3,"avoir une double vie"],
+    [3,"envoyer des nudes à la mauvaise personne"],[3,"tromper sans culpabiliser"],[3,"pécho quelqu'un ici avant la fin de la soirée"],
+    [3,"finir la soirée aux urgences"],[3,"rentrer à pied à 6 h du mat"],[3,"finir en garde à vue"]
+  ],
+  pref: [
+    [1,"passer une nuit seul dans le désert du Sahara","passer une nuit seul au pôle Nord"],
+    [1,"boire que du soda pendant une semaine","boire que de l'eau pendant une semaine"],
+    [1,"avoir le crâne rasé à vie","ne plus jamais pouvoir te couper les cheveux"],
+    [1,"avoir le visage de Brad Pitt","avoir le cerveau d'Einstein"],
+    [1,"entendre en fond des ongles sur un tableau, tout le temps","entendre en fond une fourchette sur une assiette, tout le temps"],
+    [1,"payer le resto à tout le monde ici","faire leur vaisselle pendant un mois"],
+    [1,"retourner vivre un an chez tes parents","vivre 6 mois en coloc avec 5 inconnus"],
+    [1,"ne plus jamais boire d'alcool","ne plus jamais manger de fromage"],
+    [1,"être en couple avec quelqu'un qui a les mêmes centres d'intérêt que toi","être en couple avec quelqu'un qui a des centres d'intérêt complètement différents"],
+    [1,"avoir 50 % de chances de gagner 1 million","avoir 75 % de chances de gagner 100 000 €"],
+    [1,"être toujours 30 minutes en retard","être toujours 30 minutes en avance"],
+    [1,"ne plus jamais pouvoir mentir","ne plus jamais pouvoir garder un secret"],
+    [1,"un mois sans téléphone","un mois sans sortir de chez toi"],
+    [1,"dire oui à tout pendant 24 h","dire non à tout pendant 24 h"],
+    [1,"pouvoir voler","pouvoir devenir invisible"],
+    [1,"parler toutes les langues du monde","jouer de tous les instruments"],
+    [1,"pouvoir revenir 10 secondes en arrière","voir 10 secondes dans le futur"],
+    [1,"ne plus jamais avoir de wifi chez toi","ne plus jamais avoir d'eau chaude"],
+    [1,"vivre sans musique","vivre sans films ni séries"],
+    [1,"avoir le hoquet toute ta vie","avoir envie d'éternuer toute ta vie sans jamais y arriver"],
+    [1,"manger un kebab tous les jours","ne plus jamais manger de kebab"],
+    [1,"connaître la date de ta mort","connaître la cause de ta mort"],
+    [1,"être riche et moche","être fauché et canon"],
+    [1,"n'avoir que des potes drôles","n'avoir que des potes fiables"],
+    [1,"refaire une année de collège","bosser un an sans vacances"],
+    [2,"te coltiner ton ex à tous les repas de famille","te coltiner ton patron à toutes tes vacances"],
+    [2,"que ta mère vienne à toutes tes soirées","que ton patron vienne à toutes tes soirées"],
+    [2,"rester célibataire 5 ans","rester 5 ans avec ton ex"],
+    [2,"savoir ce que tout le monde ici pense vraiment de toi","ne jamais le savoir"],
+    [2,"sortir avec quelqu'un de canon mais chiant","sortir avec quelqu'un de marrant mais pas du tout ton genre"],
+    [2,"être le dernier au courant de tous les potins","être celui dont tout le monde parle"],
+    [2,"être en coloc avec {q} pendant un an","partir un mois en van avec {q}"],
+    [2,"dire tout ce que tu penses pendant une soirée","ne pas dire un mot de la soirée"],
+    [2,"gagner un million mais ne plus jamais revoir ce groupe","rester fauché avec ce groupe"],
+    [2,"partir en vacances avec {q}","partir en vacances tout seul"],
+    [2,"te faire larguer par SMS","te faire larguer devant tous tes potes"],
+    [3,"que tes parents te surprennent au lit","surprendre tes parents au lit"],
+    [3,"ne plus jamais faire l'amour","ne plus jamais boire une goutte d'alcool"],
+    [3,"un plan cul génial mais secret","une relation moyenne mais officielle"],
+    [3,"une nuit au lit avec ton crush, mais tout le monde est au courant","rien du tout, et personne ne sait rien"],
+    [3,"passer une nuit en garde à vue","passer une nuit seul dans une maison abandonnée"],
+    [3,"révéler ici ton plus gros secret","que {q} raconte ta pire soirée à tout le monde"]
+  ],
+  menteur: [
+    [1,"T'as déjà fait pipi dans une piscine ?"],[1,"T'as déjà pleuré devant un Disney ?"],[1,"T'as déjà goûté des croquettes pour chien ?"],
+    [1,"T'as déjà volé dans un magasin ?"],[1,"T'as déjà mis les pieds dans un commissariat ?"],[1,"T'as déjà triché à un exam ?"],
+    [1,"Tu t'es déjà endormi en cours ou en réunion ?"],[1,"T'as déjà dormi dans un aéroport ?"],[1,"T'as déjà croisé une star en vrai ?"],
+    [1,"T'as déjà été flashé par un radar ?"],[1,"T'as déjà fugué ?"],[1,"T'as déjà mangé un truc périmé depuis plus d'un mois ?"],
+    [2,"T'as déjà pécho quelqu'un de ce groupe ?"],[2,"T'as déjà kiffé un prof ?"],[2,"Tu t'es déjà fait larguer par SMS ?"],
+    [2,"T'as déjà fouillé le téléphone de ton mec ou de ta meuf ?"],[2,"T'as déjà fait semblant d'être bourré ?"],
+    [2,"T'as déjà dit du mal de quelqu'un ici ?"],[2,"T'as déjà mytho sur ton CV ?"],[2,"T'as déjà pleuré au boulot ?"],
+    [2,"Tu t'es déjà fait bloquer par quelqu'un sur les réseaux ?"],[2,"T'as déjà fumé de la beuh ?"],
+    [3,"T'as déjà couché le premier soir ?"],[3,"T'as déjà envoyé une photo osée ?"],[3,"T'as déjà trompé quelqu'un ?"],
+    [3,"T'as déjà fait l'amour dans une voiture ?"],[3,"T'as déjà recouché avec un ex ?"],[3,"T'as déjà passé une nuit en garde à vue ?"]
+  ],
+  classement: [
+    [1,"le plus bordélique"],[1,"le plus radin"],[1,"toujours en retard"],[1,"le plus drôle"],[1,"le plus susceptible"],[1,"le plus mauvais perdant"],
+    [1,"le plus accro à son téléphone"],[1,"le plus gourmand"],[1,"le plus râleur"],[1,"le plus tête en l'air"],[1,"le plus mytho"],[1,"le plus sportif"],
+    [1,"le plus flemmard"],[1,"le plus maniaque"],[1,"le plus fêtard"],[1,"le plus intello"],[1,"le plus naïf"],[1,"le plus têtu"],
+    [1,"le plus généreux"],[1,"le plus stylé"],[1,"le pire cuisinier"],[1,"le plus peureux"],[1,"le plus bavard"],[1,"le plus dramatique"],
+    [1,"le plus chanceux"],[1,"celui qui survit le plus longtemps sur une île déserte"],[1,"celui qui finira le plus riche"],[1,"celui qui se mariera en premier"],
+    [1,"le plus gros dormeur"],[1,"le pire conducteur"],[1,"le plus fan de téléréalité"],[1,"le meilleur pour garder un secret"],
+    [1,"le plus influençable"],[1,"celui qui pleure le plus devant un film"],
+    [2,"le plus jaloux"],[2,"le plus hypocrite"],[2,"celui qui tient le moins l'alcool"],[2,"le plus relou quand il est bourré"],
+    [2,"celui qui ghoste le plus"],[2,"le plus nul en drague"],[2,"le plus fleur bleue"],[2,"celui qui a les pires ex"],[2,"le plus égoïste"],
+    [2,"celui qui finira en garde à vue en premier"],[2,"le plus dragueur"],[2,"le pire pour garder un secret"],
+    [3,"le plus chaud au lit"],[3,"celui qui a eu le plus de plans cul"],[3,"le plus coquin"],[3,"celui qui a le fantasme le plus bizarre"],
+    [3,"celui qui tromperait en premier"],[3,"le plus doué pour le sexe"]
+  ],
+  ouinon: [
+    [1,"Tu pourrais vivre un mois sans téléphone ?"],[1,"Tu mangerais un insecte pour 50 € ?"],[1,"Tu crois aux fantômes ?"],
+    [1,"Tu partirais vivre sur Mars, sans retour ?"],[1,"Tu tiendrais un an sans fast-food ?"],[1,"Tu te raserais la tête pour 1 000 € ?"],
+    [1,"Tu ferais un saut à l'élastique ?"],[1,"Tu rendrais un portefeuille plein de billets ?"],[1,"Tu pourrais devenir végétarien ?"],
+    [1,"Tu ferais une téléréalité pour 100 000 € ?"],[1,"Tu crois au coup de foudre ?"],[1,"Tu pourrais lâcher les réseaux sociaux pour de bon ?"],
+    [1,"Tu voudrais connaître la date de ta mort ?"],[1,"Tu pardonnerais à un pote qui t'a volé 100 balles ?"],[1,"Tu prendrais une pilule pour ne plus jamais dormir ?"],
+    [1,"Tu lâcherais internet à vie pour 1 million ?"],[1,"Tu pourrais vivre en coloc avec quelqu'un ici ?"],[1,"Tu confierais ton chien à {q} pendant une semaine ?"],
+    [1,"Tu prêterais ta voiture à {q} ?"],[1,"Tu chanterais au karaoké ce soir ?"],[1,"Tu ferais le tour du monde tout seul ?"],
+    [1,"Tu retournerais au collège pour un an si on te payait ?"],[1,"Tu goûterais à la nourriture pour chat ?"],[1,"Tu partirais en vacances avec {q} pendant un mois ?"],
+    [1,"Tu remets un jean une semaine entière sans le laver ?"],[1,"Tu ferais une semaine de silence total pour 5 000 € ?"],
+    [2,"Tu retournerais avec un ex ?"],[2,"Tu pourrais sortir avec quelqu'un de 15 ans de plus que toi ?"],
+    [2,"Tu regarderais le téléphone de ton mec ou de ta meuf s'il était déverrouillé ?"],[2,"Tu pardonnerais une tromperie ?"],
+    [2,"Tu sortirais avec l'ex d'un pote ?"],[2,"Tu pourrais tenir une relation à distance ?"],[2,"Tu ferais un date à l'aveugle ?"],
+    [2,"Tu te marierais sans avoir vécu ensemble avant ?"],[2,"Tu dirais « je t'aime » en premier ?"],[2,"Tu plaquerais tout pour suivre quelqu'un à l'autre bout du monde ?"],
+    [2,"Tu dirais à ton pote que sa meuf le trompe ?"],[2,"Tu pourrais rester ami avec un ex ?"],[2,"Tu sortirais avec quelqu'un qui gagne 10 fois moins que toi ?"],
+    [3,"Tu ferais un plan à trois ?"],[3,"Tu coucherais le premier soir ?"],[3,"Tu accepterais un couple libre, où chacun peut coucher ailleurs ?"],
+    [3,"Tu enverrais des nudes à quelqu'un que t'as jamais vu ?"],[3,"Tu ferais l'amour dans les toilettes d'un avion ?"],
+    [3,"T'as un fantasme que t'as jamais dit à personne ?"],[3,"Tu pourrais avoir un plan cul avec quelqu'un ici ?"]
+  ],
+  radar: [
+    [1,"Pas grave","Impardonnable"],[1,"Nul","Génial"],[1,"Sous-coté","Surcoté"],[1,"Pas cher","Hors de prix"],[1,"Facile","Impossible"],
+    [1,"Ringard","Stylé"],[1,"Inutile","Indispensable"],[1,"Gênant","Classe"],[1,"Sain","Pas sain du tout"],[1,"Inconnu","Mondialement connu"],
+    [1,"Chiant","Passionnant"],[1,"Pour les enfants","Pour les adultes"],[1,"Odeur horrible","Odeur divine"],[1,"Navet","Chef-d'œuvre"],
+    [1,"Talent inutile","Talent utile"],[1,"Cadeau raté","Cadeau parfait"],[1,"Habitude normale","Habitude bizarre"],[1,"Froid","Brûlant"],
+    [1,"Petit plaisir","Bonheur absolu"],[1,"Pas effrayant","Terrifiant"],[1,"Facile à dessiner","Impossible à dessiner"],[1,"Mauvais métier","Métier de rêve"],
+    [1,"Plat d'hiver","Plat d'été"],[1,"Fragile","Indestructible"],[1,"Ennuyeux à regarder","Fascinant à regarder"],[1,"Inoffensif","Dangereux"],
+    [1,"Old school","Moderne"],[1,"Pire vacances","Vacances parfaites"],[1,"Superpouvoir nul","Superpouvoir incroyable"],
+    [2,"Green flag","Red flag"],[2,"Parfait pour un premier rencard","Catastrophique pour un premier rencard"],[2,"Ça se pardonne","Rupture direct"],
+    [2,"Pas romantique","Très romantique"],[2,"Soirée calme","Soirée qui part en vrille"],[2,"Excuse crédible","Excuse ridicule"],
+    [2,"Message normal à 3 h du matin","Message flippant à 3 h du matin"],[2,"Pote fiable","Pote à fuir"],[2,"Mauvais prénom de bébé","Super prénom de bébé"],
+    [2,"Ça se dit au boulot","Ça ne se dit jamais au boulot"],[2,"Socialement acceptable","Socialement interdit"],
+    [3,"Pas sexy","Très sexy"],[3,"Rencard sage","Rencard très osé"],[3,"Ça reste entre nous","Ça finit en garde à vue"],[3,"Gueule de bois légère","Gueule de bois mortelle"]
+  ],
+  imposteur: [
+    [1,"Nourriture","Raclette"],[1,"Nourriture","Pizza"],[1,"Nourriture","Kebab"],[1,"Nourriture","Sushi"],[1,"Nourriture","Crêpe"],[1,"Nourriture","Tacos"],[1,"Nourriture","Fondue"],
+    [1,"Lieu","Aéroport"],[1,"Lieu","Piscine"],[1,"Lieu","Hôpital"],[1,"Lieu","Boîte de nuit"],[1,"Lieu","Supermarché"],[1,"Lieu","Salle de sport"],
+    [1,"Lieu","Cinéma"],[1,"Lieu","Zoo"],[1,"Lieu","Prison"],
+    [1,"Métier","Pompier"],[1,"Métier","Dentiste"],[1,"Métier","Influenceur"],[1,"Métier","Prof"],[1,"Métier","Chirurgien"],
+    [1,"Animal","Pingouin"],[1,"Animal","Moustique"],[1,"Animal","Requin"],[1,"Objet","Brosse à dents"],[1,"Objet","Parapluie"],[1,"Objet","Tire-bouchon"],
+    [1,"Film","Titanic"],[1,"Film","Harry Potter"],[1,"Série","Friends"],[1,"Sport","Pétanque"],[1,"Sport","Ski"],[1,"Sport","Foot"],
+    [1,"Soirée","Gueule de bois"],[1,"Appli","TikTok"],[1,"Appli","Tinder"],[1,"Fête","Mariage"],[1,"Fête","Nouvel An"],[1,"Fête","Halloween"],
+    [1,"Vacances","Camping"],[1,"Vacances","Croisière"],[1,"Transport","Métro"],[1,"Transport","Avion"]
+  ]
+};
+/* contenu « ex et sexe » : masqué quand l'interrupteur est coupé */
+const HOT = /(^|[\s'’])ex([\s,.?!]|$)|sex|coquin|nude|plan cul|au lit|fantasme|érotique|orgasm|simul|couch|l'amour|plan à trois|(^|[\s'’])osée?|sensuel|tromp|capote|préservatif/i;
+const isHot = parts => HOT.test(parts.join(" "));
+const TYPES = {
+  uno:       { label: "Uno", color: "var(--yellow)", dark: false, desc: "" },
+  jamais:    { label: "Je n'ai jamais", color: "var(--violet)", dark: true,  desc: "Ceux qui l'ont fait se balancent." },
+  av:        { label: "Action ou vérité", color: "var(--yellow)", dark: false, desc: "Une question ou un défi. L'action rapporte plus." },
+  qui:       { label: "Qui pourrait", color: "var(--red)", dark: true, desc: "Tout le monde pointe du doigt en même temps." },
+  pref:      { label: "Tu préfères", color: "var(--ink)", dark: true, desc: "Deux choix impossibles. La majorité marque." },
+  imposteur: { label: "L'Imposteur", color: "var(--green)", dark: true, desc: "Un joueur n'a pas le mot. Démasquez-le." },
+  classement: { label: "Le Classement", color: "var(--rank)", dark: true, desc: "Un joueur classe tout le monde. Chacun retrouve la question." },
+  ouinon:    { label: "Oui ou non", color: "var(--yesno)", dark: true, desc: "Une question, tout le monde répond en même temps. Sans débat." },
+  radar:     { label: "Le Radar", color: "var(--radar)", dark: true, desc: "Un indice, une aiguille : visez la cible secrète." },
+  menteur:   { label: "Le Menteur", color: "var(--blue)", dark: true, desc: "L'appli dit en secret au joueur s'il doit mentir." },
+  deux:      { label: "Qui de nous deux", color: "var(--violet)", dark: true, desc: "" },
+  reflexe:   { label: "Duel réflexe", color: "var(--blue)", dark: true, desc: "" },
+  test:      { label: "Test de scandale", color: "var(--red)", dark: true, desc: "" }
+};
+const LEVELS = [
+  { n: 1, name: "Chill", desc: "Entre collègues, en famille, pour démarrer." },
+  { n: 2, name: "Épicé", desc: "La soirée entre potes classique." },
+  { n: 3, name: "Hors de contrôle", desc: "Fin de soirée, adultes consentants, aucune limite de bon goût." }
+];
+
+/* =====================================================================
+   OUTILS
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("scandale:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("scandale:" + k, JSON.stringify(v)); } catch (e) {} }
+};
+let timers = [];
+const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
+const clearTimers = () => { timers.forEach(clearTimeout); timers.forEach(clearInterval); timers = []; };
+function toast(msg) {
+  $$(".toast").forEach(t => t.remove());
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+function stamp(word, cls = "") {
+  const s = document.createElement("div"); s.className = "stamp " + cls; s.textContent = word; document.body.appendChild(s);
+  buzz([30, 40, 60]); setTimeout(() => s.remove(), 1100);
+}
+let wakeLock = null;
+async function keepAwake() { try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); } } catch (e) {} }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.inGame) keepAwake(); });
+
+/* =====================================================================
+   ÉTAT
+   ===================================================================== */
+const S = {
+  names: store.get("players", []),
+  mode: "mix",
+  level: store.get("level", 2),
+  hot: store.get("hot", true),
+  rounds: store.get("rounds", 8),
+  players: [], deck: [], idx: 0, inGame: false, round: 0, lastGame: null
+};
+const used = new Set(store.get("used", []));
+const ban = new Set(store.get("ban", []));
+const cardId = (type, c) => type + ":" + c.slice(1).join("|");
+// cartes proposées sur ce téléphone : jouables tout de suite
+store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => cardId(o.type, c) === cardId(o.type, o.card))) C[o.type].push(o.card); });
+
+/* jeux de la roue : nombre minimum de joueurs et cartes jouées par tour */
+const WHEEL = [
+  { t: "jamais", min: 3, n: 3, short: "Je n'ai jamais", col: "#7B33F5" },
+  { t: "av", min: 2, n: 3, short: "Action ou vérité", col: "#FFB21F" },
+  { t: "qui", min: 4, n: 3, short: "Qui pourrait", col: "#EE1F66" },
+  { t: "pref", min: 3, n: 3, short: "Tu préfères", col: "#C51FB6" },
+  { t: "menteur", min: 3, n: 1, short: "Le Menteur", col: "#2F6BFF" },
+  { t: "imposteur", min: 4, n: 1, short: "L'Imposteur", col: "#13C9B4" },
+  { t: "radar", min: 3, n: 2, short: "Le Radar", col: "#5B5CF0" },
+  { t: "classement", min: 3, n: 1, short: "Classement", col: "#FF8A1F" },
+  { t: "ouinon", min: 3, n: 3, short: "Oui ou non", col: "#14B8A6" }
+];
+
+function others(name) { return S.players.filter(p => p.name !== name); }
+function fill(t, p) {
+  const o = others(p ? p.name : "");
+  const q = o.length ? rnd(o).name : "quelqu'un";
+  return t.replace(/\{p\}/g, p ? p.name : "").replace(/\{q\}/g, q);
+}
+function score(p, n) { p.pts += n; }
+function plus(n) { stamp("+" + n, "green"); }
+
+/* -------- construction du paquet -------- */
+function pool(type) {
+  const lv = S.level;
+  const src = C[type];
+  const all = src.map(c => ({ type, id: cardId(type, c), lvl: c[0], data: c }))
+    .filter(c => c.lvl <= lv && (S.hot || !isHot(c.data.slice(1))));
+  // les cartes retirées par le groupe ne reviennent plus (sauf s'il n'en reste presque plus)
+  const kept = all.filter(c => !ban.has(c.id)), list = kept.length >= 3 ? kept : all;
+  // priorité aux cartes jamais vues et au niveau choisi
+  const fresh = list.filter(c => !used.has(c.id)), stale = list.filter(c => used.has(c.id));
+  if (fresh.length < 3) list.forEach(c => used.delete(c.id));
+  const sortByLevel = arr => arr.map(c => ({ c, k: Math.random() + (c.lvl === lv ? .35 : 0) })).sort((a, b) => b.k - a.k).map(o => o.c);
+  return fresh.length < 3 ? sortByLevel(list) : sortByLevel(fresh).concat(shuffle(stale));
+}
+function deckOf(type, n) {
+  if (type === "av") return Array.from({ length: n }, () => ({ type: "av" }));
+  return pool(type).slice(0, n);
+}
+// tour de rôle équitable pour le joueur visé
+let turn = 0;
+function nextPlayer() { const p = S.players[turn % S.players.length]; turn++; return p; }
+
+/* =====================================================================
+   RENDU
+   ===================================================================== */
+const app = $("#app");
+function view(html, after) {
+  clearTimers(); $$(".sheet-wrap").forEach(s => s.remove()); $$(".tool-wrap").forEach(s => s.remove());
+  app.innerHTML = html; window.scrollTo(0, 0);
+  if (after) after();
+}
+function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
+
+/* -------- ACCUEIL -------- */
+function home() {
+  S.inGame = false;
+  const tiles = ["jamais", "av", "qui", "pref", "imposteur", "menteur", "classement", "ouinon", "radar"];
+  view(`
+    <header class="masthead">
+      <div class="logo">Platoz</div>
+      <div class="rule"><span>Le jeu de vos soirées</span><span>2 à 16 joueurs</span></div>
+    </header>
+    <button class="hero-mode" id="go-mix">
+      <span class="tagline">La roue choisit le jeu</span>
+      <span class="mast">Mode Mix</span>
+      <p>Les jeux tombent au hasard selon votre nombre. Des points à chaque carte, un classement à la fin.</p>
+    </button>
+    <div class="section-label">Jeux classiques</div>
+    <div class="grid">
+      ${tiles.map(t => `<button class="tile" data-mode="${t}"><span class="sw" style="background:${TYPES[t].color}"></span><span class="mast">${TYPES[t].label}</span><p>${TYPES[t].desc}</p></button>`).join("")}
+    </div>
+    <div class="section-label">Outils</div>
+    <div class="tools-row"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
+    <div class="tools-row" style="margin-top:-8px"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" data-tool="propose">Proposer une carte</button></div>
+    <div class="section-label">Jeux de société</div>
+    <div class="opts">
+      <button class="opt" data-solo="p4"><span class="pepper" style="color:#FF3B6E">2</span><span><span class="mast">Puissance 4</span><p>Aligne 4 jetons avant l'autre, sur le même écran.</p></span></button>
+      <button class="opt" data-solo="uno"><span class="pepper" style="color:#FFC93C">2-10</span><span><span class="mast">Uno</span><p>On se passe le téléphone, chacun voit ses cartes en secret.</p></span></button>
+    </div>
+    <div class="section-label">Seul ou à deux</div>
+    <div class="opts">
+      <button class="opt" data-solo="deux"><span class="pepper" style="color:var(--violet)">2</span><span><span class="mast">Qui de nous deux</span><p>Pour un couple ou deux potes : vous connaissez-vous vraiment ?</p></span></button>
+      <button class="opt" data-solo="reflexe"><span class="pepper" style="color:var(--blue)">1-2</span><span><span class="mast">Duel réflexe</span><p>Seul contre ton record, ou face à face sur le même écran.</p></span></button>
+      <button class="opt" data-solo="test"><span class="pepper">1</span><span><span class="mast">Test de scandale</span><p>Des questions en solo, ton indice de scandale à partager.</p></span></button>
+    </div>
+    <p class="hint muted" style="text-align:center">Un seul téléphone, qu'on se passe. Jouez avec modération et consentement.</p>
+    ${ban.size ? `<p style="text-align:center;margin:0"><button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button></p>` : ""}
+  `, () => {
+    const bs = $("#bans"); if (bs) bs.onclick = banList;
+    $("#go-mix").onclick = () => { S.mode = "mix"; playersScreen(); };
+    $$(".tile").forEach(b => b.onclick = () => { S.mode = b.dataset.mode; playersScreen(); });
+    bindTools();
+    $("#tester").onclick = testerMenu;
+    $$("[data-solo]").forEach(b => b.onclick = () => {
+      const m = b.dataset.solo;
+      if (m === "deux") { S.mode = "deux"; duoSetup(ambiance); }
+      else if (m === "p4") duoSetup(p4Start);
+      else if (m === "uno") { S.mode = "uno"; playersScreen(); }
+      else if (m === "reflexe") reflexMenu();
+      else testIntro();
+    });
+  });
+}
+
+/* -------- JOUEURS -------- */
+function minPlayers() { if (S.mode === "uno") return 2; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
+function playersScreen() {
+  const min = minPlayers();
+  const draw = () => {
+    $("#chips").innerHTML = S.names.map((n, i) => `<span class="chip">${esc(n)}<button class="x" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span>`).join("")
+      || `<p class="hint muted">Ajoute au moins ${min} prénoms. Ils seront gardés pour la prochaine soirée.</p>`;
+    $$("#chips .x").forEach(b => b.onclick = () => { S.names.splice(+b.dataset.i, 1); store.set("players", S.names); draw(); });
+    const ok = S.names.length >= min;
+    $("#next").disabled = !ok;
+    $("#next").innerHTML = ok ? `Continuer <small>${S.names.length} joueurs</small>` : `Encore ${min - S.names.length} joueur${min - S.names.length > 1 ? "s" : ""}`;
+  };
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Qui joue ?</span><span style="width:44px"></span></div>
+    <div class="field"><input id="name-input" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom du joueur"><button class="btn" type="button" id="add">Ajouter</button></div>
+    <div class="chips" id="chips"></div>
+    <div class="actions"><button class="btn red" id="next"></button></div>
+  `, () => {
+    $("#back").onclick = home;
+    // pas de <form> : le cadre de l'artifact bloque l'envoi des formulaires
+    const add = () => {
+      const v = $("#name-input").value.trim().replace(/\s+/g, " ");
+      if (!v) return;
+      if (S.names.some(n => n.toLowerCase() === v.toLowerCase())) { toast("Ce prénom est déjà dans la partie."); return; }
+      if (S.names.length >= 16) { toast("16 joueurs maximum."); return; }
+      S.names.push(v); store.set("players", S.names); $("#name-input").value = ""; $("#name-input").focus(); draw();
+    };
+    $("#add").onclick = add;
+    $("#name-input").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+    $("#next").onclick = () => S.mode === "uno" ? unoStart() : ambiance();
+    draw();
+  });
+}
+
+/* -------- AMBIANCE -------- */
+function ambiance() {
+  const draw = () => {
+    $$(".opt").forEach(o => o.setAttribute("aria-pressed", +o.dataset.l === S.level));
+    $$("#hot button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.v === "1") === S.hot));
+    $$("#len button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === S.rounds));
+  };
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Ambiance</span><span style="width:44px"></span></div>
+    <div class="section-label">Intensité</div>
+    <div class="opts">${LEVELS.map(l => `<button class="opt" data-l="${l.n}"><span class="pepper">${"✱".repeat(l.n)}</span><span><span class="mast">${l.name}</span><p>${l.desc}</p></span></button>`).join("")}</div>
+    <div class="section-label">Questions sur les ex et le sexe</div>
+    <div class="seg" id="hot"><button data-v="1">Activées</button><button data-v="0">Désactivées</button></div>
+    ${S.mode === "mix" ? `<div class="section-label">Durée</div><div class="seg" id="len"><button data-v="5">5 tours</button><button data-v="8">8 tours</button><button data-v="12">12 tours</button></div>` : ""}
+    <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
+  `, () => {
+    $("#back").onclick = S.mode === "deux" ? () => duoSetup(ambiance) : playersScreen;
+    $$(".opt").forEach(o => o.onclick = () => { S.level = +o.dataset.l; store.set("level", S.level); draw(); });
+    $$("#hot button").forEach(b => b.onclick = () => { S.hot = b.dataset.v === "1"; store.set("hot", S.hot); draw(); });
+    $$("#len button").forEach(b => b.onclick = () => { S.rounds = +b.dataset.v; store.set("rounds", S.rounds); draw(); });
+    $("#go").onclick = S.mode === "deux" ? startDeux : startGame;
+    draw();
+  });
+}
+
+/* -------- DÉMARRAGE -------- */
+function startGame() {
+  S.players = shuffle(S.names).map(n => ({ name: n, pts: 0 }));
+  S.idx = 0; S.round = 0; S.lastGame = null; turn = 0; S.inGame = true; S.changed = false;
+  keepAwake();
+  if (S.mode === "mix") return wheel();
+  S.deck = deckOf(S.mode, ["imposteur", "menteur", "radar", "classement"].includes(S.mode) ? 12 : 40);
+  card();
+}
+
+/* passe le téléphone, révélation secrète */
+const pauseBar = () => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span></span><button class="changebtn" id="skip" aria-label="Changer de carte" ${S.changed ? "disabled" : ""}>⟳ Changer</button></div>`;
+const bindPause = () => { const b = $("#pause"); if (b) b.onclick = pauseMenu; const s = $("#skip"); if (s) s.onclick = skipCard; };
+function passPhone(name, title, onReveal) {
+  view(`${pauseBar()}
+    <div class="stage">
+      <div class="secret"><span class="eyebrow" style="color:var(--paper)">Passe le téléphone à</span><span class="mast">${esc(name)}</span><p>Les autres, regardez ailleurs.</p></div>
+    </div>
+    <div class="actions"><button class="btn" id="show">Je suis ${esc(name)}, ${esc(title)}</button></div>
+  `, () => { bindPause(); $("#show").onclick = onReveal; });
+}
+
+/* -------- LA ROUE (mode Mix) -------- */
+function wheel(auto) {
+  const games = WHEEL.filter(g => g.min <= S.players.length);
+  const n = games.length, seg = 360 / n, R = 140, C0 = 150;
+  const pt = (a, r) => { const t = (a - 90) * Math.PI / 180; return [C0 + r * Math.cos(t), C0 + r * Math.sin(t)]; };
+  const slices = games.map((g, i) => {
+    const a0 = i * seg, a1 = (i + 1) * seg, [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R), mid = a0 + seg / 2, [tx, ty] = pt(mid, R * .6), ang = mid > 180 ? mid + 90 : mid - 90;
+    return `<path d="M${C0},${C0} L${x0},${y0} A${R},${R} 0 ${seg > 180 ? 1 : 0} 1 ${x1},${y1} Z" fill="${g.col}" stroke="#0B0720" stroke-width="3"/>
+      <text x="${tx}" y="${ty}" transform="rotate(${ang} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" class="wl">${esc(g.short)}</text>`;
+  }).join("");
+  view(`
+    <div class="topbar">
+      <button class="iconbtn" id="pause" aria-label="Pause">II</button>
+      <span class="progress">Tour ${S.round + 1} / ${S.rounds}</span>
+      <span style="width:44px"></span>
+    </div>
+    <div class="stage wheel-stage">
+      <div class="wheel-box">
+        <div class="wheel-pin"></div>
+        <svg class="wheel" id="wheel" viewBox="0 0 300 300" aria-label="Roue des jeux">${slices}<circle cx="150" cy="150" r="26" fill="#0B0720" stroke="rgba(255,255,255,.35)" stroke-width="3"/></svg>
+      </div>
+      <p class="wheel-res" id="res">Lance la roue pour choisir le jeu.</p>
+    </div>
+    <div class="actions"><button class="btn red" id="spin">Lancer la roue</button></div>
+  `, () => {
+    $("#pause").onclick = pauseMenu;
+    let spun = false;
+    const spin = () => {
+      if (spun) return; spun = true;
+      const choices = games.map((g, i) => i).filter(i => games.length < 2 || games[i].t !== S.lastGame);
+      const pick = rnd(choices), g = games[pick];
+      const jitter = (Math.random() - .5) * seg * .6;
+      const rot = 360 * 6 + (360 - (pick * seg + seg / 2)) + jitter;
+      $("#spin").disabled = true; $("#res").textContent = "…";
+      buzz(20); $("#wheel").style.transform = `rotate(${rot}deg)`;
+      later(() => {
+        buzz([40, 30, 60]);
+        $("#res").innerHTML = `<small>On joue à</small>${esc(TYPES[g.t].label)}`;
+        $(".actions").innerHTML = `<div class="row"><button class="btn white" id="respin">Relancer</button><button class="btn red" id="play">Jouer ${g.n > 1 ? `<small>${g.n} cartes</small>` : ""}</button></div>`;
+        $("#respin").onclick = () => { S.lastGame = g.t; wheel(true); };
+        $("#play").onclick = () => { S.changed = false; S.lastGame = g.t; S.deck = deckOf(g.t, g.n); S.idx = 0; if (!S.deck.length) return afterRound(); card(); };
+      }, 3700);
+    };
+    $("#spin").onclick = spin; $("#wheel").onclick = spin;
+    if (auto) later(spin, 60);
+  });
+}
+function afterRound() {
+  S.round++;
+  if (S.round >= S.rounds) return ranking();
+  wheel();
+}
+
+/* -------- CARTE -------- */
+function header() {
+  const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : "Carte " + (S.idx + 1);
+  return `
+    <div class="topbar">
+      <button class="iconbtn" id="pause" aria-label="Pause">II</button>
+      <span class="progress">${label}</span>
+      <button class="changebtn" id="skip" aria-label="Changer de carte" ${S.changed ? "disabled" : ""}>⟳ Changer</button>
+    </div>
+    ${rateBar()}`;
+}
+function cardShell(type, who, inner, alt) {
+  const T = TYPES[type];
+  return `<div class="card ${alt ? "alt" : ""} ${T.dark ? "dark-band" : ""}" style="--c:${T.color}">
+    <div class="band"><span class="mast">${T.label}</span>${["imposteur", "reflexe", "test"].includes(type) ? "" : `<span class="eyebrow">${"✱".repeat(S.level)}</span>`}</div>
+    ${who ? `<div class="who"><small>${who.label}</small>${esc(who.name)}</div>` : ""}
+    ${inner}
+  </div>`;
+}
+const rulePts = t => `<p class="pts-rule">${t}</p>`;
+function bindHeader() {
+  $("#pause").onclick = pauseMenu;
+  $("#skip").onclick = skipCard;
+  bindRate();
+}
+// une seule nouvelle carte par tour, et c'est le même joueur qui la joue
+function skipCard(msg, force) {
+  if (S.changed && force !== true) { toast("Une seule nouvelle carte par tour."); return; }
+  S.changed = true;
+  if (S.avPick && S.avRedo) { const r = S.avRedo; S.avPick = null; toast("Nouvelle carte."); return r(); }
+  S.avPick = null; S.avRedo = null;
+  if (S.turnAt != null) turn = S.turnAt;
+  const c = S.deck[S.idx], rep = c && c.type !== "av" ? pool(c.type).find(x => x.id !== c.id && !S.deck.some(d => d.id === x.id)) : (c ? { type: "av" } : null);
+  if (rep) S.deck.splice(S.idx, 1, rep); else S.deck.splice(S.idx, 1);
+  if (S.idx >= S.deck.length) return endDeck();
+  toast(typeof msg === "string" ? msg : "Carte écartée."); card();
+}
+function next() {
+  S.avPick = null; S.avRedo = null; S.changed = false;
+  const c = S.deck[S.idx];
+  if (c && c.id) { used.add(c.id); store.set("used", [...used]); }
+  S.idx++;
+  if (S.idx >= S.deck.length) return endDeck();
+  card();
+}
+function endDeck() { if (S.mode === "mix") return afterRound(); ranking(); }
+function card() {
+  const c = S.deck[S.idx];
+  if (!c) return endDeck();
+  S.turnAt = turn;
+  ({ jamais: cJamais, av: cAv, qui: cQui, pref: cPref, imposteur: cImposteur, menteur: cMenteur, radar: cRadar, classement: cClassement, ouinon: cOuinon })[c.type](c);
+}
+const alt = () => S.idx % 2 === 1;
+const chipsHtml = () => `<div class="chips" style="padding:0 18px">${S.players.map((p, i) => `<button class="chip pick" data-i="${i}" aria-pressed="false">${esc(p.name)}</button>`).join("")}</div>`;
+
+function cJamais(c) {
+  const text = fill(c.data[1]);
+  view(`${header()}
+    <div class="stage">${cardShell("jamais", null, `
+      <p class="text">Je n'ai jamais <b>${esc(text)}</b>.</p>
+      <p class="sub">Ceux qui l'ont fait se balancent : touchez leurs prénoms.</p>
+      ${chipsHtml()}
+      ${rulePts("+1 point pour chaque personne qui l'a fait")}
+    `, alt())}</div>
+    <div class="actions"><button class="btn red" id="ok">Valider</button></div>`, () => {
+    bindHeader();
+    $$(".chip.pick").forEach(b => b.onclick = () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"));
+    $("#ok").onclick = () => {
+      const picked = $$(".chip.pick[aria-pressed=true]").map(b => S.players[+b.dataset.i]);
+      picked.forEach(p => score(p, 1));
+      if (picked.length) { plus(1); later(next, 700); } else next();
+    };
+  });
+}
+
+function cAv() {
+  const p = nextPlayer();
+  view(`${header()}
+    <div class="stage">${cardShell("av", { label: "Au tour de", name: p.name }, `
+      <p class="sub">Action ou vérité ?</p>
+      ${rulePts("Vérité réussie : +1 point · Action réussie : +2 points")}
+    `, alt())}</div>
+    <div class="actions"><div class="row"><button class="btn white" id="v">Vérité</button><button class="btn" id="a">Action</button></div></div>`, () => {
+    bindHeader();
+    const go = kind => {
+      const src = pool(kind === "v" ? "verite" : "action");
+      const pick = src[0];
+      used.add(pick.id); store.set("used", [...used]); S.avPick = pick; S.avRedo = () => go(kind);
+      const text = fill(pick.data[1], p), pts = kind === "v" ? 1 : 2;
+      view(`${header()}
+        <div class="stage">${cardShell("av", { label: kind === "v" ? "Vérité pour" : "Action pour", name: p.name }, `
+          <p class="text">${esc(text)}</p>
+          ${rulePts(`Réussi : +${pts} point${pts > 1 ? "s" : ""} · Refusé : 0`)}
+        `, alt())}</div>
+        <div class="actions"><div class="row"><button class="btn white" id="no">Je refuse</button><button class="btn green" id="yes">${kind === "v" ? "Répondu" : "Fait"}</button></div></div>`, () => {
+        bindHeader();
+        $("#yes").onclick = () => { score(p, pts); plus(pts); later(next, 700); };
+        $("#no").onclick = () => { stamp("Refusé"); later(next, 800); };
+      });
+    };
+    $("#v").onclick = () => go("v"); $("#a").onclick = () => go("a");
+  });
+}
+
+function cQui(c) {
+  const text = fill(c.data[1]);
+  view(`${header()}
+    <div class="stage">${cardShell("qui", null, `
+      <p class="text">Qui pourrait <b>${esc(text)}</b> ?</p>
+      <p class="sub">Au signal, tout le monde pointe quelqu'un du doigt en même temps.</p>
+      ${rulePts("+1 point pour la personne la plus désignée")}
+    `, alt())}</div>
+    <div class="actions"><button class="btn red" id="go">3, 2, 1… Pointez !</button></div>`, () => {
+    bindHeader();
+    $("#go").onclick = () => {
+      let n = 3;
+      const tick = () => {
+        $(".stage").innerHTML = `<div class="big-count">${n > 0 ? n : "Pointez !"}</div>`;
+        if (n <= 0) { $(".big-count").style.fontSize = "72px"; buzz(80); later(choose, 900); return; }
+        buzz(20); n--; later(tick, 750);
+      };
+      $(".actions").innerHTML = ""; tick();
+    };
+    const choose = () => {
+      $(".stage").innerHTML = cardShell("qui", null, `
+        <p class="text">Qui a été le plus désigné ?</p>
+        ${chipsHtml()}`, alt());
+      $(".actions").innerHTML = `<button class="btn white" id="tie">Égalité, personne</button>`;
+      $("#tie").onclick = next;
+      $$(".chip.pick").forEach(b => b.onclick = () => { score(S.players[+b.dataset.i], 1); plus(1); later(next, 800); });
+    };
+  });
+}
+
+function cPref(c) {
+  const q0 = S.players.length ? rnd(S.players).name : "quelqu'un", fq = t => t.replace(/\{q\}/g, q0); const a = fq(c.data[1]), b = fq(c.data[2]);
+  view(`${header()}
+    <div class="stage">${cardShell("pref", null, `
+      <p class="sub" style="font-weight:700;color:var(--ink)">Tu préfères…</p>
+      <div class="vs"><div class="opt-a">${esc(a)}</div><div class="or">ou</div><div class="opt-b">${esc(b)}</div></div>
+      <p class="sub">Tout le monde vote à main levée en même temps.</p>
+      ${rulePts("+1 point pour chaque personne de la majorité")}
+    `, alt())}</div>
+    <div class="actions"><button class="btn red" id="ok">On a voté</button></div>`, () => {
+    bindHeader();
+    $("#ok").onclick = () => {
+      $(".stage").innerHTML = cardShell("pref", null, `
+        <p class="text" style="font-size:24px">Qui a choisi : <b>${esc(a)}</b> ?</p>
+        <p class="sub">Touchez leurs prénoms. Les autres ont choisi l'autre option.</p>
+        ${chipsHtml()}`, alt());
+      $(".actions").innerHTML = `<button class="btn red" id="val">Valider</button>`;
+      $$(".chip.pick").forEach(x => x.onclick = () => x.setAttribute("aria-pressed", x.getAttribute("aria-pressed") !== "true"));
+      $("#val").onclick = () => {
+        const A = $$(".chip.pick").filter(x => x.getAttribute("aria-pressed") === "true").map(x => S.players[+x.dataset.i]);
+        const B = S.players.filter(p => !A.includes(p));
+        if (A.length === B.length) { stamp("Égalité"); return later(next, 800); }
+        (A.length > B.length ? A : B).forEach(p => score(p, 1)); plus(1); later(next, 800);
+      };
+    };
+  });
+}
+
+function cMenteur(c) {
+  const p = nextPlayer();
+  const q = fill(c.data[1], p);
+  const lie = Math.random() < .5;
+  passPhone(p.name, "voir ma consigne", () => {
+    view(`${pauseBar()}
+      <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">Consigne secrète</span><span class="mast" style="color:${lie ? "var(--red)" : "var(--yellow)"}">${lie ? "Mens" : "Dis la vérité"}</span><p>La question va s'afficher pour tout le monde. Réponds en restant crédible.</p></div></div>
+      <div class="actions"><button class="btn white" id="hide">Cacher et montrer la question</button></div>
+    `, () => {
+      bindPause();
+      $("#hide").onclick = () => {
+        view(`${header()}
+          <div class="stage">${cardShell("menteur", { label: "Interrogatoire de", name: p.name }, `
+            <p class="text">${esc(q)}</p>
+            <p class="sub">${esc(p.name)} répond. Le groupe peut poser 3 questions, puis vote : vérité ou mensonge ?</p>
+            ${rulePts(`Groupe trompé : +2 points pour ${esc(p.name)} · Bien vu : +1 point pour chacun des autres`)}
+          `, alt())}</div>
+          <div class="actions"><div class="row"><button class="btn green" id="t">Vérité</button><button class="btn red" id="l">Mensonge</button></div></div>`, () => {
+          bindHeader();
+          const judge = guessLie => {
+            const right = guessLie === lie;
+            if (right) others(p.name).forEach(o => score(o, 1)); else score(p, 2);
+            stamp(lie ? "Mensonge" : "Vérité", lie ? "" : "green");
+            later(() => {
+              $(".stage").innerHTML = cardShell("menteur", { label: right ? "Bien vu, le groupe" : "Le groupe s'est fait avoir", name: p.name }, `
+                <p class="text">${esc(p.name)} ${lie ? "mentait" : "disait la vérité"}.</p>
+                ${rulePts(right ? "+1 point pour chacun des autres" : `+2 points pour ${esc(p.name)}`)}`, alt());
+              $(".actions").innerHTML = `<button class="btn red" id="ok">Continuer</button>`;
+              $("#ok").onclick = next;
+            }, 1000);
+          };
+          $("#t").onclick = () => judge(false); $("#l").onclick = () => judge(true);
+        });
+      };
+    });
+  });
+}
+
+function cImposteur(c) {
+  const [, cat, word] = c.data;
+  const imp = rnd(S.players);
+  const order = S.players.slice();
+  const step = i => {
+    if (i >= order.length) return discuss();
+    const p = order[i];
+    passPhone(p.name, "voir mon mot", () => {
+      const isImp = p === imp;
+      view(`${pauseBar()}
+        <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">${isImp ? "Tu es" : "Ton mot"}</span><span class="mast" style="color:${isImp ? "var(--red)" : "var(--yellow)"}">${isImp ? "L'imposteur" : esc(word)}</span><p>${isImp ? "Le thème est « " + esc(cat) + " ». Bluffe pour ne pas te faire repérer." : "Ne le dis surtout pas à voix haute."}</p></div></div>
+        <div class="actions"><button class="btn white" id="hide">Cacher et passer</button></div>
+      `, () => { bindPause(); $("#hide").onclick = () => step(i + 1); });
+    });
+  };
+  const discuss = () => {
+    const first = rnd(S.players);
+    view(`${header()}
+      <div class="stage">${cardShell("imposteur", { label: "Commence", name: first.name }, `
+        <p class="text">Chacun dit un seul mot lié au mot secret, à tour de rôle.</p>
+        <p class="sub">Deux tours, puis tout le monde pointe l'imposteur du doigt. Thème : ${esc(cat)}.</p>
+        ${rulePts("Imposteur démasqué : +1 point pour chacun des autres · Raté : +3 points pour l'imposteur")}
+      `, alt())}</div>
+      <div class="actions"><button class="btn red" id="vote">Voter</button></div>`, () => {
+      bindHeader();
+      $("#vote").onclick = () => {
+        $(".stage").innerHTML = cardShell("imposteur", null, `
+          <p class="text">Qui a été désigné par le groupe ?</p>
+          ${chipsHtml()}`, alt());
+        $(".actions").innerHTML = "";
+        $$(".chip.pick").forEach(b => b.onclick = () => {
+          const caught = S.players[+b.dataset.i] === imp;
+          if (caught) others(imp.name).forEach(o => score(o, 1)); else score(imp, 3);
+          stamp(caught ? "Démasqué" : "Raté", caught ? "green" : "");
+          later(() => {
+            $(".stage").innerHTML = cardShell("imposteur", { label: "L'imposteur était", name: imp.name }, `
+              <p class="text">Le mot secret : <b>${esc(word)}</b>.</p>
+              ${rulePts(caught ? "+1 point pour chacun des autres" : `+3 points pour ${esc(imp.name)}`)}`, alt());
+            $(".actions").innerHTML = `<button class="btn red" id="ok">Continuer</button>`;
+            $("#ok").onclick = next;
+          }, 1000);
+        });
+      };
+    });
+  };
+  step(0);
+}
+
+
+/* -------- LE RADAR : une cible secrète sur une échelle, un indice, chacun place sa flèche -------- */
+const RZ = [[4, 3], [10, 2], [16, 1]]; // écart maximal → points
+const NEEDLE_COLS = ["#FFFFFF", "#FFE04A", "#2EE6A0", "#FF8FD0", "#7FD4FF", "#FFB34A", "#C7A6FF", "#A6FF8F"];
+const zonePts = d => { const z = RZ.find(([w]) => d <= w); return z ? z[1] : 0; };
+function dial(opts) {
+  const cx = 150, cy = 152, r = 136;
+  const P = (v, rad) => { const t = (180 - v * 1.8) * Math.PI / 180; return [cx + rad * Math.cos(t), cy - rad * Math.sin(t)]; };
+  const wedge = (a, b, fill) => { a = Math.max(0, a); b = Math.min(100, b); const [x0, y0] = P(a, r), [x1, y1] = P(b, r); return `<path d="M${cx},${cy} L${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1} Z" fill="${fill}"/>`; };
+  const zones = opts.target == null ? "" : [[16, "#FFB34A"], [10, "#FF6A3D"], [4, "#FF2E7A"]].map(([w, f]) => wedge(opts.target - w, opts.target + w, f)).join("")
+    + (() => { const [tx, ty] = P(opts.target, r - 22); return `<text x="${tx}" y="${ty}" class="rz">3</text>`; })();
+  const needles = (opts.needles || (opts.needle == null ? [] : [{ v: opts.needle, col: "#FFFFFF" }]))
+    .map(n => { const [nx, ny] = P(n.v, r - 10); return `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" class="needle" style="stroke:${n.col}"/>`; }).join("");
+  return `<svg class="dial" viewBox="0 0 300 168" aria-hidden="true">
+    ${wedge(0, 100, "rgba(255,255,255,.16)")}
+    ${zones}${needles}
+    ${needles ? `<circle cx="${cx}" cy="${cy}" r="11" class="hub"/>` : ""}
+  </svg>`;
+}
+function dialBox(c, opts) {
+  return `<div class="dial-box" id="dialbox">${dial(opts)}<div class="poles"><span>${esc(c.data[1])}</span><span>${esc(c.data[2])}</span></div></div>`;
+}
+function cRadar(c) {
+  const g = nextPlayer(), guessers = others(g.name);
+  const target = 8 + Math.round(Math.random() * 84);
+  const votes = [];
+  const rule = `Chacun marque selon sa flèche : 3, 2 ou 1 point. ${esc(g.name)} marque la moyenne des autres.`;
+  passPhone(g.name, "voir la cible", () => {
+    view(`${pauseBar()}
+      <div class="stage">${cardShell("radar", { label: "Cible secrète de", name: g.name }, `
+        ${dialBox(c, { target })}
+        <p class="sub">Trouve un indice (un mot, un film, une personne, une situation) qui tombe à cet endroit entre « ${esc(c.data[1])} » et « ${esc(c.data[2])} ». Dis-le à voix haute.</p>
+      `)}</div>
+      <div class="actions"><button class="btn white" id="hide">Cacher et donner mon indice</button></div>
+    `, () => { bindPause(); $("#hide").onclick = () => guess(0); });
+  });
+  const guess = i => {
+    if (i >= guessers.length) return reveal();
+    const p = guessers[i];
+    let v = 50;
+    view(`${header()}
+      <div class="stage">${cardShell("radar", { label: `Au tour de · ${i + 1} / ${guessers.length}`, name: p.name }, `
+        ${dialBox(c, { needle: v })}
+        <p class="sub">Indice de ${esc(g.name)}. Place la flèche où tu penses que se trouve la cible, sans montrer aux suivants.</p>
+        ${rulePts(rule)}
+      `, i % 2 === 1)}</div>
+      <div class="actions"><button class="btn red" id="lock">${i + 1 < guessers.length ? "Valider et passer à " + esc(guessers[i + 1].name) : "Valider et voir le résultat"}</button></div>`, () => {
+      bindHeader();
+      const box = $("#dialbox");
+      const move = e => {
+        const svg = $("svg", box), b = svg.getBoundingClientRect();
+        const x = (e.clientX - b.left) / b.width * 300, y = (e.clientY - b.top) / b.height * 168;
+        let a = Math.atan2(152 - y, x - 150) * 180 / Math.PI; if (a < 0) a = x < 150 ? 180 : 0;
+        v = Math.max(0, Math.min(100, (180 - a) / 1.8));
+        svg.outerHTML = dial({ needle: v });
+      };
+      box.onpointerdown = e => { e.preventDefault(); box.setPointerCapture(e.pointerId); move(e); box.onpointermove = move; };
+      box.onpointerup = box.onpointercancel = () => { box.onpointermove = null; };
+      $("#lock").onclick = () => { votes.push({ p, v, col: NEEDLE_COLS[i % NEEDLE_COLS.length] }); guess(i + 1); };
+    });
+  };
+  const reveal = () => {
+    votes.forEach(o => { o.pts = zonePts(Math.abs(o.v - target)); if (o.pts) score(o.p, o.pts); });
+    const gp = Math.round(votes.reduce((a, o) => a + o.pts, 0) / Math.max(1, votes.length));
+    if (gp) score(g, gp);
+    const best = Math.max(...votes.map(o => o.pts));
+    stamp(best === 3 ? "En plein dans le mille" : best ? "Pas mal" : "Raté", best ? "green" : "");
+    view(`${header()}
+      <div class="stage">${cardShell("radar", { label: "Résultat · indice de", name: g.name }, `
+        ${dialBox(c, { target, needles: votes })}
+        <div class="radar-res">
+          ${votes.slice().sort((a, b) => b.pts - a.pts).map(o => `<div><i style="background:${o.col}"></i><span>${esc(o.p.name)}</span><b>${o.pts ? "+" + o.pts : "0"}</b></div>`).join("")}
+          <div class="guide"><i></i><span>${esc(g.name)} (indice)</span><b>${gp ? "+" + gp : "0"}</b></div>
+        </div>`)}</div>
+      <div class="actions"><button class="btn red" id="ok">Continuer</button></div>`, () => { bindHeader(); $("#ok").onclick = next; });
+  };
+}
+
+/* -------- LE CLASSEMENT : un joueur classe tout le monde, les autres retrouvent la question -------- */
+function cClassement(c) {
+  const r = nextPlayer(), order = [];
+  const q = c.data[1], cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const rule = `Bonne question : +2 points pour toi, +1 point pour ${esc(r.name)}`;
+  passPhone(r.name, "voir la question", () => {
+    const draw = () => {
+      $("#order").innerHTML = order.length
+        ? order.map((p, i) => `<div><b>${i + 1}</b><span>${esc(p.name)}</span></div>`).join("")
+        : `<p class="sub" style="margin:0">Touche les prénoms dans l'ordre, du 1er au dernier.</p>`;
+      $$(".chip.pick").forEach(b => b.style.display = order.includes(S.players[+b.dataset.i]) ? "none" : "");
+      const done = order.length === S.players.length;
+      $("#lock").disabled = !done;
+      $("#lock").innerHTML = done ? "Valider et montrer aux autres" : `Encore ${S.players.length - order.length} à classer`;
+    };
+    view(`${pauseBar()}
+      <div class="stage">${cardShell("classement", { label: "Classement secret de", name: r.name }, `
+        <p class="text">Classe tout le monde, toi compris : <b>${esc(q)}</b>.</p>
+        <div class="rank-order" id="order"></div>
+        ${chipsHtml()}
+        <p style="text-align:center;margin:0"><button class="linkbtn" id="redo">Recommencer</button></p>
+      `)}</div>
+      <div class="actions"><button class="btn red" id="lock"></button></div>
+    `, () => {
+      bindPause();
+      $$(".chip.pick").forEach(b => b.onclick = () => { order.push(S.players[+b.dataset.i]); buzz(10); draw(); });
+      $("#redo").onclick = () => { order.length = 0; draw(); };
+      $("#lock").onclick = () => guess();
+      draw();
+    });
+  });
+  const guess = () => {
+    const decoys = shuffle(pool("classement").filter(x => x.data[1] !== q)).slice(0, 3).map(x => x.data[1]);
+    const opts = shuffle([q, ...decoys]), guessers = others(r.name), picks = [];
+    const ask = i => {
+      if (i >= guessers.length) return reveal();
+      const p = guessers[i];
+      passPhone(p.name, "deviner la question", () => view(`${header()}
+        <div class="stage">${cardShell("classement", { label: `Au tour de · ${i + 1} / ${guessers.length}`, name: p.name }, `
+          <p class="sub" style="margin-bottom:0">Le classement de ${esc(r.name)} :</p>
+          <div class="rank-order">${order.map((o, k) => `<div><b>${k + 1}</b><span>${esc(o.name)}</span></div>`).join("")}</div>
+          <p class="sub">C'était quoi la question ? Choisis en secret.</p>
+          <div class="rank-opts">${opts.map((o, k) => `<button class="btn white" data-i="${k}">${esc(cap(o))}</button>`).join("")}</div>
+          ${rulePts(rule)}
+        `, i % 2 === 1)}</div>
+        <div class="actions"></div>`, () => {
+        bindHeader();
+        $$(".rank-opts button").forEach(b => b.onclick = () => { picks.push({ p, ok: opts[+b.dataset.i] === q }); buzz(15); ask(i + 1); });
+      }));
+    };
+    const reveal = () => {
+      const found = picks.filter(x => x.ok);
+      found.forEach(x => score(x.p, 2)); if (found.length) score(r, found.length);
+      stamp(found.length ? found.length + " bonne" + (found.length > 1 ? "s" : "") + " réponse" + (found.length > 1 ? "s" : "") : "Personne", found.length ? "green" : "");
+      view(`${header()}
+        <div class="stage">${cardShell("classement", { label: "La question de", name: r.name }, `
+          <p class="text"><b>${esc(cap(q))}</b></p>
+          <div class="radar-res">
+            ${picks.map(x => `<div><i style="background:${x.ok ? "#2EE6A0" : "#FF3B6E"}"></i><span>${esc(x.p.name)}</span><b>${x.ok ? "+2" : "0"}</b></div>`).join("")}
+            <div class="guide"><i></i><span>${esc(r.name)} (classement)</span><b>${found.length ? "+" + found.length : "0"}</b></div>
+          </div>`, alt())}</div>
+        <div class="actions"><button class="btn red" id="ok">Continuer</button></div>`, () => { bindHeader(); $("#ok").onclick = next; });
+    };
+    ask(0);
+  };
+}
+
+/* -------- OUI OU NON : tout le monde répond en même temps, sans débattre -------- */
+function cOuinon(c) {
+  const text = fill(c.data[1]);
+  view(`${header()}
+    <div class="stage">${cardShell("ouinon", null, `
+      <p class="text">${esc(text)}</p>
+      <p class="sub">Pas de débat. Au signal, pouce en l'air pour oui, pouce en bas pour non, tous en même temps.</p>
+      ${rulePts("+1 point pour chaque personne de la majorité")}
+    `, alt())}</div>
+    <div class="actions"><button class="btn red" id="go">3, 2, 1… Répondez !</button></div>`, () => {
+    bindHeader();
+    $("#go").onclick = () => {
+      let n = 3;
+      const tick = () => {
+        $(".stage").innerHTML = `<div class="big-count">${n > 0 ? n : "👍 👎"}</div>`;
+        if (n <= 0) { buzz(80); later(choose, 900); return; }
+        buzz(20); n--; later(tick, 650);
+      };
+      $(".actions").innerHTML = ""; tick();
+    };
+    const choose = () => {
+      $(".stage").innerHTML = cardShell("ouinon", null, `
+        <p class="text" style="font-size:24px">Qui a dit <b>oui</b> ?</p>
+        <p class="sub">Touchez leurs prénoms. Les autres ont dit non.</p>
+        ${chipsHtml()}`, alt());
+      $(".actions").innerHTML = `<button class="btn red" id="val">Valider</button>`;
+      $$(".chip.pick").forEach(x => x.onclick = () => x.setAttribute("aria-pressed", x.getAttribute("aria-pressed") !== "true"));
+      $("#val").onclick = () => {
+        const A = $$(".chip.pick").filter(x => x.getAttribute("aria-pressed") === "true").map(x => S.players[+x.dataset.i]);
+        const B = S.players.filter(p => !A.includes(p));
+        if (A.length === B.length) { stamp("Égalité"); return later(next, 800); }
+        (A.length > B.length ? A : B).forEach(p => score(p, 1));
+        stamp((A.length > B.length ? "Oui" : "Non") + " gagne", "green"); later(next, 900);
+      };
+    };
+  });
+}
+
+/* -------- OUTILS : dé et chooser, ouverts par-dessus la partie -------- */
+function tool(html, bind) {
+  $$(".tool-wrap").forEach(t => t.remove());
+  const w = document.createElement("div"); w.className = "tool-wrap";
+  w.innerHTML = `<div class="topbar"><button class="iconbtn" id="tclose" aria-label="Fermer">×</button><span class="title">${html.title}</span><span style="width:44px"></span></div>${html.body}`;
+  document.body.appendChild(w);
+  const close = () => { clearInterval(w._t); clearTimeout(w._o); w.remove(); };
+  $("#tclose", w).onclick = close;
+  bind && bind(w, close); return w;
+}
+const PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
+const dieHtml = v => `<div class="die">${Array.from({ length: 9 }, (_, i) => `<i${PIPS[v].includes(i + 1) ? ' class="on"' : ""}></i>`).join("")}</div>`;
+function diceTool() {
+  let n = store.get("dice", 1), rolling = false;
+  tool({ title: "Dé", body: `
+    <div class="seg" id="nd" style="margin:0 16px"><button data-v="1">1 dé</button><button data-v="2">2 dés</button></div>
+    <div class="dice" id="dice"></div>
+    <p class="dice-sum" id="sum"></p>
+    <div class="actions"><button class="btn red" id="roll">Lancer</button></div>` }, w => {
+    const show = (vals, final) => {
+      $("#dice", w).innerHTML = vals.map(dieHtml).join("");
+      $("#sum", w).textContent = final && vals.length > 1 ? "Total : " + vals.reduce((a, b) => a + b, 0) : "";
+    };
+    const roll6 = () => 1 + Math.floor(Math.random() * 6);
+    const draw = () => { $$("#nd button", w).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === n)); show(Array(n).fill(6), false); };
+    $$("#nd button", w).forEach(b => b.onclick = () => { if (rolling) return; n = +b.dataset.v; store.set("dice", n); draw(); });
+    const roll = () => {
+      if (rolling) return; rolling = true; buzz(15);
+      $("#dice", w).classList.add("rolling");
+      w._t = setInterval(() => show(Array.from({ length: n }, roll6), false), 80);
+      w._o = setTimeout(() => {
+        clearInterval(w._t); $("#dice", w).classList.remove("rolling");
+        show(Array.from({ length: n }, roll6), true); buzz(40); rolling = false;
+      }, 750);
+    };
+    $("#roll", w).onclick = roll; $("#dice", w).onclick = roll;
+    draw();
+  });
+}
+const FINGER_COLS = ["#FF3B6E", "#FFE04A", "#2EE6A0", "#4D8BFF", "#A66BFF", "#FF8A1F", "#22D3EE", "#FF8FD0", "#C7F25C", "#FFFFFF"];
+function chooserTool() {
+  tool({ title: "Chooser", body: `
+    <div class="chooser" id="zone"><p id="msg">Tout le monde pose un doigt sur l'écran.<br>Ne bougez plus, le téléphone choisit.</p></div>` }, w => {
+    const zone = $("#zone", w), msg = $("#msg", w), touches = new Map();
+    let timer = null, picked = false;
+    const arm = () => {
+      clearTimeout(timer);
+      if (picked) return;
+      msg.hidden = touches.size > 0;
+      if (touches.size < 2) return;
+      timer = w._o = setTimeout(() => {
+        const ids = [...touches.keys()], win = rnd(ids);
+        picked = true; buzz([60, 40, 120]);
+        touches.forEach((t, id) => t.el.classList.add(id === win ? "win" : "lose"));
+      }, 2200);
+    };
+    const pos = (el, e) => { const b = zone.getBoundingClientRect(); el.style.left = (e.clientX - b.left) + "px"; el.style.top = (e.clientY - b.top) + "px"; };
+    zone.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      if (picked) return;
+      const el = document.createElement("span"); el.className = "finger";
+      el.style.setProperty("--fc", FINGER_COLS[touches.size % FINGER_COLS.length]);
+      pos(el, e); zone.appendChild(el); touches.set(e.pointerId, { el });
+      try { zone.setPointerCapture(e.pointerId); } catch (x) {}
+      buzz(10); arm();
+    });
+    zone.addEventListener("pointermove", e => { const t = touches.get(e.pointerId); if (t && !picked) pos(t.el, e); });
+    const up = e => {
+      const t = touches.get(e.pointerId); if (!t) return;
+      if (!picked) t.el.remove();
+      touches.delete(e.pointerId);
+      if (picked && !touches.size) { picked = false; $$(".finger", zone).forEach(f => f.remove()); }
+      arm();
+    };
+    zone.addEventListener("pointerup", up); zone.addEventListener("pointercancel", up);
+  });
+}
+
+/* -------- VOTES : Dinguerie / Mew, pour savoir quelles cartes plaisent -------- */
+const votes = store.get("votes", {}); // id de carte → "top" | "mew"
+const devId = store.get("dev", null) || (() => { const d = Math.random().toString(36).slice(2, 10); store.set("dev", d); return d; })();
+let dbP = null;
+const getDb = () => dbP || (dbP = Promise.resolve().then(() => window.claude && window.claude.use ? window.claude.use("db") : null).catch(() => null));
+const hashId = s => { let h = 5381; for (const ch of s) h = (h * 33 + ch.codePointAt(0)) >>> 0; return h.toString(36); };
+const cardText = c => c.data.slice(1).join(" / ");
+async function sendVote(c, v) {
+  try {
+    const db = await getDb(); if (!db) return;
+    await db.doc("votes/" + devId + "_" + hashId(c.id)).set({ card: c.id, type: c.type, text: cardText(c), v: v || "aucun", at: Date.now() });
+  } catch (e) {}
+}
+function vote(c, v) {
+  if (votes[c.id] === v) delete votes[c.id]; else votes[c.id] = v;
+  store.set("votes", votes); sendVote(c, votes[c.id]);
+  return votes[c.id];
+}
+const rateBtns = id => `<button data-v="top" aria-pressed="${votes[id] === "top"}">🔥 Dinguerie</button><button data-v="mew" aria-pressed="${votes[id] === "mew"}">😑 Mew</button>`;
+const rateBar = () => { const c = curCard(); return c ? `<div class="ratebar">${rateBtns(c.id)}</div>` : ""; };
+function bindRate(r = document, getCard = curCard, after) {
+  $$(".ratebar button", r).forEach(b => b.onclick = () => {
+    const c = getCard(); if (!c) return;
+    const v = vote(c, b.dataset.v); buzz(10);
+    $$(".ratebar button", r).forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v));
+    if (after) after(v);
+  });
+}
+
+/* -------- TESTER LES CARTES : on les passe une par une et on vote -------- */
+const TEST_TYPES = [["jamais", "Je n'ai jamais"], ["verite", "Vérité"], ["action", "Action"], ["qui", "Qui pourrait"], ["pref", "Tu préfères"],
+  ["menteur", "Le Menteur"], ["classement", "Le Classement"], ["ouinon", "Oui ou non"], ["radar", "Le Radar"], ["imposteur", "L'Imposteur"]];
+function testerMenu() {
+  const n = t => C[t].filter(c => votes[cardId(t, c)]).length;
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Tester les cartes</span><span style="width:44px"></span></div>
+    <p class="hint muted" style="text-align:center;margin:0">Passe les cartes une par une : 🔥 Dinguerie si elle est bien, 😑 Mew si elle est nulle. Tes votes servent à améliorer le jeu.</p>
+    <div class="opts">${TEST_TYPES.map(([t, l]) => `<button class="opt" data-t="${t}"><span class="pepper">${n(t)}</span><span><span class="mast">${l}</span><p>${C[t].length} cartes · ${n(t)} notées</p></span></button>`).join("")}</div>
+    <div class="actions"><button class="btn white" id="res">Voir les résultats</button></div>
+  `, () => {
+    $("#back").onclick = home;
+    $$("[data-t]").forEach(b => b.onclick = () => testerRun(b.dataset.t));
+    $("#res").onclick = testerResults;
+  });
+}
+function testerShow(t, c) {
+  const d = c.slice(1).map(x => esc(String(x).replace(/\{[pq]\}/g, "[un joueur]")));
+  const shell = t === "verite" || t === "action" ? "av" : t;
+  const body = {
+    jamais: `<p class="text">Je n'ai jamais <b>${d[0]}</b>.</p>`,
+    qui: `<p class="text">Qui pourrait <b>${d[0]}</b> ?</p>`,
+    pref: `<p class="sub" style="font-weight:700">Tu préfères…</p><div class="vs"><div class="opt-a">${d[0]}</div><div class="or">ou</div><div class="opt-b">${d[1]}</div></div>`,
+    classement: `<p class="text">Classe tout le monde : <b>${d[0]}</b>.</p>`,
+    radar: `<p class="text"><b>${d[0]}</b> ↔ <b>${d[1]}</b></p>`,
+    imposteur: `<p class="text">Thème : ${d[0]}<br>Mot : <b>${d[1]}</b></p>`
+  }[t] || `<p class="text">${d[0]}</p>`;
+  return cardShell(shell, t === "verite" || t === "action" ? { label: t === "verite" ? "Vérité" : "Action", name: "✱".repeat(c[0]) } : null, body);
+}
+function testerRun(t) {
+  const all = C[t].map(c => ({ type: t, id: cardId(t, c), data: c }));
+  const list = shuffle(all.filter(c => !votes[c.id])).concat(shuffle(all.filter(c => votes[c.id])));
+  let i = 0;
+  const draw = () => {
+    if (i >= list.length) return testerMenu();
+    const c = list[i];
+    view(`
+      <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="progress">${i + 1} / ${list.length}</span><button class="changebtn" id="skip">Passer</button></div>
+      <div class="stage">${testerShow(t, c.data)}</div>
+      <div class="ratebar big">${rateBtns(c.id)}</div>
+    `, () => {
+      $("#back").onclick = testerMenu;
+      $("#skip").onclick = () => { i++; draw(); };
+      bindRate(document, () => c, v => { if (v) { stamp(v === "top" ? "Dinguerie" : "Mew", v === "top" ? "green" : ""); later(() => { i++; draw(); }, 450); } });
+    });
+  };
+  draw();
+}
+async function testerResults() {
+  const label = t => (TEST_TYPES.find(x => x[0] === t) || [, t])[1];
+  const render = (rows, src) => view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Résultats</span><span style="width:44px"></span></div>
+    <p class="hint muted" style="text-align:center;margin:0">${src}</p>
+    ${rows.length ? `<div class="vote-list">${rows.map(r => `<div><p><small>${esc(label(r.type))}</small>${esc(r.text.replace(/\{[pq]\}/g, "[un joueur]"))}</p><span class="vt">${r.top ? "🔥 " + r.top : ""} ${r.mew ? "😑 " + r.mew : ""}</span></div>`).join("")}</div>` : `<p class="hint" style="text-align:center">Aucun vote pour l'instant.</p>`}
+  `, () => { $("#back").onclick = testerMenu; });
+  const tally = list => {
+    const m = {};
+    list.forEach(o => { if (o.v !== "top" && o.v !== "mew") return; const r = m[o.card] || (m[o.card] = { type: o.type, text: o.text, top: 0, mew: 0 }); r[o.v]++; });
+    return Object.values(m).sort((a, b) => (b.top - b.mew) - (a.top - a.mew) || b.top - a.top);
+  };
+  const local = Object.entries(votes).map(([id, v]) => { const i = id.indexOf(":"); return { card: id, type: id.slice(0, i), text: id.slice(i + 1).replace("|", " / "), v }; });
+  render(tally(local), "Tes votes sur ce téléphone.");
+  try {
+    const db = await getDb(); if (!db) return;
+    const snap = await db.collection("votes").get();
+    const all = snap.docs.map(d => d.data()).filter(Boolean);
+    if (all.length && $("#back")) render(tally(all), `Tous les votes enregistrés (${all.length}), les meilleures cartes en haut.`);
+  } catch (e) {}
+}
+
+/* -------- PROPOSER UNE CARTE : ajoutée au jeu sur ce téléphone et envoyée pour être relue -------- */
+const PROPOSE = {
+  jamais: ["Je n'ai jamais…"], verite: ["La question"], action: ["Le défi"], qui: ["Qui pourrait…"], pref: ["Premier choix", "Deuxième choix"],
+  menteur: ["T'as déjà… ?"], classement: ["Classe tout le monde : le plus…"], ouinon: ["La question"], radar: ["D'un côté", "De l'autre"], imposteur: ["Thème", "Mot secret"]
+};
+function proposeTool() {
+  let t = store.get("propType", "jamais"), lv = 2;
+  const mine = () => store.get("custom", []);
+  tool({ title: "Proposer une carte", body: `<div class="propose" id="pp"></div>` }, w => {
+    const draw = () => {
+      const names = PROPOSE[t];
+      $("#pp", w).innerHTML = `
+        <div class="section-label">Jeu</div>
+        <div class="chips">${TEST_TYPES.map(([k, l]) => `<button class="chip pick" data-k="${k}" aria-pressed="${k === t}">${esc(l)}</button>`).join("")}</div>
+        <div class="section-label">Ta carte</div>
+        ${names.map((n, i) => `<input class="duo-in" data-i="${i}" maxlength="140" placeholder="${esc(n)}" autocomplete="off">`).join("")}
+        ${t === "verite" || t === "action" || t === "menteur" ? "" : `<p class="hint muted" style="margin:0">${t === "jamais" ? "Écris seulement la suite : « fumé de la beuh »." : t === "qui" ? "Écris seulement la suite : « finir en garde à vue »." : t === "classement" ? "Exemple : « le plus radin »." : ""}</p>`}
+        <div class="section-label">Intensité</div>
+        <div class="seg" id="plv">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === lv}">${l.name}</button>`).join("")}</div>
+        <button class="btn red" id="send">Ajouter la carte</button>
+        <p class="hint muted" style="margin:0;text-align:center">Elle est jouable tout de suite sur ce téléphone et elle est envoyée pour qu'on la relise. Tu as proposé ${mine().length} carte${mine().length > 1 ? "s" : ""}.</p>`;
+      $$("[data-k]", w).forEach(b => b.onclick = () => { t = b.dataset.k; store.set("propType", t); draw(); });
+      $$("#plv button", w).forEach(b => b.onclick = () => { lv = +b.dataset.l; $$("#plv button", w).forEach(x => x.setAttribute("aria-pressed", +x.dataset.l === lv)); });
+      $$(".duo-in", w).forEach(inp => inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const nx = $(`.duo-in[data-i="${+inp.dataset.i + 1}"]`, w); nx ? nx.focus() : send(); } });
+      $("#send", w).onclick = send;
+    };
+    const send = () => {
+      const vals = $$(".duo-in", w).map(i => i.value.trim().replace(/\s+/g, " ").replace(/^je n'ai jamais\s+/i, "").replace(/^qui pourrait\s+/i, "").replace(/[.?]$/, t === "verite" || t === "menteur" || t === "ouinon" ? "$&" : ""));
+      if (vals.some(v => !v)) { toast(vals.length > 1 ? "Remplis les deux champs." : "Écris ta carte d'abord."); return; }
+      const card = [lv, ...vals];
+      if (C[t].some(c => cardId(t, c) === cardId(t, card))) { toast("Cette carte existe déjà."); return; }
+      C[t].push(card);
+      const list = mine(); list.push({ type: t, card }); store.set("custom", list);
+      getDb().then(db => db && db.doc("propositions/" + devId + "_" + hashId(cardId(t, card))).set({ type: t, card: card.slice(1).join(" / "), lvl: lv, at: Date.now() })).catch(() => {});
+      buzz(30); toast("Carte ajoutée au jeu."); draw();
+    };
+    w.style.overflowY = "auto";
+    draw();
+  });
+}
+
+/* -------- PUISSANCE 4 : deux joueurs sur le même écran -------- */
+const P4 = { wins: [0, 0], first: 0 };
+function p4Start() {
+  const names = S.duo, R = 6, W = 7;
+  const g = Array.from({ length: R }, () => Array(W).fill(-1));
+  let cur = P4.first, over = false, line = null, last = null;
+  const win = (r, c) => {
+    const p = g[r][c];
+    for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+      const cells = [[r, c]];
+      for (const s of [1, -1]) { let rr = r + dr * s, cc = c + dc * s; while (rr >= 0 && rr < R && cc >= 0 && cc < W && g[rr][cc] === p) { cells.push([rr, cc]); rr += dr * s; cc += dc * s; } }
+      if (cells.length >= 4) return cells;
+    }
+    return null;
+  };
+  const draw = () => {
+    const full = g[0].every(x => x >= 0);
+    const msg = line ? `<b class="p4c p${cur}"></b>${esc(names[cur])} gagne !` : full ? "Match nul" : `<b class="p4c p${cur}"></b>Au tour de ${esc(names[cur])}`;
+    view(`
+      <div class="topbar">${quitBtn()}<span class="progress">${esc(names[0])} ${P4.wins[0]} - ${P4.wins[1]} ${esc(names[1])}</span><span style="width:44px"></span></div>
+      <p class="p4-msg">${msg}</p>
+      <div class="p4" id="p4">${Array.from({ length: W }, (_, c) => `<button class="p4col" data-c="${c}" aria-label="Colonne ${c + 1}">${Array.from({ length: R }, (_, r) => {
+        const v = g[r][c], hl = line && line.some(([a, b]) => a === r && b === c), drop = last && last[0] === r && last[1] === c;
+        return `<i class="${v >= 0 ? "p" + v : ""}${hl ? " hl" : ""}${drop ? " drop" : ""}" style="--r:${r + 1}"></i>`;
+      }).join("")}</button>`).join("")}</div>
+      <div class="actions">${over ? `<div class="row"><button class="btn red" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div>` : ""}</div>
+    `, () => {
+      bindQuit();
+      if (over) { $("#again").onclick = p4Start; $("#home").onclick = home; return; }
+      $$(".p4col").forEach(b => b.onclick = () => {
+        const c = +b.dataset.c; let r = R - 1; while (r >= 0 && g[r][c] >= 0) r--;
+        if (r < 0) { buzz([20, 30, 20]); return; }
+        g[r][c] = cur; last = [r, c]; buzz(15);
+        line = win(r, c);
+        if (line) { over = true; P4.wins[cur]++; P4.first = 1 - cur; buzz([60, 40, 120]); }
+        else if (g[0].every(x => x >= 0)) { over = true; P4.first = 1 - P4.first; }
+        else cur = 1 - cur;
+        draw();
+      });
+    });
+  };
+  draw();
+}
+
+/* -------- UNO : on se passe le téléphone, chacun voit sa main en secret -------- */
+const UNO_COLS = { r: "#FF3B6E", y: "#FFC93C", g: "#2EE6A0", b: "#4D8BFF" };
+const UNO_NAMES = { r: "rouge", y: "jaune", g: "vert", b: "bleu" };
+function unoDeck() {
+  const d = [];
+  for (const c of "rygb") {
+    d.push({ c, v: "0" });
+    for (const v of ["1", "2", "3", "4", "5", "6", "7", "8", "9", "skip", "rev", "+2"]) d.push({ c, v }, { c, v });
+  }
+  for (let i = 0; i < 4; i++) d.push({ c: "w", v: "w" }, { c: "w", v: "+4" });
+  return shuffle(d);
+}
+const unoLabel = v => ({ skip: "⊘", rev: "⇄", w: "★" }[v] || v);
+const unoCard = (k, cls = "", i) => `<button class="uno ${k.c === "w" ? "wild" : ""} ${cls}" ${i != null ? `data-i="${i}"` : ""} style="--uc:${UNO_COLS[k.c] || "#1A0F2E"}"><span>${unoLabel(k.v)}</span></button>`;
+function unoStart() {
+  if (S.names.length > 10) { toast("10 joueurs maximum au Uno."); return; }
+  const P = shuffle(S.names).map(n => ({ name: n, hand: [] }));
+  let pile = unoDeck(), disc = [], color, dir = 1, cur = 0, log = "", locked = false;
+  const pick = () => { if (!pile.length) { const top = disc.pop(); pile = shuffle(disc); disc = [top]; } return pile.pop(); };
+  P.forEach(p => { for (let i = 0; i < 7; i++) p.hand.push(pick()); });
+  let first = pick(); while (first.c === "w") { pile.unshift(first); first = pick(); }
+  disc.push(first); color = first.c;
+  const top = () => disc[disc.length - 1];
+  const nextIdx = (n = 1) => ((cur + dir * n) % P.length + P.length) % P.length;
+  const ok = k => k.c === "w" || k.c === color || k.v === top().v;
+  // effet de la première carte
+  if (first.v === "skip") { log = `${P[0].name} passe son tour.`; cur = nextIdx(); }
+  else if (first.v === "rev") { dir = -1; if (P.length === 2) cur = nextIdx(); }
+  else if (first.v === "+2") { P[0].hand.push(pick(), pick()); log = `${P[0].name} pioche 2 cartes.`; cur = nextIdx(); }
+  const table = () => `<div class="uno-table">
+      <div class="uno-top">${unoCard(top(), "big")}<span class="uno-col" style="background:${UNO_COLS[color]}">${UNO_NAMES[color]}</span></div>
+      <div class="uno-players">${P.map((p, i) => `<span class="${i === cur ? "on" : ""}">${esc(p.name)} <b>${p.hand.length}</b></span>`).join("")}</div>
+      ${log ? `<p class="uno-log">${esc(log)}</p>` : ""}
+    </div>`;
+  const turn = () => {
+    const p = P[cur];
+    view(`
+      <div class="topbar">${quitBtn()}<span class="progress">Uno ${dir > 0 ? "→" : "←"}</span><span style="width:44px"></span></div>
+      ${table()}
+      <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">Passe le téléphone à</span><span class="mast">${esc(p.name)}</span><p>Les autres, ne regardez pas ses cartes.</p></div></div>
+      <div class="actions"><button class="btn" id="show">Je suis ${esc(p.name)}, voir mes cartes</button></div>
+    `, () => { bindQuit(); $("#show").onclick = () => play(false); });
+  };
+  const play = drew => {
+    const p = P[cur]; locked = false;
+    const can = p.hand.some(ok);
+    view(`
+      <div class="topbar">${quitBtn()}<span class="progress">Main de ${esc(p.name)}</span><span style="width:44px"></span></div>
+      ${table()}
+      <p class="sub" style="text-align:center;margin:0">${drew ? (can ? "Tu peux jouer une carte ou passer." : "Toujours rien, tu passes.") : can ? "Joue une carte en surbrillance." : "Aucune carte jouable : pioche."}</p>
+      <div class="uno-hand">${p.hand.map((k, i) => unoCard(k, ok(k) ? "ok" : "no", i)).join("")}</div>
+      <div class="actions">${drew ? `<button class="btn white" id="pass">Passer</button>` : `<button class="btn white" id="draw">Piocher</button>`}</div>
+    `, () => {
+      bindQuit();
+      const d = $("#draw"); if (d) d.onclick = () => { if (locked) return; locked = true; const k = pick(); if (k) p.hand.push(k); buzz(10); play(true); };
+      const ps = $("#pass"); if (ps) ps.onclick = () => { log = `${p.name} passe.`; cur = nextIdx(); turn(); };
+      $$(".uno-hand .uno.ok").forEach(b => b.onclick = () => {
+        const k = p.hand[+b.dataset.i];
+        if (!k || locked) return; // pas de double carte sur un double appui
+        if (k.c === "w") return chooseColor(col => { if (!locked) { locked = true; put(k, col); } });
+        locked = true;
+        put(k, k.c);
+      });
+    });
+  };
+  const chooseColor = then => sheet(`<span class="mast" style="font-size:28px">Quelle couleur ?</span>
+    <div class="uno-colors">${Object.keys(UNO_COLS).map(c => `<button data-c="${c}" style="background:${UNO_COLS[c]}">${UNO_NAMES[c]}</button>`).join("")}</div>`,
+    w => $$("[data-c]", w).forEach(b => b.onclick = () => { w.remove(); then(b.dataset.c); }));
+  const put = (k, col) => {
+    const p = P[cur];
+    p.hand.splice(p.hand.indexOf(k), 1); disc.push(k); color = col; buzz(20);
+    if (!p.hand.length) return end(p);
+    log = `${p.name} a joué ${k.v === "w" ? "un joker" : k.v === "+4" ? "un +4" : k.v === "skip" ? "un passe-tour" : k.v === "rev" ? "un changement de sens" : k.v === "+2" ? "un +2" : "un " + k.v}${k.c === "w" ? " : " + UNO_NAMES[col] : ""}.`;
+    if (p.hand.length === 1) { stamp("UNO !", "green"); log += ` ${p.name} n'a plus qu'une carte !`; }
+    if (k.v === "rev") { dir = -dir; if (P.length === 2) cur = nextIdx(); }
+    if (k.v === "skip") { cur = nextIdx(); log += ` ${P[cur].name} passe son tour.`; }
+    if (k.v === "+2" || k.v === "+4") { cur = nextIdx(); const n = k.v === "+2" ? 2 : 4; for (let i = 0; i < n; i++) P[cur].hand.push(pick()); log += ` ${P[cur].name} pioche ${n} cartes et passe.`; }
+    cur = nextIdx();
+    later(turn, p.hand.length === 1 ? 900 : 250);
+  };
+  const end = p => {
+    buzz([60, 40, 140]);
+    view(`
+      <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Uno</span></div>
+        <p class="rank-say">Victoire de ${esc(p.name)}</p>
+        <div class="tag win" style="align-self:center;font-size:18px">${esc(rnd(WIN_TAGS))}</div>
+        <ol class="rank-list">${P.filter(x => x !== p).sort((a, b) => a.hand.length - b.hand.length).map((x, i) => `<li class="up"><span class="rk">${i + 2}</span><span class="nm">${esc(x.name)}</span><b>${x.hand.length} carte${x.hand.length > 1 ? "s" : ""}</b></li>`).join("")}</ol>
+        <div class="confetti" id="confetti"></div></div>
+      <div class="actions"><div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div></div>
+    `, () => { party(); $("#again").onclick = unoStart; $("#home").onclick = home; });
+  };
+  turn();
+}
+
+/* -------- PAUSE -------- */
+function curCard() { const c = S.avPick || S.deck[S.idx]; return c && c.id && C[c.type] ? c : null; }
+function banList() {
+  const items = [...ban].map(id => { const i = id.indexOf(":"); return { id, type: id.slice(0, i), text: id.slice(i + 1).replace("|", " / ").replace(/\{[pq]\}/g, "quelqu'un") }; });
+  const label = t => ({ verite: "Vérité", action: "Action" }[t] || (TYPES[t] ? TYPES[t].label : t));
+  sheet(`<span class="mast">Cartes retirées</span>
+    ${items.length ? `<div class="banlist">${items.map(o => `<div class="banrow"><p><small>${esc(label(o.type))}</small>${esc(o.text)}</p><button class="linkbtn" data-id="${esc(o.id)}">Remettre</button></div>`).join("")}</div>` : `<p class="hint">Aucune carte retirée.</p>`}
+    <button class="btn" id="close">Fermer</button>`, w => {
+    $("#close", w).onclick = () => { w.remove(); home(); };
+    $$(".banrow .linkbtn", w).forEach(b => b.onclick = () => { ban.delete(b.dataset.id); store.set("ban", [...ban]); b.closest(".banrow").remove(); });
+  });
+}
+function sheet(html, bind) {
+  $$(".sheet-wrap").forEach(s => s.remove());
+  const w = document.createElement("div"); w.className = "sheet-wrap";
+  w.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  w.onclick = e => { if (e.target === w) w.remove(); };
+  document.body.appendChild(w); bind && bind(w); return w;
+}
+function standings() {
+  const list = S.players.slice().sort((a, b) => b.pts - a.pts);
+  let rank = 0, prev = null;
+  return list.map((p, i) => { if (p.pts !== prev) { rank = i + 1; prev = p.pts; } return { name: p.name, pts: p.pts, rank }; });
+}
+function bindTools(r = document) {
+  $$("[data-tool]", r).forEach(b => b.onclick = () => { $$(".sheet-wrap").forEach(s => s.remove()); ({ dice: diceTool, chooser: chooserTool, propose: proposeTool })[b.dataset.tool](); });
+}
+function pauseMenu() {
+  const st = standings();
+  const w = sheet(`
+    <span class="mast" style="font-size:34px">Pause</span>
+    <button class="btn" id="resume">Reprendre</button>
+    <div class="tools-row" style="margin:0"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
+    <div class="section-label">Scores</div>
+    <div class="mini-rank">${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
+    <div class="section-label">Intensité</div>
+    <div class="seg" id="lvl">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === S.level}">${l.name}</button>`).join("")}</div>
+    ${curCard() ? `<button class="btn white" id="ban">Cette carte est nulle <small>Elle ne reviendra plus</small></button>` : ""}
+    <button class="btn white" data-tool="propose">Proposer une carte</button>
+    <button class="btn ink" id="end">Terminer la partie <small>Voir le classement</small></button>
+    <button class="linkbtn" id="quit">Abandonner et revenir à l'accueil</button>
+  `, w => {
+    $("#resume", w).onclick = () => w.remove();
+    bindTools(w);
+    $("#end", w).onclick = () => { w.remove(); ranking(); };
+    $("#quit", w).onclick = () => { w.remove(); home(); };
+    $$("#lvl button", w).forEach(b => b.onclick = () => {
+      S.level = +b.dataset.l; store.set("level", S.level);
+      $$("#lvl button", w).forEach(x => x.setAttribute("aria-pressed", +x.dataset.l === S.level));
+      // reconstruire la suite du paquet au nouveau niveau
+      const rest = S.deck.length - S.idx - 1, cur = S.deck[S.idx];
+      if (rest > 0 && cur) S.deck = S.deck.slice(0, S.idx + 1).concat(deckOf(cur.type, rest));
+      toast("Intensité : " + LEVELS[S.level - 1].name + " dès la prochaine carte.");
+    });
+    const bn = $("#ban", w); if (bn) bn.onclick = () => { const c = curCard(); ban.add(c.id); store.set("ban", [...ban]); w.remove(); S.changed = false; skipCard("Carte retirée pour de bon.", true); };
+  });
+}
+
+/* -------- CLASSEMENT -------- */
+let lastRank = null;
+function ranking() {
+  clearTimers();
+  S.inGame = false;
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  const st = standings(); lastRank = st;
+  const pod = st.slice(0, 3), rest = st.slice(3);
+  const order = pod.length === 3 ? [pod[1], pod[0], pod[2]] : pod;
+  const bottom = st.length > 1 ? st[st.length - 1].rank : 0;
+  const tag = r => r.rank === 1 ? `<span class="tag win">${esc(rnd(WIN_TAGS))}</span>` : r.rank === bottom && bottom > 1 ? `<span class="tag lose">${esc(rnd(LOSE_TAGS))}</span>` : "";
+  view(`
+    <div class="rank anim" id="rank">
+      <div class="rank-head"><span class="mast">Classement</span><span class="rank-date">${esc(today())}</span></div>
+      <p class="rank-say" id="say">Roulement de tambour…</p>
+      <div class="podium">${order.map(r => `<div class="pod r${Math.min(r.rank, 3)}" data-rank="${r.rank}">${tag(r)}<span class="pod-name">${esc(r.name)}</span><span class="pod-pts">${r.pts} pt${r.pts > 1 ? "s" : ""}</span><div class="pod-step"><span>${r.rank}</span></div></div>`).join("")}</div>
+      ${rest.length ? `<ol class="rank-list">${rest.map(r => `<li><span class="rk">${r.rank}</span><span class="nm">${esc(r.name)}</span>${tag(r)}<b>${r.pts}</b></li>`).join("")}</ol>` : ""}
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <div class="actions wait" id="acts">
+      <button class="btn red" id="save">Enregistrer le classement <small>Une image au format story</small></button>
+      <div class="row"><button class="btn" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div>
+    </div>
+  `, () => {
+    $("#again").onclick = () => { S.names = S.players.map(p => p.name); startGame(); };
+    $("#home").onclick = home;
+    $("#save").onclick = saveRank;
+    // révélation : la liste du dernier vers le 4e, puis 3e, 2e et enfin le gagnant
+    const say = t => { $("#say").textContent = t; };
+    const steps = [];
+    $$(".rank-list li").reverse().forEach(li => steps.push([450, () => { li.classList.add("up"); buzz(8); say("…"); }]));
+    const pods = $$(".pod").sort((a, b) => b.dataset.rank - a.dataset.rank);
+    const place = n => n === 1 ? "1re place" : n + "e place";
+    pods.forEach((p, i) => {
+      const r = +p.dataset.rank, last = i === pods.length - 1;
+      if (last && pods.length > 1) steps.push([900, () => say(r === 1 ? "Et la première place revient à…" : place(r) + "…")]);
+      steps.push([last ? 1500 : 900, () => {
+        p.classList.add("up"); buzz(last ? [60, 40, 140] : 25); say(place(r));
+        if (r === 1) { const w = st.filter(x => x.rank === 1).map(x => x.name); say(w.length > 1 ? "Égalité : " + w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : "Victoire de " + w[0]); party(); }
+      }]);
+    });
+    steps.push([700, () => $("#acts").classList.remove("wait")]);
+    let k = 0, done = false;
+    const run = () => { if (done || k >= steps.length) return; const [ms, fn] = steps[k++]; later(() => { fn(); run(); }, ms); };
+    const finish = () => { if (done) return; done = true; clearTimers(); while (k < steps.length) steps[k++][1](); };
+    $("#rank").onclick = finish;
+    run();
+  });
+}
+const WIN_TAGS = ["T'es un bon", "T'as un don", "Bouillant", "T'es un tigre"];
+const LOSE_TAGS = ["Petite keh", "Grosse keh", "Céline", "T'es mauvais", "Keh", "T'as déconné", "Décevant", "Bon…", "Peut mieux faire", "Ayaaaaa"];
+function party() {
+  const box = $("#confetti"); if (!box) return;
+  const cols = ["#FFE04A", "#FF3B6E", "#2EE6A0", "#4D8BFF", "#A66BFF", "#FF8A1F"];
+  box.innerHTML = Array.from({ length: 46 }, (_, i) => `<i style="left:${Math.random() * 100}%;background:${cols[i % cols.length]};animation-delay:${(Math.random() * .6).toFixed(2)}s;animation-duration:${(1.6 + Math.random() * 1.4).toFixed(2)}s;transform:rotate(${Math.round(Math.random() * 360)}deg)"></i>`).join("");
+}
+
+/* image story 1080 × 1920 */
+function wrap(ctx, text, maxW) {
+  const words = String(text).split(/\s+/), lines = []; let line = "";
+  words.forEach(w => { const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; });
+  if (line) lines.push(line); return lines;
+}
+/* palette de l'image story : un thème peut la remplacer via window.THEME */
+const STORY = Object.assign({
+  bg: "#F3EEE4", dots: "rgba(21,19,15,.06)", page: "#FFFDF8", line: "#15130F", shadow: "#15130F",
+  ink: "#15130F", soft: "#5B554B", accent: "#E8322B", onAccent: "#FFFDF8", highlight: "#FFE24A", onHighlight: "#15130F",
+  band: "#15130F", bandNum: "#FFE24A", bandText: "#FFFDF8", footer: "#E8322B", onFooter: "#FFFDF8",
+  display: "Anton", displayWeight: "400", body: "Archivo", radius: 0, upper: true, shadowOffset: 14
+}, window.THEME || {});
+function rr(x, X, Y, w, h, r) { x.beginPath(); if (r && x.roundRect) x.roundRect(X, Y, w, h, r); else x.rect(X, Y, w, h); }
+async function renderRank(st) {
+  const D = `"${STORY.display}", Impact, sans-serif`, B = `"${STORY.body}", Arial, sans-serif`, dw = STORY.displayWeight;
+  try { await Promise.all([document.fonts.load(`${dw} 120px "${STORY.display}"`), document.fonts.load(`800 40px "${STORY.body}"`)]); } catch (e) {}
+  const W = 1080, H = 1920, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const x = cv.getContext("2d"), M = 72;
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#1B0F4A"); g.addColorStop(1, "#0B0720");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.textAlign = "center"; x.fillStyle = "#FFFFFF"; x.font = `${dw} 120px ${D}`;
+  x.fillText("Classement", W / 2, 260);
+  x.fillStyle = "#C9C0F2"; x.font = `800 34px ${B}`; x.fillText(today(), W / 2, 330);
+  const rows = st.slice(0, 12), top = 420, avail = H - 220 - top, rh = Math.min(190, avail / rows.length), y0 = top + Math.max(0, (avail - rh * rows.length) / 2) * .6;
+  const medal = ["#FFD84A", "#D9DDF0", "#FF9A5A"];
+  rows.forEach((r, i) => {
+    const y = y0 + i * rh, h = rh - 18, podium = r.rank <= 3;
+    x.fillStyle = podium ? "rgba(255,255,255,.12)" : "rgba(255,255,255,.06)"; rr(x, M, y, W - 2 * M, h, 32); x.fill();
+    const cy = y + h / 2, rad = Math.min(46, h / 2 - 10);
+    x.fillStyle = podium ? medal[r.rank - 1] : "rgba(255,255,255,.18)"; x.beginPath(); x.arc(M + 40 + rad, cy, rad, 0, 7); x.fill();
+    x.fillStyle = podium ? "#1A0F2E" : "#FFFFFF"; x.font = `${dw} ${Math.round(rad * 1.1)}px ${D}`; x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillText(String(r.rank), M + 40 + rad, cy + 2);
+    x.textAlign = "left"; x.fillStyle = "#FFFFFF"; x.font = `${dw} ${Math.round(Math.min(64, h * .42))}px ${D}`;
+    const nameW = W - 2 * M - 2 * rad - 300; let nm = r.name; while (x.measureText(nm).width > nameW && nm.length > 2) nm = nm.slice(0, -2) + "…";
+    x.fillText(nm, M + 80 + 2 * rad, cy + 2);
+    x.textAlign = "right"; x.fillStyle = podium ? medal[r.rank - 1] : "#C9C0F2"; x.font = `${dw} ${Math.round(Math.min(60, h * .4))}px ${D}`;
+    x.fillText(r.pts + " pts", W - M - 40, cy + 2);
+    x.textBaseline = "alphabetic";
+  });
+  x.textAlign = "center"; x.fillStyle = "#FF5C93"; x.font = `800 32px ${B}`; x.fillText("JOUÉ SUR PLATOZ", W / 2, H - 110);
+  return new Promise(r => cv.toBlob(b => r({ blob: b, url: cv.toDataURL("image/png") }), "image/png"));
+}
+async function saveRank() {
+  const btn = $("#save"); btn.disabled = true; btn.firstChild.textContent = "Préparation… ";
+  const { blob, url } = await renderRank(lastRank);
+  btn.disabled = false; btn.firstChild.textContent = "Enregistrer le classement ";
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await Promise.race([window.claude.use("downloads"), new Promise(r => setTimeout(() => r(null), 3000))]) : null; } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename: "platoz-classement.png", data: blob }); toast("Classement enregistré."); return; }
+    catch (e) { if (e && e.code === "declined") return; }
+  }
+  sheet(`<span class="mast" style="font-size:30px">Classement</span>
+    <p class="hint">Appuie longuement sur l'image pour l'enregistrer.</p>
+    <img class="preview-img" src="${url}" alt="Classement de la partie">
+    <button class="btn" id="close">Fermer</button>`, w => { $("#close", w).onclick = () => w.remove(); });
+}
+
+/* image story des jeux seul ou à deux */
+async function renderUne(A) {
+  const D = `"${STORY.display}", Impact, sans-serif`, B = `"${STORY.body}", Arial, sans-serif`, dw = STORY.displayWeight;
+  const up = t => STORY.upper ? String(t).toUpperCase() : String(t);
+  try { await Promise.all([document.fonts.load(`${dw} 120px "${STORY.display}"`), document.fonts.load(`800 40px "${STORY.body}"`), document.fonts.load(`400 40px "${STORY.body}"`)]); } catch (e) {}
+  const W = 1080, H = 1920, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const x = cv.getContext("2d"), M = 64, R = STORY.radius, so = STORY.shadowOffset;
+  x.fillStyle = STORY.bg; x.fillRect(0, 0, W, H);
+  if (STORY.dots) { x.fillStyle = STORY.dots; for (let i = 0; i < W; i += 14) for (let j = 0; j < H; j += 14) { x.beginPath(); x.arc(i, j, 1.6, 0, 7); x.fill(); } }
+  // page
+  if (so) { x.fillStyle = STORY.shadow; rr(x, M + so, 120 + so, W - 2 * M, H - 260, R); x.fill(); }
+  x.save(); rr(x, M, 120, W - 2 * M, H - 260, R); x.clip();
+  x.fillStyle = STORY.page; x.fillRect(M, 120, W - 2 * M, H - 260);
+  // masthead
+  x.fillStyle = STORY.accent; x.fillRect(M, 120, W - 2 * M, 230);
+  x.fillStyle = STORY.onAccent; x.textAlign = "center"; x.font = `${dw} 190px ${D}`;
+  let mw = x.measureText(up("Le Scandale")).width; if (mw > W - 2 * M - 60) x.font = `${dw} ${Math.floor(190 * (W - 2 * M - 60) / mw)}px ${D}`;
+  x.fillText(up("Le Scandale"), W / 2, 312);
+  x.fillStyle = STORY.line; x.fillRect(M, 350, W - 2 * M, 6);
+  x.fillStyle = STORY.ink; x.font = `800 30px ${B}`; x.textAlign = "left"; x.fillText(today().toUpperCase(), M + 28, 404);
+  x.textAlign = "right"; x.fillText(A.kicker && A.kicker !== "Exclusif" ? "ÉDITION SPÉCIALE" : "N° " + S.edition, W - M - 28, 404);
+  x.fillStyle = STORY.line; x.fillRect(M, 428, W - 2 * M, 6);
+  // kicker + headline
+  let y = 500; x.textAlign = "left";
+  x.font = `800 32px ${B}`; const kick = (A.kicker || "Exclusif").toUpperCase();
+  x.fillStyle = STORY.highlight; rr(x, M + 28, y - 40, x.measureText(kick).width + 32, 54, R ? 27 : 0); x.fill();
+  x.fillStyle = STORY.onHighlight; x.fillText(kick, M + 44, y);
+  y += 120; x.fillStyle = STORY.ink; x.font = `${dw} 112px ${D}`;
+  const hl = wrap(x, up(A.headline), W - 2 * M - 56).slice(0, 4);
+  hl.forEach(l => { x.fillText(l, M + 28, y); y += 116; });
+  x.font = `400 38px ${B}`; x.fillStyle = STORY.soft;
+  wrap(x, A.deck, W - 2 * M - 56).slice(0, 3).forEach(l => { x.fillText(l, M + 28, y); y += 50; });
+  y += 20; x.fillStyle = STORY.line; x.fillRect(M, y, W - 2 * M, 4); y += 60;
+  // awards, two columns
+  const colW = (W - 2 * M - 56 - 40) / 2, items = A.items.slice(0, 8);
+  const statsTop = H - 200 - 170, rows = Math.ceil(items.length / 2);
+  const rowH = Math.min(300, (statsTop - 30 - y) / rows), big = rowH >= 250;
+  y += Math.max(0, (statsTop - 30 - y - rowH * rows) / 2);
+  items.forEach((a, i) => {
+    const cx = M + 28 + (i % 2) * (colW + 40), cy = y + Math.floor(i / 2) * rowH;
+    x.fillStyle = STORY.accent; x.font = `800 ${big ? 32 : 28}px ${B}`; x.fillText(a.title.toUpperCase(), cx, cy);
+    x.fillStyle = STORY.ink; x.font = `${dw} ${big ? 84 : 64}px ${D}`; x.fillText(wrap(x, up(a.name), colW)[0], cx, cy + (big ? 92 : 70));
+    x.fillStyle = STORY.soft; x.font = `400 ${big ? 32 : 28}px ${B}`;
+    wrap(x, a.desc, colW).slice(0, 2).forEach((l, k) => x.fillText(l, cx, cy + (big ? 140 : 112) + k * (big ? 40 : 34)));
+  });
+  // bandeau chiffres
+  x.fillStyle = STORY.band; x.fillRect(M, statsTop, W - 2 * M, 170);
+  const sw = (W - 2 * M) / 3;
+  A.stats.forEach((st, i) => {
+    const cx = M + sw * i + sw / 2; x.textAlign = "center";
+    x.fillStyle = STORY.bandNum; x.font = `${dw} 96px ${D}`; x.fillText(String(st[0]), cx, statsTop + 100);
+    x.fillStyle = STORY.bandText; x.font = `800 26px ${B}`; x.fillText(st[1].toUpperCase(), cx, statsTop + 145);
+    if (i) { x.fillStyle = STORY.soft; x.fillRect(M + sw * i, statsTop + 24, 2, 122); }
+  });
+  x.textAlign = "left";
+  // footer
+  x.fillStyle = STORY.footer; x.fillRect(M, H - 200, W - 2 * M, 60);
+  x.fillStyle = STORY.onFooter; x.textAlign = "center"; x.font = `800 30px ${B}`; x.fillText("JOUÉ SUR PLATOZ · LE JEU DE TOUTES VOS SOIRÉES", W / 2, H - 160);
+  x.restore();
+  if (STORY.line && !so) { x.strokeStyle = STORY.line; x.lineWidth = 4; rr(x, M, 120, W - 2 * M, H - 260, R); x.stroke(); }
+  else { x.strokeStyle = STORY.line; x.lineWidth = 6; rr(x, M, 120, W - 2 * M, H - 260, R); x.stroke(); }
+  return new Promise(r => cv.toBlob(b => r({ blob: b, url: cv.toDataURL("image/png") }), "image/png"));
+}
+
+/* =====================================================================
+   JEUX SEUL OU À DEUX
+   ===================================================================== */
+const DEUX = [
+  [1,"est le plus en retard"],[1,"ronfle le plus fort"],[1,"pleure le plus devant un film"],[1,"est le plus mauvais perdant"],
+  [1,"passe le plus de temps sur son téléphone"],[1,"cuisine le mieux"],[1,"survivrait le plus longtemps sur une île déserte"],
+  [1,"dépense le plus d'argent pour rien"],[1,"est le plus têtu"],[1,"rit à ses propres blagues"],[1,"est le plus bordélique"],
+  [1,"a le pire sens de l'orientation"],[1,"finirait en prison en premier"],[1,"oublie le plus les anniversaires"],
+  [2,"est le plus jaloux"],[2,"a le plus d'ex"],[2,"ment le mieux"],[2,"stalke le plus les ex de l'autre"],
+  [2,"a fait le premier pas"],[2,"craque le plus vite après une dispute"],[2,"a le plus de secrets"],
+  [2,"est le plus susceptible"],[2,"draguerait quelqu'un d'autre en soirée"],[2,"lirait les messages de l'autre en cachette"],
+  [3,"a le plus d'imagination au lit"],[3,"prend le plus souvent l'initiative"],[3,"a le fantasme le plus inavouable"],
+  [3,"tromperait en premier"],[3,"a déjà simulé"],[3,"embrasse le mieux"]
+];
+const TEST = [
+  ["T'as déjà menti sur ton âge ?","a menti sur son âge"],
+  ["T'as déjà stalké un ex pendant plus d'une heure ?","a stalké un ex pendant une heure"],
+  ["T'as déjà ghosté quelqu'un ?","a ghosté quelqu'un"],
+  ["Tu t'es déjà fait refouler d'une boîte ?","s'est fait refouler d'une boîte"],
+  ["T'as déjà fouillé le téléphone de quelqu'un ?","a fouillé un téléphone"],
+  ["T'as déjà fait semblant d'être malade pour éviter quelqu'un ?","a simulé une maladie"],
+  ["T'as déjà dit « je t'aime » sans le penser ?","a dit je t'aime sans le penser"],
+  ["T'as déjà embrassé quelqu'un dont tu connaissais pas le prénom ?","a embrassé un inconnu"],
+  ["T'as déjà vomi en soirée ?","a vomi en soirée"],
+  ["T'as déjà oublié comment tu étais rentré chez toi ?","a oublié comment il est rentré"],
+  ["T'as déjà eu un crush sur le mec ou la meuf d'un pote ?","a craqué pour le partenaire d'un pote"],
+  ["T'as déjà eu une relation secrète ?","a eu une relation secrète"],
+  ["T'as déjà embrassé deux personnes dans la même soirée ?","a embrassé deux personnes le même soir"],
+  ["T'as déjà envoyé une photo que tu regrettes ?","a envoyé une photo regrettable"],
+  ["T'as déjà recouché avec un ex ?","a recouché avec un ex"],
+  ["T'as déjà triché à un examen ?","a triché à un examen"],
+  ["T'as déjà volé quelque chose dans un magasin ?","a volé dans un magasin"],
+  ["T'as déjà passé une nuit blanche avant d'aller travailler ?","a enchaîné nuit blanche et boulot"],
+  ["T'as déjà dragué quelqu'un pour un verre gratuit ?","a dragué pour un verre gratuit"],
+  ["T'as déjà dit du mal d'un ami dans son dos ?","a balancé sur un ami"],
+  ["T'as déjà couché le premier soir ?","a couché le premier soir"],
+  ["T'as déjà fait l'amour dans un lieu public ?","l'a fait dans un lieu public"],
+  ["T'as déjà trompé quelqu'un ?","a trompé quelqu'un"],
+  ["T'as déjà eu une histoire avec quelqu'un de beaucoup plus âgé ?","a eu une histoire avec plus âgé"]
+];
+
+/* deux prénoms pour les jeux à deux */
+function duoSetup(then) {
+  const d = S.duo || store.get("duo", ["", ""]);
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Qui joue ?</span><span style="width:44px"></span></div>
+    <div class="opts">
+      <input class="duo-in" id="duo-a" maxlength="14" placeholder="Joueur 1" autocomplete="off" autocapitalize="words" enterkeyhint="next" value="${esc(d[0])}" aria-label="Prénom du joueur 1">
+      <input class="duo-in" id="duo-b" maxlength="14" placeholder="Joueur 2" autocomplete="off" autocapitalize="words" enterkeyhint="done" value="${esc(d[1])}" aria-label="Prénom du joueur 2">
+    </div>
+    <div class="actions"><button class="btn red" id="next">Continuer</button></div>
+  `, () => {
+    $("#back").onclick = home;
+    const go = () => {
+      const a = $("#duo-a").value.trim(), b = $("#duo-b").value.trim();
+      if (!a || !b) { toast("Il faut deux prénoms."); return; }
+      if (a.toLowerCase() === b.toLowerCase()) { toast("Deux prénoms différents, s'il vous plaît."); return; }
+      store.set("duo", [a, b]); S.duo = [a, b]; then();
+    };
+    $("#next").onclick = go;
+    $("#duo-a").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#duo-b").focus(); } };
+    $("#duo-b").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+  });
+}
+function quitBtn() { return `<button class="iconbtn" id="quit" aria-label="Quitter">×</button>`; }
+function bindQuit() {
+  $("#quit").onclick = () => sheet(`<span class="mast" style="font-size:30px">Quitter la partie ?</span>
+    <div class="row"><button class="btn white" id="stay">Continuer</button><button class="btn ink" id="leave">Quitter</button></div>`,
+    w => { $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; });
+}
+function resultActions(again) {
+  return `<div class="actions"><button class="btn red" id="save">Enregistrer en image <small>Au format story, prête à poster</small></button>
+    <div class="row"><button class="btn" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div></div>`;
+}
+function bindResult(A, again, file) {
+  $("#again").onclick = again; $("#home").onclick = home;
+  $("#save").onclick = () => saveStory(A, $("#save"), file);
+}
+function miniUne(A) {
+  return `<div class="une">
+    <div class="une-mast">Le Scandale</div>
+    <div class="une-date"><span>${esc(today())}</span><span>Édition spéciale</span></div>
+    <div class="head"><span class="kicker">${esc(A.kicker || "Exclusif")}</span><h2>${esc(A.headline)}</h2><p>${esc(A.deck)}</p></div>
+    ${A.items.length ? `<div class="awards">${A.items.map(a => `<div class="aw"><span class="t">${esc(a.title)}</span><span class="n">${esc(a.name)}</span><span class="d">${esc(a.desc)}</span></div>`).join("")}</div>` : ""}
+    <div class="stats">${A.stats.map(s => `<div><b>${s[0]}</b><span>${s[1]}</span></div>`).join("")}</div>
+    <div class="foot">Joué sur Platoz</div>
+  </div>`;
+}
+
+/* ---------- QUI DE NOUS DEUX ---------- */
+function startDeux() {
+  const lv = S.level;
+  const qs = DEUX.filter(q => q[0] <= lv && (S.hot || !isHot([q[1]]))).map(q => ({ q, k: Math.random() + (q[0] === lv ? .35 : 0) })).sort((a, b) => b.k - a.k).slice(0, 15).map(o => o.q[1]);
+  const st = { i: 0, ok: 0, qs, pts: { [S.duo[0]]: 0, [S.duo[1]]: 0 } };
+  keepAwake();
+  const ask = () => {
+    if (st.i >= st.qs.length) return resultDeux(st);
+    view(`
+      <div class="topbar">${quitBtn()}<span class="progress">Question ${st.i + 1} / ${st.qs.length}</span><span style="width:44px"></span></div>
+      <div class="stage">${cardShell("deux", null, `
+        <p class="text">Qui de nous deux <b>${esc(st.qs[st.i])}</b> ?</p>
+        <p class="sub">Au signal, chacun pointe en même temps ${esc(S.duo[0])} ou ${esc(S.duo[1])}.</p>`, st.i % 2)}</div>
+      <div class="actions"><button class="btn red" id="go">3, 2, 1… Désignez !</button></div>`, () => {
+      bindQuit();
+      $("#go").onclick = () => {
+        let n = 3;
+        $(".actions").innerHTML = "";
+        const tick = () => {
+          $(".stage").innerHTML = `<div class="big-count">${n > 0 ? n : "Pointez !"}</div>`;
+          if (n <= 0) { $(".big-count").style.fontSize = "72px"; buzz(80); later(judge, 800); return; }
+          buzz(20); n--; later(tick, 700);
+        };
+        tick();
+      };
+    });
+  };
+  const judge = () => {
+    $(".stage").innerHTML = cardShell("deux", null, `<p class="text">Vous avez désigné la même personne ?</p>`, st.i % 2);
+    $(".actions").innerHTML = `<div class="row"><button class="btn white" id="no">Non</button><button class="btn green" id="yes">Oui</button></div>`;
+    $("#yes").onclick = () => {
+      $(".stage").innerHTML = cardShell("deux", null, `<p class="text">Qui était-ce ?</p>
+        <div class="row" style="padding:0 18px">${S.duo.map((n, i) => `<button class="btn white" data-i="${i}">${esc(n)}</button>`).join("")}</div>`, st.i % 2);
+      $(".actions").innerHTML = "";
+      $$(".stage [data-i]").forEach(b => b.onclick = () => { st.ok++; st.pts[S.duo[+b.dataset.i]]++; stamp("Complices", "green"); st.i++; later(ask, 900); });
+    };
+    $("#no").onclick = () => {
+      stamp("Désaccord");
+      later(() => {
+        $(".stage").innerHTML = cardShell("deux", null, `<p class="text">Chacun a 20 secondes pour défendre sa version.</p>`, st.i % 2);
+        $(".actions").innerHTML = `<button class="btn red" id="ok">Question suivante</button>`;
+        $("#ok").onclick = () => { st.i++; ask(); };
+      }, 900);
+    };
+  };
+  ask();
+}
+function resultDeux(st) {
+  const pct = Math.round(st.ok / st.qs.length * 100);
+  const [a, b] = S.duo;
+  const title = pct >= 80 ? "Âmes sœurs, ou complices du crime" : pct >= 60 ? "Un duo solide" : pct >= 40 ? "Ça se discute" : "Vous vous connaissez vraiment ?";
+  const lead = st.pts[a] === st.pts[b] ? null : (st.pts[a] > st.pts[b] ? a : b);
+  const A = {
+    kicker: "Qui de nous deux",
+    headline: `${a} et ${b} : complices à ${pct} %`,
+    deck: title + ".",
+    items: [
+      { title: "Le plus désigné", name: lead || "Égalité", desc: lead ? `${Math.max(st.pts[a], st.pts[b])} fois sur ${st.ok} accords` : "Personne ne prend tout" },
+      { title: "Verdict", name: pct >= 60 ? "Validé" : "À revoir", desc: `${st.ok} réponses communes sur ${st.qs.length}` }
+    ],
+    stats: [[st.qs.length, "questions"], [st.ok, "accords"], [st.qs.length - st.ok, "désaccords"]]
+  };
+  S.inGame = false;
+  view(`${miniUne(A)}${resultActions()}`, () => { stamp(pct + " %", "blue"); bindResult(A, startDeux, "qui-de-nous-deux"); });
+}
+
+/* ---------- DUEL RÉFLEXE ---------- */
+function reflexMenu() {
+  const best = store.get("reflex-best", null);
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Duel réflexe</span><span style="width:44px"></span></div>
+    <div class="stage">${cardShell("reflexe", null, `
+      <p class="text">Touche l'écran dès qu'il devient rouge. Trop tôt, c'est perdu.</p>
+      <p class="sub">${best ? "Ton record sur ce téléphone : " + best + " ms." : "Pas encore de record sur ce téléphone."}</p>`)}</div>
+    <div class="actions"><button class="btn" id="solo">Seul <small>5 essais, bats ton record</small></button><button class="btn red" id="duo">À deux <small>Face à face sur le même téléphone</small></button></div>
+  `, () => { $("#back").onclick = home; $("#solo").onclick = reflexSolo; $("#duo").onclick = () => duoSetup(reflexDuo); });
+}
+function reflexSolo() {
+  const times = []; let state = "idle", t0 = 0, to = null;
+  keepAwake();
+  view(`<div class="pad" id="pad"><span class="pad-big" id="big">Touche pour commencer</span><span class="pad-small" id="small">Essai 1 / 5</span></div>
+    <button class="iconbtn pad-quit" id="quit" aria-label="Quitter">×</button>`, () => {
+    bindQuit();
+    const pad = $("#pad"), big = $("#big"), small = $("#small");
+    const set = (cls, b, s) => { pad.className = "pad " + cls; big.textContent = b; small.textContent = s; };
+    const arm = () => { state = "wait"; set("wait", "Attends le rouge…", `Essai ${times.length + 1} / 5`); to = setTimeout(() => { state = "go"; t0 = performance.now(); set("go", "Tape !", ""); buzz(30); }, 1500 + Math.random() * 2500); timers.push(to); };
+    pad.onpointerdown = e => {
+      e.preventDefault();
+      if (state === "idle" || state === "shown") return arm();
+      if (state === "wait") { clearTimeout(to); state = "shown"; set("early", "Trop tôt !", "Touche pour réessayer"); buzz([60, 40, 60]); return; }
+      if (state === "go") {
+        const ms = Math.round(performance.now() - t0); times.push(ms); state = "shown";
+        if (times.length >= 5) return done();
+        set("idle", ms + " ms", "Touche pour l'essai suivant");
+      }
+    };
+    const done = () => {
+      const best = Math.min(...times), avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+      const rec = store.get("reflex-best", null), isRec = !rec || best < rec;
+      if (isRec) store.set("reflex-best", best);
+      const verdict = best < 220 ? "Réflexes de pilote de chasse" : best < 300 ? "Bien réveillé" : best < 400 ? "Correct, sans plus" : "Tu dors déjà ?";
+      const name = store.get("solo-name", "") || (S.duo && S.duo[0]) || "";
+      const A = { kicker: "Duel réflexe", headline: `${name ? name + " : " : "Réflexe : "}${best} ms`, deck: verdict + (isRec ? ". Nouveau record !" : "."), items: [],
+        stats: [[best, "meilleur (ms)"], [avg, "moyenne (ms)"], [store.get("reflex-best", best), "record (ms)"]] };
+      S.inGame = false;
+      view(`${miniUne(A)}${resultActions()}`, () => { if (isRec) stamp("Record", "green"); bindResult(A, reflexSolo, "duel-reflexe"); });
+    };
+  });
+}
+function reflexDuo() {
+  const [a, b] = S.duo, score = [0, 0];
+  let state = "wait", to = null;
+  keepAwake();
+  view(`<div class="duel">
+      <div class="half top" id="h1"><span class="pad-name">${esc(b)}</span><span class="pad-big" id="b1"></span><span class="pad-small" id="s1"></span></div>
+      <div class="half" id="h0"><span class="pad-name">${esc(a)}</span><span class="pad-big" id="b0"></span><span class="pad-small" id="s0"></span></div>
+    </div><button class="iconbtn pad-quit" id="quit" aria-label="Quitter">×</button>`, () => {
+    bindQuit();
+    const H = [$("#h0"), $("#h1")], B = [$("#b0"), $("#b1")], Sm = [$("#s0"), $("#s1")];
+    const set = (cls, big, small) => [0, 1].forEach(i => { H[i].className = "half " + (i ? "top " : "") + cls; B[i].textContent = big[i]; Sm[i].textContent = small[i]; });
+    const scoreTxt = () => [`${score[0]} - ${score[1]}`, `${score[1]} - ${score[0]}`];
+    const round = () => {
+      state = "wait"; set("wait", ["Attends…", "Attends…"], scoreTxt());
+      to = setTimeout(() => { state = "go"; set("go", ["Tape !", "Tape !"], scoreTxt()); buzz(30); }, 1500 + Math.random() * 3000); timers.push(to);
+    };
+    const point = (w, why) => {
+      state = "pause"; clearTimeout(to); score[w]++; buzz([40, 30, 40]);
+      const msg = i => i === w ? (why === "early" ? "Faux départ adverse" : "Point !") : (why === "early" ? "Faux départ !" : "Trop lent");
+      set("pause", [msg(0), msg(1)], scoreTxt());
+      if (score[w] >= 3) { later(() => end(w), 1200); return; }
+      later(round, 1500);
+    };
+    [0, 1].forEach(i => H[i].onpointerdown = e => {
+      e.preventDefault();
+      if (state === "go") point(i, "fast");
+      else if (state === "wait") point(1 - i, "early");
+    });
+    const end = w => {
+      const winner = S.duo[w], loser = S.duo[1 - w];
+      const A = { kicker: "Duel réflexe", headline: `${winner} bat ${loser} ${score[w]} à ${score[1 - w]}`, deck: `Victoire en ${score[0] + score[1]} manches.`, items: [],
+        stats: [[score[0] + score[1], "manches"], [score[w], "pour " + winner], [score[1 - w], "pour " + loser]] };
+      S.inGame = false;
+      view(`${miniUne(A)}${resultActions()}`, () => { stamp(winner.length > 9 ? "Victoire" : winner, "green"); bindResult(A, reflexDuo, "duel-reflexe"); });
+    };
+    round();
+  });
+}
+
+/* ---------- TEST DE SCANDALE ---------- */
+const testQs = () => TEST.filter(q => S.hot || !isHot(q));
+function testIntro() {
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Test de scandale</span><span style="width:44px"></span></div>
+    <div class="stage">${cardShell("test", null, `
+      <p class="text">${testQs().length} questions, réponds honnêtement. Tu obtiens ton indice de scandale, à partager si tu l'assumes.</p>
+      <p class="sub">Personne ne voit tes réponses, seulement ton score et trois de tes aveux.</p>`)}</div>
+    <input class="duo-in" id="solo-name" maxlength="14" placeholder="Ton prénom" autocomplete="off" autocapitalize="words" enterkeyhint="go" value="${esc(store.get("solo-name", ""))}" aria-label="Ton prénom">
+    <div class="actions"><button class="btn red" id="go">Commencer</button></div>
+  `, () => {
+    $("#back").onclick = home;
+    const go = () => { const n = $("#solo-name").value.trim(); if (!n) { toast("Entre ton prénom pour la Une."); return; } store.set("solo-name", n); testRun(n); };
+    $("#go").onclick = go; $("#solo-name").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+  });
+}
+function testRun(name) {
+  const qs = shuffle(testQs()), yes = []; let i = 0;
+  const ask = () => {
+    if (i >= qs.length) return testResult(name, yes, qs.length);
+    view(`
+      <div class="topbar">${quitBtn()}<span class="progress">${i + 1} / ${qs.length}</span><span style="width:44px"></span></div>
+      <div class="bar" style="margin:0"><i style="width:${i / qs.length * 100}%;background:var(--red)"></i></div>
+      <div class="stage">${cardShell("test", null, `<p class="text">${esc(qs[i][0])}</p>`, i % 2)}</div>
+      <div class="actions"><div class="row"><button class="btn white" id="n">Non</button><button class="btn red" id="y">Oui</button></div></div>`, () => {
+      bindQuit();
+      $("#y").onclick = () => { yes.push(qs[i][1]); i++; ask(); };
+      $("#n").onclick = () => { i++; ask(); };
+    });
+  };
+  ask();
+}
+function testResult(name, yes, total) {
+  const pct = Math.round(yes.length / total * 100);
+  const title = pct <= 15 ? "Ange certifié" : pct <= 35 ? "Sage en apparence" : pct <= 55 ? "Suspect sous surveillance" : pct <= 75 ? "Scandale ambulant" : "Ennemi public n°1";
+  const av = shuffle(yes).slice(0, 3);
+  const A = {
+    kicker: "Test de scandale",
+    headline: `${name} scandaleux à ${pct} %`,
+    deck: `Verdict de la rédaction : ${title}.`,
+    items: av.map((t, k) => ({ title: "Aveu n°" + (k + 1), name: name, desc: name + " " + t })),
+    stats: [[pct + "%", "indice"], [yes.length, "aveux"], [total - yes.length, "dénégations"]]
+  };
+  view(`${miniUne(A)}${resultActions()}`, () => { stamp(pct + " %", pct > 55 ? "" : "blue"); bindResult(A, () => testRun(name), "test-de-scandale"); });
+}
+
+/* ---------- image story générique ---------- */
+async function saveStory(A, btn, file) {
+  const label = btn.firstChild.textContent;
+  btn.disabled = true; btn.firstChild.textContent = "Impression… ";
+  const { blob, url } = await renderUne(A);
+  btn.disabled = false; btn.firstChild.textContent = label;
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await Promise.race([window.claude.use("downloads"), new Promise(r => setTimeout(() => r(null), 3000))]) : null; } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename: "platoz-" + file + ".png", data: blob }); toast("Image enregistrée. À poster !"); return; }
+    catch (e) { if (e && e.code === "declined") return; }
+  }
+  sheet(`<span class="mast" style="font-size:30px">Ton image</span>
+    <p class="hint">Appuie longuement sur l'image pour l'enregistrer, puis poste-la en story.</p>
+    <img class="preview-img" src="${url}" alt="La Une">
+    <button class="btn" id="close">Fermer</button>`, w => { $("#close", w).onclick = () => w.remove(); });
+}
+
+home();
+</script>
