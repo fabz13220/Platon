@@ -907,7 +907,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .stepper { background: #1E1545; border: 0; }
 .stepper button { background: #2A2058; width: 36px; height: 36px; font-size: 20px; }
 .tabbar { background: #140D33; border-top-color: #2A2058; }
-.tab-mix { padding: 0; display: grid; place-items: center; background: #FF3B6E; font-family: Nunito, sans-serif; font-size: 16px; width: 76px; height: 76px; margin-top: -34px; }
+.tab-mix { padding: 0; display: block; line-height: 76px; text-align: center; background: #FF3B6E; font-family: Nunito, sans-serif; font-size: 16px; width: 76px; height: 76px; margin-top: -34px; }
+.tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
+.rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
+.idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
 </style>
 
 <script>window.THEME = {
@@ -1340,13 +1343,13 @@ store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => car
 
 /* jeux de la roue : nombre minimum de joueurs et cartes jouées par tour */
 const WHEEL = [
-  { t: "jamais", min: 3, n: 3, short: "Je n'ai jamais", col: "#7B33F5" },
+  { t: "jamais", min: 2, n: 3, short: "Je n'ai jamais", col: "#7B33F5" },
   { t: "av", min: 2, n: 3, short: "Action ou vérité", col: "#FFB21F" },
   { t: "qui", min: 4, n: 3, short: "Qui pourrait", col: "#EE1F66" },
-  { t: "pref", min: 3, n: 3, short: "Tu préfères", col: "#C51FB6" },
-  { t: "menteur", min: 3, n: 1, short: "Le Menteur", col: "#2F6BFF" },
+  { t: "pref", min: 2, n: 3, short: "Tu préfères", col: "#C51FB6" },
+  { t: "menteur", min: 2, n: 1, short: "Le Menteur", col: "#2F6BFF" },
   { t: "imposteur", min: 4, n: 1, short: "L'Imposteur", col: "#13C9B4" },
-  { t: "radar", min: 3, n: 2, short: "Le Radar", col: "#5B5CF0" },
+  { t: "radar", min: 2, n: 2, short: "Le Radar", col: "#5B5CF0" },
   { t: "classement", min: 3, n: 1, short: "Classement", col: "#FF8A1F" },
   { t: "ouinon", min: 3, n: 3, short: "Oui ou non", col: "#14B8A6" }
 ];
@@ -1401,7 +1404,7 @@ function home() {
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ p4: 2, deux: 2, reflexe: 2, test: 1, uno: 10 })[t] || 16;
   const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "Chacun voit ses cartes en secret"], deux: ["Qui de nous deux", "Vous connaissez-vous vraiment ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne"], test: ["Test de scandale", "Es-tu si sage ?"] };
-  const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on ? ' data-on="1"' : ""}><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
+  const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
   const rail = (title, list, id, on) => list.length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
   view(`
@@ -1421,10 +1424,10 @@ function home() {
     <div class="tabbar-space"></div>
     <nav class="tabbar" aria-label="Menu">
       <button id="tab-games" class="on">${ICONS.play}<span>Jeux</span></button>
-      <button id="tab-soc">${ICONS.board}<span>Société</span></button>
+      <button id="tab-tools">${ICONS.board}<span>Outils</span></button>
       <span class="tab-mix-wrap"><button id="tab-mix" class="tab-mix">Mix</button></span>
-      <button id="tab-tools">${ICONS.tools}<span>Outils</span></button>
       <button id="friends-btn">${FRIEND_ICON}<span>Amis</span><b id="fr-on" hidden></b></button>
+      <button id="tab-settings">${ICONS.gear}<span>Réglages</span></button>
     </nav>
   `, () => {
     const setN = v => { store.set("count", Math.max(1, Math.min(16, v))); buzz(10); home(); };
@@ -1436,12 +1439,13 @@ function home() {
     });
     $("#friends-btn").onclick = () => hasProfile() ? friendsView() : pseudoView(friendsView);
     $("#tab-games").onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
-    $("#tab-soc").onclick = () => { if (multi) { store.set("multi", false); home(); } const r = $("#row-societe"); if (r) r.scrollIntoView({ behavior: "smooth", block: "center" }); };
     $("#tab-tools").onclick = toolsSheet;
+    $("#tab-settings").onclick = settingsSheet;
     $("#tab-mix").onclick = () => {
       buzz(15);
       if (multi) return roomCreate("mix");
-      if (n < 3) return toast("Le Mix se joue dès 3 joueurs. Ajoute des joueurs avec le +.");
+      // seul : la roue choisit parmi les jeux solo
+      if (n === 1) { const g = rnd([["Duel réflexe", reflexSolo], ["Test de scandale", testIntro]]); toast("La roue a choisi : " + g[0]); return g[1](); }
       S.mode = "mix"; playersScreen();
     };
     $$(".tile:not([data-on])").forEach(b => b.onclick = () => {
@@ -1459,23 +1463,46 @@ function home() {
 const ICONS = {
   play: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>`,
   board: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/></svg>`,
-  tools: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M14 4l6 6-10 10H4v-6z"/></svg>`
+  tools: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M14 4l6 6-10 10H4v-6z"/></svg>`,
+  gear: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>`
 };
+// une illustration par jeu, sur les tuiles de l'accueil
+const ILL = { jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
 function toolsSheet() {
   sheet(`<span class="mast" style="font-size:28px">Outils</span>
-    <div class="tools-row"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
-    <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" data-tool="propose">Proposer une carte</button></div>
-    ${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}
+    <div class="tools-row"><button class="btn white" data-tool="chooser">Chooser</button><button class="btn white" data-tool="dice">Dé</button></div>
+    <button class="btn" id="close">Fermer</button>`, w => { bindTools(w); $("#close", w).onclick = () => w.remove(); });
+}
+function settingsSheet() {
+  sheet(`<span class="mast" style="font-size:28px">Réglages</span>
+    <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
+    <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
-    const bs = $("#bans", w); if (bs) bs.onclick = () => { w.remove(); banList(); };
+    $("#bans", w).onclick = () => { w.remove(); banList(); };
+    $("#idea", w).onclick = ideaSheet;
     $("#close", w).onclick = () => w.remove();
+  });
+}
+// une idée de jeu ou d'amélioration, envoyée pour être lue
+function ideaSheet() {
+  sheet(`<span class="mast" style="font-size:28px">Ton idée</span>
+    <p class="hint">Un nouveau jeu, une règle, un truc qui manque : écris-le, on le lit.</p>
+    <textarea class="idea-in" id="idea-in" maxlength="600" rows="5" placeholder="Ex : un jeu où…" aria-label="Ton idée"></textarea>
+    <button class="btn red" id="send">Envoyer</button>
+    <button class="btn" id="close">Annuler</button>`, w => {
+    $("#close", w).onclick = () => w.remove();
+    $("#send", w).onclick = () => {
+      const v = $("#idea-in", w).value.trim(); if (!v) return;
+      getDb().then(db => db && db.doc("propositions/idee_" + devId + "_" + Date.now()).set({ type: "idee", card: v, lvl: 0, at: Date.now() })).catch(() => {});
+      w.remove(); toast("Merci, ton idée est envoyée.");
+    };
   });
 }
 
 /* -------- JOUEURS -------- */
-function minPlayers() { if (S.mode === "uno") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
+function minPlayers() { if (S.mode === "uno" || S.mode === "mix") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
 function playersScreen() {
   const min = minPlayers();
   const draw = () => {
