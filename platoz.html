@@ -911,6 +911,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
 .rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
+.on-choices { display: flex; flex-direction: column; gap: 10px; margin: 6px 0; }
+.on-choices .btn { min-height: 56px; }
+.on-games .chip.pick { font-size: 15px; min-height: 44px; padding: 8px 14px; }
 </style>
 
 <script>window.THEME = {
@@ -3103,7 +3106,9 @@ async function saveStory(A, btn, file) {
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const SITE = "https://fabz13220.github.io/platon/";
-const ON_GAMES = { mix: ["Mix", 3], imposteur: ["L'Imposteur", 3], qui: ["Qui pourrait", 3], radar: ["Le Radar", 2] };
+const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 3], imposteur: ["L'Imposteur", 3] };
+// le joueur qui ne vote pas pendant la manche (il est interrogé, classe ou donne l'indice)
+const solo = c => ({ radar: c.giver, av: c.target, menteur: c.target, classement: c.ranker })[c.type];
 let NETP = null;
 const ON = { off: [], ctx: null, r: null, leaveArmed: 0 };
 function net() {
@@ -3167,7 +3172,7 @@ function heartbeat() {
 // accueil en mode « chacun le sien » : jeux jouables à plusieurs téléphones
 function multiHome(rail) {
   return `<div class="multi-note">Chacun joue sur son téléphone. Choisis un jeu, puis invite tes amis.</div>
-    ${rail("Chacun sur son téléphone", ["imposteur", "qui", "radar"], "", true)}
+    ${rail("Chacun sur son téléphone", Object.keys(ON_GAMES).filter(t => t !== "mix"), "", true)}
     <div id="invites"></div>
     <section class="rail-box"><h2 class="rail-title">Rejoindre une partie</h2>
     <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div></section>
@@ -3289,7 +3294,7 @@ async function addFriend(raw) {
 /* ---- salons ---- */
 const ids = r => Object.keys(r.players).sort((a, b) => r.players[a].t - r.players[b].t);
 const pname = (r, u) => r.players[u] ? r.players[u].name : "Un joueur parti";
-const needers = r => ids(r).filter(u => !(r.card.type === "radar" && u === r.card.giver));
+const needers = r => ids(r).filter(u => u !== solo(r.card));
 const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
 async function roomCreate(game = "mix") {
   try {
@@ -3340,7 +3345,7 @@ async function roomOpen(code) {
     if (!s.exists()) { toast("La partie a été fermée."); return home(); }
     const r = s.data();
     if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return home(); }
-    ON.r = r; S.level = r.level; S.hot = r.hot;
+    ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
     if (r.host === uid) hostTick(r);
     const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host]) : "",
       r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue].join("|");
@@ -3372,12 +3377,21 @@ async function roomNext(r) {
   if (r.round >= r.rounds) return upd({ status: "end" });
   const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && ON_GAMES[t][1] <= n);
   const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
-  const c = pool(t)[0]; used.add(c.id); store.set("used", [...used]);
-  let card;
-  if (t === "imposteur") card = { type: t, cat: c.data[1], word: c.data[2], imp: rnd(all), first: rnd(all) };
-  else if (t === "radar") card = { type: t, a: c.data[1], b: c.data[2], giver: all[r.round % n], target: 8 + Math.round(Math.random() * 84), clue: "" };
-  else { S.players = all.map(u => ({ name: r.players[u].name, pts: 0 })); card = { type: t, text: fill(c.data[1]) }; }
-  return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase: t === "imposteur" ? "word" : t === "radar" ? "clue" : "vote" });
+  const c = t === "av" ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
+  S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
+  const turnOf = all[r.round % n], pl = u => S.players[all.indexOf(u)];
+  let card, phase = "vote";
+  if (t === "imposteur") { card = { type: t, cat: c.data[1], word: c.data[2], imp: rnd(all), first: rnd(all) }; phase = "word"; }
+  else if (t === "radar") { card = { type: t, a: c.data[1], b: c.data[2], giver: turnOf, target: 8 + Math.round(Math.random() * 84), clue: "" }; phase = "clue"; }
+  else if (t === "pref") card = { type: t, a: fill(c.data[1]), b: fill(c.data[2]) };
+  else if (t === "av") { card = { type: t, target: turnOf, kind: "", text: "" }; phase = "choose"; }
+  else if (t === "menteur") card = { type: t, target: turnOf, text: fill(c.data[1], pl(turnOf)), lie: Math.random() < .5 };
+  else if (t === "classement") {
+    const decoys = shuffle(pool("classement").filter(x => x.data[1] !== c.data[1])).slice(0, 3).map(x => x.data[1]);
+    card = { type: t, ranker: turnOf, q: c.data[1], opts: shuffle([c.data[1], ...decoys]), order: [] }; phase = "rank";
+  }
+  else card = { type: t, text: fill(c.data[1]) };
+  return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase });
 }
 function roomResolve(r) {
   const { F } = ON.ctx.N, c = r.card, acts = r.acts || {}, pts = {};
@@ -3389,6 +3403,22 @@ function roomResolve(r) {
     const gp = Math.round(g.reduce((s, o) => s + o.p, 0) / Math.max(1, g.length));
     add(c.giver, gp);
     res = { g, gp };
+  } else if (c.type === "jamais") {
+    const did = ids(r).filter(u => acts[u] === "1"); did.forEach(u => add(u, 1)); res = { did };
+  } else if (c.type === "pref" || c.type === "ouinon") {
+    const A = ids(r).filter(u => acts[u] === "a"), B = ids(r).filter(u => acts[u] === "b");
+    const win = A.length === B.length ? "" : A.length > B.length ? "a" : "b";
+    (win === "a" ? A : win === "b" ? B : []).forEach(u => add(u, 1)); res = { A, B, win };
+  } else if (c.type === "av") {
+    const yes = needers(r).filter(u => acts[u] === "y").length, no = needers(r).filter(u => acts[u] === "n").length;
+    const ok = yes >= no && yes > 0; if (ok) add(c.target, c.kind === "v" ? 1 : 2); res = { ok, yes, no };
+  } else if (c.type === "menteur") {
+    const voters = needers(r).filter(u => acts[u] != null), right = voters.filter(u => (acts[u] === "l") === c.lie);
+    right.forEach(u => add(u, 1));
+    const fooled = right.length * 2 < voters.length; if (fooled) add(c.target, 2); res = { right, wrong: voters.filter(u => !right.includes(u)), fooled };
+  } else if (c.type === "classement") {
+    const right = needers(r).filter(u => acts[u] != null && c.opts[+acts[u]] === c.q);
+    right.forEach(u => add(u, 2)); add(c.ranker, right.length); res = { right, wrong: needers(r).filter(u => acts[u] != null && !right.includes(u)) };
   } else {
     const tally = {};
     Object.entries(acts).forEach(([u, v]) => { if (r.players[u] && r.players[v]) tally[v] = (tally[v] || 0) + 1; });
@@ -3419,7 +3449,66 @@ function roomRender(r) {
   const tallyRows = t => rows(Object.entries(t).sort((a, b) => b[1] - a[1]).map(([u, n]) => [u, n + " vote" + (n > 1 ? "s" : "")]));
   const voteChips = list => `<div class="chips on-picks">${list.map(u => `<button class="chip pick" data-u="${u}" aria-pressed="${mine === u}">${esc(pname(r, u))}</button>`).join("")}</div>`;
   let stage = "", acts = "";
-  if (T === "imposteur" && r.phase === "word") {
+  const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
+  const choices = list => `<div class="on-choices">${list.map(([v, l, cls]) => `<button class="btn ${mine === v ? "red" : cls || "white"}" data-v="${v}">${l}</button>`).join("")}</div>`;
+  const isSolo = uid === solo(c), soloName = esc(pname(r, solo(c)));
+  const waitP = `<p class="sub" id="wait">${waitTxt(r)}</p>`;
+  if (r.phase === "vote" && ["jamais", "pref", "ouinon", "av", "menteur"].includes(T)) {
+    if (T === "jamais") stage = cardShell(T, null, `<p class="text">Je n'ai jamais <b>${esc(c.text)}</b>.</p>
+      ${choices([["1", "Je l'ai fait", "green"], ["0", "Jamais"]])}${waitP}${rulePts("+1 point pour chaque personne qui l'a fait")}`);
+    if (T === "pref") stage = cardShell(T, null, `<p class="sub" style="font-weight:700;color:var(--ink)">Tu préfères…</p>
+      ${choices([["a", esc(c.a)], ["b", esc(c.b)]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
+    if (T === "ouinon") stage = cardShell(T, null, `<p class="text">${esc(c.text)}</p>
+      ${choices([["a", "👍 Oui", "green"], ["b", "👎 Non"]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
+    if (T === "av") stage = cardShell(T, { label: c.kind === "v" ? "Vérité pour" : "Action pour", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
+      ${isSolo ? `<p class="sub">Les autres valident sur leur téléphone si tu l'as fait.</p>${waitP}` : `<p class="sub">${soloName} l'a fait ?</p>${choices([["y", "Réussi", "green"], ["n", "Refusé"]])}${waitP}`}
+      ${rulePts(`Réussi : +${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}`)}`);
+    if (T === "menteur") stage = isSolo
+      ? `<div class="secret"><span class="eyebrow" style="color:var(--paper)">Consigne secrète</span><span class="mast" style="color:${c.lie ? "var(--red)" : "var(--yellow)"}">${c.lie ? "Mens" : "Dis la vérité"}</span><p>${esc(c.text)}</p></div>
+        <p class="sub on-sub">Réponds à voix haute. Les autres peuvent te poser 3 questions, puis votent sur leur téléphone.</p><p class="sub on-sub" id="wait">${waitTxt(r)}</p>`
+      : cardShell(T, { label: "Interrogatoire de", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
+        <p class="sub">${soloName} répond. Posez 3 questions, puis votez : vérité ou mensonge ?</p>
+        ${choices([["t", "Vérité", "green"], ["l", "Mensonge"]])}${waitP}
+        ${rulePts(`Bien vu : +1 point · Groupe trompé : +2 points pour ${soloName}`)}`);
+    acts = forceBtn;
+  } else if (T === "av" && r.phase === "choose") {
+    stage = cardShell(T, { label: "Au tour de", name: pname(r, c.target) }, isSolo
+      ? `<p class="text">Action ou vérité ?</p>${choices([["v", "Vérité"], ["a", "Action", "red"]])}${rulePts("Vérité réussie : +1 point · Action réussie : +2 points")}`
+      : `<p class="text">${soloName} choisit action ou vérité…</p>${rulePts("Vérité réussie : +1 point · Action réussie : +2 points")}`);
+  } else if (T === "classement" && r.phase === "rank") {
+    stage = isSolo
+      ? cardShell(T, { label: "Ton classement secret", name: pname(r, uid) }, `<p class="text">Classe tout le monde, toi compris : <b>${esc(c.q)}</b>.</p>
+        <div class="rank-order" id="order"></div><div class="chips on-rank">${ids(r).map(u => `<button class="chip pick" data-u="${u}">${esc(pname(r, u))}</button>`).join("")}</div>
+        <p style="text-align:center;margin:0"><button class="linkbtn" id="redo">Recommencer</button></p>`)
+      : cardShell(T, { label: "Classement secret de", name: pname(r, c.ranker) }, `<p class="text">${soloName} classe tout le monde selon une question secrète…</p><p class="sub">Ensuite, tu devines la question.</p>`);
+    if (isSolo) acts = `<button class="btn red" id="rank-ok" disabled>Valider mon classement</button>`;
+  } else if (T === "classement" && r.phase === "guess") {
+    const ord = `<div class="rank-order">${(c.order || []).map((u, k) => `<div><b>${k + 1}</b><span>${esc(pname(r, u))}</span></div>`).join("")}</div>`;
+    stage = cardShell(T, { label: "Le classement de", name: pname(r, c.ranker) }, isSolo
+      ? `${ord}<p class="sub">Les autres devinent ta question : <b>${esc(c.q)}</b>.</p>${waitP}`
+      : `${ord}<p class="sub">C'était quoi la question ?</p>${choices(c.opts.map((o, k) => [String(k), esc(cap(o))]))}${waitP}${rulePts(`Bonne question : +2 points pour toi, +1 point pour ${soloName}`)}`);
+    acts = forceBtn;
+  } else if (r.phase === "reveal" && ["jamais", "pref", "ouinon", "av", "menteur", "classement"].includes(T)) {
+    const res = r.res || {}, G = "#2EE6A0", R = "#FF3B6E";
+    if (T === "jamais") stage = cardShell(T, null, `<p class="text">Je n'ai jamais <b>${esc(c.text)}</b>.</p>
+      ${(res.did || []).length ? `<p class="sub">Ceux qui l'ont fait :</p>${rows(res.did.map(u => [u, "+1"]), () => G)}` : `<p class="sub">Personne ne l'a fait. Tous des anges.</p>`}`);
+    if (T === "pref" || T === "ouinon") {
+      const la = T === "pref" ? esc(c.a) : "Oui", lb = T === "pref" ? esc(c.b) : "Non";
+      stage = cardShell(T, res.win ? { label: "La majorité a choisi", name: res.win === "a" ? (T === "pref" ? c.a : "Oui") : (T === "pref" ? c.b : "Non") } : { label: "Résultat", name: "Égalité" }, `${T === "ouinon" ? `<p class="text">${esc(c.text)}</p>` : ""}
+        ${rows([...(res.A || []).map(u => [u, la]), ...(res.B || []).map(u => [u, lb])], i => i < (res.A || []).length ? (res.win === "a" ? G : R) : (res.win === "b" ? G : R))}
+        ${rulePts(res.win ? "+1 point pour chaque personne de la majorité" : "Égalité : personne ne marque")}`);
+    }
+    if (T === "av") stage = cardShell(T, { label: res.ok ? "Réussi par" : "Refusé par", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
+      <p class="sub">${res.yes || 0} réussi · ${res.no || 0} refusé</p>${rulePts(res.ok ? `+${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}` : "Pas de point")}`);
+    if (T === "menteur") stage = cardShell(T, { label: res.fooled ? "Le groupe s'est fait avoir par" : "Bien vu, le groupe a démasqué", name: pname(r, c.target) }, `<p class="text">${soloName} ${c.lie ? "mentait" : "disait la vérité"}.</p>
+      ${rows([...(res.right || []).map(u => [u, "+1"]), ...(res.wrong || []).map(u => [u, "0"])], i => i < (res.right || []).length ? G : R)}
+      ${rulePts(res.fooled ? `+2 points pour ${soloName}` : "+1 point pour chaque bonne réponse")}`);
+    if (T === "classement") stage = cardShell(T, { label: "La question de", name: pname(r, c.ranker) }, `<p class="text"><b>${esc(cap(c.q))}</b></p>
+      ${rows([...(res.right || []).map(u => [u, "+2"]), ...(res.wrong || []).map(u => [u, "0"])], i => i < (res.right || []).length ? G : R)}
+      <div class="radar-res"><div class="guide"><i></i><span>${soloName} (classement)</span><b>${(res.right || []).length ? "+" + res.right.length : "0"}</b></div></div>`);
+    stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
+    acts = nextBtn;
+  } else if (T === "imposteur" && r.phase === "word") {
     const isImp = uid === c.imp;
     stage = `<div class="secret"><span class="eyebrow" style="color:var(--paper)">${isImp ? "Tu es" : "Ton mot"}</span><span class="mast" style="color:${isImp ? "var(--red)" : "var(--yellow)"}">${isImp ? "L'imposteur" : esc(c.word)}</span><p>${isImp ? "Thème : « " + esc(c.cat) + " ». Écoute les autres et bluffe." : "Thème : « " + esc(c.cat) + " ». Ne montre ton écran à personne."}</p></div>
       <p class="sub on-sub"><b>${esc(pname(r, c.first))}</b> commence. Chacun dit un mot lié au mot secret, deux tours, puis vous votez sur vos téléphones.</p>`;
@@ -3473,6 +3562,26 @@ function roomRender(r) {
     if (b("force")) b("force").onclick = () => roomResolve(ON.r);
     if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
     $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
+    $$(".on-choices [data-v]").forEach(x => x.onclick = () => {
+      buzz(15);
+      if (T === "av" && r.phase === "choose") {
+        const pick = pool(x.dataset.v === "v" ? "verite" : "action")[0]; used.add(pick.id); store.set("used", [...used]);
+        return upd({ "card.kind": x.dataset.v, "card.text": fill(pick.data[1], S.players[ids(r).indexOf(uid)]), phase: "vote" });
+      }
+      upd({ [`acts.${uid}`]: x.dataset.v });
+    });
+    if (b("rank-ok")) {
+      const order = [], all = ids(r);
+      const draw = () => {
+        $("#order").innerHTML = order.length ? order.map((u, k) => `<div><b>${k + 1}</b><span>${esc(pname(r, u))}</span></div>`).join("") : `<p class="sub" style="margin:0">Touche les prénoms dans l'ordre, du 1er au dernier.</p>`;
+        $$(".on-rank .chip").forEach(x => x.style.display = order.includes(x.dataset.u) ? "none" : "");
+        b("rank-ok").disabled = order.length !== all.length;
+      };
+      $$(".on-rank .chip").forEach(x => x.onclick = () => { order.push(x.dataset.u); buzz(10); draw(); });
+      $("#redo").onclick = () => { order.length = 0; draw(); };
+      b("rank-ok").onclick = () => upd({ "card.order": order.slice(), phase: "guess" });
+      draw();
+    }
     if (r.phase === "reveal" && ON.ctx.stamped !== r.round) {
       ON.ctx.stamped = r.round;
       const res = r.res || {};
@@ -3510,7 +3619,7 @@ function lobbyView(r, host) {
     <div class="section-label">Joueurs (${n})</div>
     <div class="chips on-players">${all.map(u => `<span class="chip">${esc(r.players[u].name)}${u === r.host ? " ★" : ""}</span>`).join("")}</div>
     ${host ? `<div class="section-label">Jeu</div>
-      <div class="seg on-seg" id="g">${Object.entries(ON_GAMES).map(([k, [l]]) => `<button data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
+      <div class="chips on-games" id="g">${Object.entries(ON_GAMES).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
       <div class="section-label">Manches</div>
       <div class="seg" id="nr">${[4, 6, 10].map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`
       : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.</p>`}
