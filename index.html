@@ -891,6 +891,36 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tab-mix-wrap { display: flex; justify-content: center; }
 .tab-mix { margin-top: -30px; width: 72px; height: 72px; border-radius: 50%; border: 0; background: var(--g-signature, #FF3B6E); color: #fff; font-family: var(--display); font-weight: 900; font-size: 15px; box-shadow: 0 0 0 6px #0B0720, 0 10px 30px -6px rgba(255,59,110,.8); }
 .tab-mix:active { transform: scale(.94); }
+
+/* accueil calé sur la maquette E : tuiles unies, texte en bas */
+.home-head .logo { background: none; -webkit-text-fill-color: #FF3B6E; color: #FF3B6E; filter: none; font-size: 30px; }
+.tile.rt { width: 128px; height: 150px; border-radius: 20px; padding: 14px; box-shadow: none; background: var(--rc); color: var(--rf, #fff); }
+.tile.rt::after { display: none; }
+.tile.rt .mast { font-family: Nunito, var(--body, sans-serif); font-weight: 900; font-size: 16px; line-height: 1.15; text-shadow: none !important; letter-spacing: 0; }
+.tile.rt[data-mode="jamais"] { --rc: #7B33F5; }
+.tile.rt[data-mode="av"] { --rc: #FFB21F; --rf: #1A0F2E; }
+.tile.rt[data-mode="pref"] { --rc: #C51FB6; }
+.tile.rt[data-mode="ouinon"] { --rc: #14B8A6; --rf: #062A26; }
+.tile.rt[data-mode="classement"] { --rc: #FF8A1F; --rf: #1A0F2E; }
+.tile.rt[data-mode="qui"] { --rc: #EE1F66; }
+.tile.rt[data-mode="radar"] { --rc: #5B5CF0; }
+.tile.rt[data-mode="taboo"] { --rc: #E0245E; }
+.tile.rt[data-mode="imposteur"] { --rc: #13C9B4; --rf: #062A26; }
+.tile.rt[data-mode="menteur"] { --rc: #2F6BFF; }
+.tile.rt[data-mode="p4"] { --rc: #FF3B6E; }
+.tile.rt[data-mode="uno"] { --rc: #FFC93C; --rf: #1A0F2E; }
+.tile.rt[data-mode="deux"] { --rc: #A66BFF; }
+.tile.rt[data-mode="reflexe"] { --rc: #2F6BFF; }
+.tile.rt[data-mode="test"] { --rc: #EE1F66; }
+.rail-title { font-family: Unbounded, var(--display); font-weight: 700; font-size: 17px; }
+.where-seg { background: #1E1545; border: 0; padding: 3px; }
+.where-seg button[aria-pressed="true"] { background: #F6F3FF; color: #0B0720; box-shadow: none; }
+.where-seg button { min-height: 40px; padding: 0 8px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.rail-box.short .tile.rt { height: 110px; }
+.stepper { background: #1E1545; border: 0; }
+.stepper button { background: #2A2058; width: 36px; height: 36px; font-size: 20px; }
+.tabbar { background: #140D33; border-top-color: #2A2058; }
+.tab-mix { padding: 0; display: grid; place-items: center; background: #FF3B6E; font-family: Nunito, sans-serif; font-size: 16px; width: 76px; height: 76px; margin-top: -34px; }
 </style>
 
 <script>window.THEME = {
@@ -1392,11 +1422,11 @@ function home() {
       <div class="logo">Platoz</div>
       ${multi ? "" : `<div class="stepper" aria-label="Nombre de joueurs"><button id="minus" aria-label="Un joueur de moins">−</button><span>${n} joueur${n > 1 ? "s" : ""}</span><button id="plus" aria-label="Un joueur de plus">+</button></div>`}
     </header>
-    <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}">Un téléphone</button><button data-v="1" aria-pressed="${multi}">Chacun le sien</button></div>
+    <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Un téléphone</button><button data-v="1" aria-pressed="${multi}"><svg width="18" height="16" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="9" height="17" rx="2.2"/><rect x="16" y="3" width="9" height="17" rx="2.2"/></svg>Chacun le sien</button></div>
     ${multi ? multiHome(rail) : `
-      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
       ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
-      ${rail("En équipes et bluff", fit(["taboo", "imposteur", "menteur"]))}
+      ${rail("En équipes", fit(["taboo", "imposteur", "menteur"])).replace('class="rail-box"', 'class="rail-box short"')}
+      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe")}
       ${n <= 2 ? rail(n === 1 ? "En solo" : "Rien que vous deux", fit(["deux", "reflexe", "test"])) : ""}
       ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
