@@ -270,6 +270,27 @@ p { margin: 0; }
 .chip.pick[aria-pressed="true"] { background: #fff; color: #C2105C; border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.28), 0 8px 18px -6px rgba(0,0,0,.4); }
 @keyframes chipIn { from { transform: scale(.6); opacity: 0; } }
 .hint { font-size: 15px; line-height: 1.45; font-weight: 700; }
+/* groupes : bulles qui flottent */
+#bubbles { flex: 1; min-height: 150px; position: relative; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 16px 14px; padding: 6px 0; }
+#bubbles .linkbtn { flex-basis: 100%; padding: 4px; font-size: 15px; }
+.bubble {
+  --amp: 8px; --dur: 4.6s; --dl: 0s;
+  border: 1.5px solid rgba(255,255,255,.5); color: #fff; font: inherit; font-weight: 900; font-size: 16px; max-width: 100%;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 92px; min-height: 92px; padding: 12px 16px; border-radius: 999px;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.55), rgba(255,255,255,.08) 38%, rgba(166,107,255,.38) 100%);
+  box-shadow: 0 12px 30px -10px rgba(166,107,255,.8), inset 0 -6px 14px rgba(255,59,122,.25), inset 0 2px 0 rgba(255,255,255,.4);
+  text-shadow: 0 1px 3px rgba(40,0,60,.55); animation: bFloat var(--dur) ease-in-out var(--dl) infinite alternate;
+}
+.bubble small { font-size: 12px; font-weight: 800; opacity: .85; }
+.bubble span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+.bubble.pop { animation: bPop .26s ease-out forwards; pointer-events: none; }
+.bubble.back { animation: chipIn .5s cubic-bezier(.3,1.5,.5,1) both, bFloat var(--dur) ease-in-out var(--dl) infinite alternate; }
+.spark { position: fixed; z-index: 90; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; left: 0; top: 0; }
+.grp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 14px; background: rgba(0,0,0,.2); font-weight: 800; }
+.grp-row button { border: 0; background: rgba(255,255,255,.2); color: #fff; width: 32px; height: 32px; border-radius: 50%; font-weight: 900; font-size: 18px; flex: none; }
+.sheet .grp-in { width: 100%; box-sizing: border-box; }
+@keyframes bFloat { from { transform: translate(calc(var(--amp) * -.5), calc(var(--amp) * .6)); } to { transform: translate(calc(var(--amp) * .6), calc(var(--amp) * -1)); } }
+@keyframes bPop { to { transform: scale(1.7); opacity: 0; } }
 /* players screen: fill the room with the neon sign */
 #app:has(#chips) .actions::before {
   content: "La team"; display: block; text-align: center; margin: 0 auto 18px; pointer-events: none;
@@ -1520,6 +1541,7 @@ function playersScreen() {
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Qui joue ?</span><span style="width:44px"></span></div>
     <div class="field"><input id="name-input" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom du joueur"><button class="btn" type="button" id="add">Ajouter</button></div>
     <div class="chips" id="chips"></div>
+    <div id="bubbles"></div>
     <div class="actions"><button class="btn red" id="next"></button></div>
   `, () => {
     $("#back").onclick = home;
@@ -1534,8 +1556,69 @@ function playersScreen() {
     $("#add").onclick = add;
     $("#name-input").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
     $("#next").onclick = () => S.mode === "uno" ? unoStart() : ambiance();
-    draw();
+    draw(); groupBubbles(draw);
   });
+}
+
+/* -------- GROUPES DE JOUEURS -------- */
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function groupBubbles(draw) {
+  const box = $("#bubbles"), groups = store.get("groups", []);
+  box.innerHTML = groups.map((g, i) => `<button class="bubble" data-i="${i}" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s" aria-label="Ajouter le groupe ${esc(g.name)}"><span>${esc(g.name)}</span><small>${g.names.length} joueurs</small></button>`).join("")
+    + `<button class="linkbtn" id="mkgrp">+ Créer un groupe</button>`;
+  $("#mkgrp").onclick = () => groupSheet(() => groupBubbles(draw));
+  $$(".bubble", box).forEach(b => b.onclick = () => popGroup(b, groups[+b.dataset.i], draw));
+}
+function groupSheet(done) {
+  sheet(`
+    <span class="mast" style="font-size:30px">Groupes</span>
+    <p class="hint muted" style="text-align:center">Enregistre les ${S.names.length} joueurs actuels sous un nom.</p>
+    <div class="field"><input class="grp-in" id="grp-name" maxlength="16" placeholder="Nom du groupe" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Nom du groupe"></div>
+    <button class="btn red" id="grp-save">Enregistrer</button>
+    <div id="grp-list" style="display:grid;gap:6px"></div>
+    <button class="btn" id="grp-close">Fermer</button>`, w => {
+    const list = () => {
+      const g = store.get("groups", []);
+      $("#grp-list", w).innerHTML = g.map((x, i) => `<div class="grp-row"><span>${esc(x.name)} · ${x.names.length}</span><button data-i="${i}" aria-label="Supprimer ${esc(x.name)}">×</button></div>`).join("");
+      $$("#grp-list button", w).forEach(b => b.onclick = () => { g.splice(+b.dataset.i, 1); store.set("groups", g); list(); done(); });
+    };
+    const save = () => {
+      const name = $("#grp-name", w).value.trim().replace(/\s+/g, " ");
+      if (S.names.length < 2) { toast("Ajoute au moins 2 prénoms d'abord."); return; }
+      if (!name) { toast("Donne un nom au groupe."); return; }
+      const g = store.get("groups", []).filter(x => x.name.toLowerCase() !== name.toLowerCase());
+      g.push({ name, names: S.names.slice() }); store.set("groups", g); w.remove(); done();
+    };
+    $("#grp-save", w).onclick = save;
+    $("#grp-name", w).onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); save(); } };
+    $("#grp-close", w).onclick = () => w.remove();
+    list();
+  });
+}
+function popGroup(b, g, draw) {
+  const before = S.names.length;
+  g.names.forEach(n => { if (S.names.length < 16 && !S.names.some(m => m.toLowerCase() === n.toLowerCase())) S.names.push(n); });
+  const added = S.names.length - before;
+  store.set("players", S.names);
+  if (S.names.length >= 16 && added < g.names.length) toast("16 joueurs maximum.");
+  buzz(20);
+  if (calm()) { draw(); return; }
+  const r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  b.classList.add("pop");
+  const cols = ["#FF3B7A", "#A66BFF", "#3E7BFF", "#FFC23D", "#fff"];
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement("i"), a = i / 10 * 6.283, d = 50 + Math.random() * 40;
+    p.className = "spark"; p.style.background = cols[i % 5]; document.body.appendChild(p);
+    p.animate([{ transform: `translate(${cx}px,${cy}px) scale(1)`, opacity: 1 }, { transform: `translate(${cx + Math.cos(a) * d}px,${cy + Math.sin(a) * d}px) scale(.2)`, opacity: 0 }], { duration: 520, easing: "ease-out" }).onfinish = () => p.remove();
+  }
+  draw();
+  const chips = $$("#chips .chip").slice(before);
+  chips.forEach((c, i) => {
+    const t = c.getBoundingClientRect();
+    c.style.animation = "none";
+    c.animate([{ transform: `translate(${cx - t.left - t.width / 2}px,${cy - t.top - t.height / 2}px) scale(.2)`, opacity: 0 }, { opacity: 1, offset: .25 }, { transform: "none", opacity: 1 }], { duration: 500, delay: 120 + i * 70, easing: "cubic-bezier(.3,1.2,.5,1)", fill: "backwards" });
+  });
+  later(() => { b.classList.remove("pop"); b.classList.add("back"); }, 900 + chips.length * 70);
 }
 
 /* -------- AMBIANCE -------- */
