@@ -859,6 +859,38 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .on-clue { margin-top: 12px; }
 .on-clue input { min-width: 0; }
 .on-players .chip { background: rgba(255,255,255,.1); border: 0; }
+/* ---------- accueil : rangées et barre du bas ---------- */
+.home-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; }
+.home-head .logo { font-family: var(--display); font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: -.035em; background: linear-gradient(100deg, #FFB547 0%, #FF3B7A 40%, #B04BFF 75%, #5E8BFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 16px rgba(255,59,122,.4)); padding: 2px 4px 4px 0; }
+.stepper { display: flex; align-items: center; gap: 4px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid var(--hair); padding: 4px; }
+.stepper button { width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: var(--paper); font-weight: 900; font-size: 22px; line-height: 1; }
+.stepper span { font-weight: 900; font-size: 15px; padding: 0 6px; min-width: 76px; text-align: center; }
+.where-seg button { font-size: 15px; }
+.multi-note { border-radius: 20px; background: linear-gradient(135deg, #2DD4BF, #14A89A); color: #062A26; padding: 14px 16px; font-weight: 900; font-size: 15.5px; line-height: 1.35; }
+.rail-box { display: flex; flex-direction: column; gap: 10px; }
+.rail-title { margin: 0; font-family: var(--display); font-weight: 800; font-size: 18px; }
+.rail { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 2px 16px 10px; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
+.tile.rt { flex: none; width: 136px; height: 156px; min-height: 0; justify-content: flex-end; scroll-snap-align: start; scroll-margin-left: 16px; grid-column: auto; }
+.tile.rt .mast { font-size: 14.5px; overflow-wrap: normal; word-break: normal; hyphens: none; }
+#app > .tabbar { position: fixed; z-index: 20; }
+.tile.rt::after { font-size: 58px; bottom: auto; top: 8px; right: 6px; }
+.tile[data-mode="taboo"] { --tglyph: "✕"; --tg: linear-gradient(165deg, #FF4F7E 0%, #E0245E 55%, #A8113F 100%); --tgl: rgba(230,40,95,.55); }
+.tile[data-mode="p4"] { --tglyph: "4"; --tg: linear-gradient(165deg, #FF5A7A 0%, #FF3B6E 50%, #C8124F 100%); --tgl: rgba(255,60,110,.55); }
+.tile[data-mode="uno"] { --tglyph: "+2"; --tg: linear-gradient(165deg, #FFE04A 0%, #FFC93C 50%, #F59E0B 100%); --tf: var(--ink); --tgl: rgba(255,200,60,.45); --tglow: rgba(255,110,0,.7); }
+.tile[data-mode="deux"] { --tglyph: "&"; --tg: linear-gradient(165deg, #A66BFF 0%, #7B33F5 60%, #5A1FD0 100%); }
+.tile[data-mode="reflexe"] { --tglyph: "⚡"; --tg: linear-gradient(165deg, #4D8BFF 0%, #2F6BFF 55%, #2340C8 100%); --tgl: rgba(60,110,255,.55); }
+.tile[data-mode="test"] { --tglyph: "%"; --tg: linear-gradient(165deg, #FF6A8E 0%, #EE1F66 55%, #B5104C 100%); }
+.tile[data-mode="uno"]::after { -webkit-text-stroke-color: rgba(255,255,255,.95); }
+.tabbar-space { height: 92px; flex: none; }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end; max-width: 480px; margin: 0 auto; background: rgba(20,13,51,.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,.1); padding: 6px 6px max(10px, env(safe-area-inset-bottom, 0px)); }
+.tabbar > button { position: relative; border: 0; background: none; color: var(--muted); font-weight: 800; font-size: 12px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.tabbar > button.on { color: #FF3B6E; font-weight: 900; }
+.tabbar > button b { position: absolute; top: 0; left: 54%; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #2EE6A0; color: #062A26; font-size: 11px; display: grid; place-items: center; }
+.tabbar > button b[hidden] { display: none; }
+.tab-mix-wrap { display: flex; justify-content: center; }
+.tab-mix { margin-top: -30px; width: 72px; height: 72px; border-radius: 50%; border: 0; background: var(--g-signature, #FF3B6E); color: #fff; font-family: var(--display); font-weight: 900; font-size: 15px; box-shadow: 0 0 0 6px #0B0720, 0 10px 30px -6px rgba(255,59,110,.8); }
+.tab-mix:active { transform: scale(.94); }
 </style>
 
 <script>window.THEME = {
@@ -1349,62 +1381,79 @@ function home() {
   S.inGame = false; onStop(); ON.ctx = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
-  const n = store.get("count", 4), minOf = t => t === "taboo" ? 4 : (WHEEL.find(g => g.t === t) || { min: 3 }).min;
-  const tiles = ["jamais", "av", "qui", "pref", "taboo", "imposteur", "menteur", "classement", "ouinon", "radar"].filter(t => minOf(t) <= n);
-  const board = [n === 2 && ["p4", "#FF3B6E", "2", "Puissance 4", "Aligne 4 jetons avant l'autre, sur le même écran."], n >= 2 && n <= 10 && ["uno", "#FFC93C", "2-10", "Uno", "On se passe le téléphone, chacun voit ses cartes en secret."]].filter(Boolean);
-  const solo = [n === 2 && ["deux", "var(--violet)", "2", "Qui de nous deux", "Pour un couple ou deux potes : vous connaissez-vous vraiment ?"], ["reflexe", "var(--blue)", "1-2", "Duel réflexe", n === 1 ? "Bats ton propre record de réflexes." : "Face à face sur le même écran."], n === 1 && ["test", "", "1", "Test de scandale", "Des questions en solo, ton indice de scandale à partager."]].filter(Boolean);
-  const opt = ([k, col, num, name, desc]) => `<button class="opt" data-solo="${k}"><span class="pepper"${col ? ` style="color:${col}"` : ""}>${num}</span><span><span class="mast">${name}</span><p>${desc}</p></span></button>`;
+  const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
+  const maxOf = t => ({ p4: 2, deux: 2, reflexe: 2, test: 1, uno: 10 })[t] || 16;
+  const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "Chacun voit ses cartes en secret"], deux: ["Qui de nous deux", "Vous connaissez-vous vraiment ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne"], test: ["Test de scandale", "Es-tu si sage ?"] };
+  const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on ? ' data-on="1"' : ""}><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
+  const rail = (title, list, id, on) => list.length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
+  const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
   view(`
-    <header class="masthead">
+    <header class="home-head">
       <div class="logo">Platoz</div>
-      <div class="rule"><span>Le jeu de vos soirées</span><span>1 à 16 joueurs</span></div>
+      ${multi ? "" : `<div class="stepper" aria-label="Nombre de joueurs"><button id="minus" aria-label="Un joueur de moins">−</button><span>${n} joueur${n > 1 ? "s" : ""}</span><button id="plus" aria-label="Un joueur de plus">+</button></div>`}
     </header>
-    <div class="where-row">
-      <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}">Un téléphone</button><button data-v="1" aria-pressed="${multi}">Chacun le sien</button></div>
-      <button class="friends-btn" id="friends-btn" aria-label="Amis">${FRIEND_ICON}<span>Amis</span><b id="fr-on" hidden></b></button>
-    </div>
-    ${multi ? multiHome() : `
-    <div class="section-label">Vous êtes combien ?</div>
-    <div class="seg count-seg" id="count">${[1, 2, 3, 4, 5].map(v => `<button data-v="${v}" aria-pressed="${v === Math.min(n, 5)}">${v === 1 ? "Seul" : v === 5 ? "5 +" : v}</button>`).join("")}</div>
-    ${n >= 3 ? `<button class="hero-mode" id="go-mix">
-      <span class="tagline">La roue choisit le jeu</span>
-      <span class="mast">Mode Mix</span>
-      <p>Les jeux tombent au hasard selon votre nombre. Des points à chaque carte, un classement à la fin.</p>
-    </button>` : ""}
-    ${tiles.length ? `<div class="section-label">${n >= 3 ? "Jeux de groupe" : "À deux"}</div>
-    <div class="grid">
-      ${tiles.map(t => `<button class="tile" data-mode="${t}"><span class="sw" style="background:${TYPES[t].color}"></span><span class="mast">${TYPES[t].label}</span><p>${TYPES[t].desc}</p></button>`).join("")}
-    </div>` : ""}
-    ${board.length ? `<div class="section-label">Jeux de société</div><div class="opts">${board.map(opt).join("")}</div>` : ""}
-    ${n <= 2 ? `<div class="section-label">${n === 1 ? "En solo" : "Rien que vous deux"}</div><div class="opts">${solo.map(opt).join("")}</div>` : ""}
-    `}
-    <div class="section-label">Outils</div>
-    <div class="tools-row"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
-    <div class="tools-row" style="margin-top:-8px"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" data-tool="propose">Proposer une carte</button></div>
-    <p class="hint muted" style="text-align:center">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
-    ${ban.size ? `<p style="text-align:center;margin:0"><button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button></p>` : ""}
+    <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}">Un téléphone</button><button data-v="1" aria-pressed="${multi}">Chacun le sien</button></div>
+    ${multi ? multiHome(rail) : `
+      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
+      ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
+      ${rail("En équipes et bluff", fit(["taboo", "imposteur", "menteur"]))}
+      ${rail("Jeux de société", ["p4", "uno"], "row-societe")}
+      ${n <= 2 ? rail(n === 1 ? "En solo" : "Rien que vous deux", fit(["deux", "reflexe", "test"])) : ""}
+      ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
+    <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
+    <div class="tabbar-space"></div>
+    <nav class="tabbar" aria-label="Menu">
+      <button id="tab-games" class="on">${ICONS.play}<span>Jeux</span></button>
+      <button id="tab-soc">${ICONS.board}<span>Société</span></button>
+      <span class="tab-mix-wrap"><button id="tab-mix" class="tab-mix">Mix</button></span>
+      <button id="tab-tools">${ICONS.tools}<span>Outils</span></button>
+      <button id="friends-btn">${FRIEND_ICON}<span>Amis</span><b id="fr-on" hidden></b></button>
+    </nav>
   `, () => {
-    $$("#count button").forEach(b => b.onclick = () => { store.set("count", +b.dataset.v); buzz(10); home(); });
-    const bs = $("#bans"); if (bs) bs.onclick = banList;
+    const setN = v => { store.set("count", Math.max(1, Math.min(16, v))); buzz(10); home(); };
+    if ($("#minus")) { $("#minus").onclick = () => setN(n - 1); $("#plus").onclick = () => setN(n + 1); }
     $$("#where button").forEach(b => b.onclick = () => {
       const m = b.dataset.v === "1"; buzz(10);
       if (m && !hasProfile()) return pseudoView(() => { store.set("multi", true); home(); });
       store.set("multi", m); home();
     });
     $("#friends-btn").onclick = () => hasProfile() ? friendsView() : pseudoView(friendsView);
-    if (hasProfile()) homeOnline(multi);
-    const mx = $("#go-mix"); if (mx) mx.onclick = () => { S.mode = "mix"; playersScreen(); };
-    $$(".tile:not([data-on])").forEach(b => b.onclick = () => { S.mode = b.dataset.mode; playersScreen(); });
-    bindTools();
-    $("#tester").onclick = testerMenu;
-    $$("[data-solo]").forEach(b => b.onclick = () => {
-      const m = b.dataset.solo;
+    $("#tab-games").onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+    $("#tab-soc").onclick = () => { if (multi) { store.set("multi", false); home(); } const r = $("#row-societe"); if (r) r.scrollIntoView({ behavior: "smooth", block: "center" }); };
+    $("#tab-tools").onclick = toolsSheet;
+    $("#tab-mix").onclick = () => {
+      buzz(15);
+      if (multi) return roomCreate("mix");
+      if (n < 3) return toast("Le Mix se joue dès 3 joueurs. Ajoute des joueurs avec le +.");
+      S.mode = "mix"; playersScreen();
+    };
+    $$(".tile:not([data-on])").forEach(b => b.onclick = () => {
+      const m = b.dataset.mode;
       if (m === "deux") { S.mode = "deux"; duoSetup(ambiance); }
       else if (m === "p4") duoSetup(p4Start);
       else if (m === "uno") { S.mode = "uno"; playersScreen(); }
       else if (m === "reflexe") reflexMenu();
-      else testIntro();
+      else if (m === "test") testIntro();
+      else { S.mode = m; playersScreen(); }
     });
+    if (hasProfile()) homeOnline(multi);
+  });
+}
+const ICONS = {
+  play: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>`,
+  board: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/></svg>`,
+  tools: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M14 4l6 6-10 10H4v-6z"/></svg>`
+};
+function toolsSheet() {
+  sheet(`<span class="mast" style="font-size:28px">Outils</span>
+    <div class="tools-row"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
+    <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" data-tool="propose">Proposer une carte</button></div>
+    ${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}
+    <button class="btn" id="close">Fermer</button>`, w => {
+    bindTools(w);
+    $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
+    const bs = $("#bans", w); if (bs) bs.onclick = () => { w.remove(); banList(); };
+    $("#close", w).onclick = () => w.remove();
   });
 }
 
@@ -3072,27 +3121,18 @@ function heartbeat() {
   beat();
 }
 // accueil en mode « chacun le sien » : jeux jouables à plusieurs téléphones
-function multiHome() {
-  return `<button class="hero-mode" id="on-mix">
-      <span class="tagline">Chacun sur son téléphone</span>
-      <span class="mast">Mode Mix</span>
-      <p>L'Imposteur, Qui pourrait et Le Radar tombent au hasard. Crée la partie, puis invite tes amis.</p>
-    </button>
-    <div class="section-label">Jeux chacun sur son téléphone</div>
-    <div class="grid">
-      ${["imposteur", "qui", "radar"].map(t => `<button class="tile" data-mode="${t}" data-on="1"><span class="sw" style="background:${TYPES[t].color}"></span><span class="mast">${TYPES[t].label}</span><p>${t === "radar" ? "Dès 2 joueurs." : "Dès 3 joueurs."} Chacun voit son secret et vote sur son écran.</p></button>`).join("")}
-    </div>
+function multiHome(rail) {
+  return `<div class="multi-note">Chacun joue sur son téléphone. Choisis un jeu, puis invite tes amis.</div>
+    ${rail("Chacun sur son téléphone", ["imposteur", "qui", "radar"], "", true)}
     <div id="invites"></div>
-    <div class="section-label">Rejoindre une partie</div>
-    <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div>
+    <section class="rail-box"><h2 class="rail-title">Rejoindre une partie</h2>
+    <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div></section>
     <p class="hint muted" style="text-align:center;margin:0">Les autres jeux se jouent sur un seul téléphone.</p>`;
 }
 function homeOnline(multi) {
   heartbeat();
   if (multi) {
-    const create = g => () => roomCreate(g);
-    $("#on-mix").onclick = create("mix");
-    $$(".tile[data-on]").forEach(b => b.onclick = create(b.dataset.mode));
+    $$(".tile[data-on]").forEach(b => b.onclick = () => roomCreate(b.dataset.mode));
     const join = () => roomJoin($("#room-in").value);
     $("#join").onclick = join;
     $("#room-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); join(); } };
