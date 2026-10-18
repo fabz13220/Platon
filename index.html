@@ -825,6 +825,27 @@ p { margin: 0; }
 /* sensation d'appli : pas de sélection de texte ni de loupe au toucher, sauf dans les champs */
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
 input, textarea { -webkit-user-select: text; user-select: text; }
+/* ---------- en ligne ---------- */
+.hero-mode.on-hero { background: linear-gradient(135deg, #13C9B4, #2F6BFF 70%); box-shadow: 0 22px 60px -18px rgba(40,140,255,.7), inset 0 2px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.14); }
+.on-card { background: rgba(255,255,255,.06); border: 1px solid var(--hair); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.on-card > div { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.on-card .eyebrow { color: var(--muted); }
+.on-name { font-size: 20px; }
+.on-card .linkbtn { padding: 0 4px; font-size: 15px; margin-left: auto; }
+.on-code { font-family: var(--display); font-weight: 900; font-size: 30px; letter-spacing: .12em; color: var(--yellow); }
+.on-list { display: flex; flex-direction: column; gap: 8px; }
+.on-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 16px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid var(--hair); min-height: 58px; }
+.on-row > span { display: flex; flex-direction: column; min-width: 0; font-size: 17px; }
+.on-row small { color: var(--muted); font-weight: 800; font-size: 13px; letter-spacing: .08em; padding-right: 8px; }
+.on-row .btn { width: auto; min-height: 44px; padding: 0 18px; font-size: 16px; flex: none; }
+.on-pill { font-weight: 900; letter-spacing: .12em; color: var(--muted); min-width: 44px; text-align: right; }
+.on-seg button { font-size: 13.5px; padding: 12px 2px; }
+.on-waiting { text-align: center; margin: 0; }
+.on-sub { text-align: center; margin: 18px 6px 0; }
+.on-scores { text-align: center; margin: 12px 0 0; font-size: 14px; }
+.on-clue { margin-top: 12px; }
+.on-clue input { min-width: 0; }
+.on-players .chip { background: rgba(255,255,255,.1); border: 0; }
 </style>
 
 <script>window.THEME = {
@@ -1324,6 +1345,11 @@ function home() {
       <div class="logo">Platoz</div>
       <div class="rule"><span>Le jeu de vos soirées</span><span>1 à 16 joueurs</span></div>
     </header>
+    <button class="hero-mode on-hero" id="go-online">
+      <span class="tagline">Avec tes amis</span>
+      <span class="mast">Chacun son téléphone</span>
+      <p>Ajoute tes potes et jouez à L'Imposteur, Qui pourrait ou Le Radar, chacun sur son écran.</p>
+    </button>
     <div class="section-label">Vous êtes combien ?</div>
     <div class="seg count-seg" id="count">${[1, 2, 3, 4, 5].map(v => `<button data-v="${v}" aria-pressed="${v === Math.min(n, 5)}">${v === 1 ? "Seul" : v === 5 ? "5 +" : v}</button>`).join("")}</div>
     ${n >= 3 ? `<button class="hero-mode" id="go-mix">
@@ -1340,11 +1366,12 @@ function home() {
     <div class="section-label">Outils</div>
     <div class="tools-row"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
     <div class="tools-row" style="margin-top:-8px"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" data-tool="propose">Proposer une carte</button></div>
-    <p class="hint muted" style="text-align:center">Un seul téléphone, qu'on se passe. Jouez avec modération et consentement.</p>
+    <p class="hint muted" style="text-align:center">Un seul téléphone qu'on se passe, ou chacun le sien. Jouez avec modération et consentement.</p>
     ${ban.size ? `<p style="text-align:center;margin:0"><button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button></p>` : ""}
   `, () => {
     $$("#count button").forEach(b => b.onclick = () => { store.set("count", +b.dataset.v); buzz(10); home(); });
     const bs = $("#bans"); if (bs) bs.onclick = banList;
+    $("#go-online").onclick = () => onlineHome();
     const mx = $("#go-mix"); if (mx) mx.onclick = () => { S.mode = "mix"; playersScreen(); };
     $$(".tile").forEach(b => b.onclick = () => { S.mode = b.dataset.mode; playersScreen(); });
     bindTools();
@@ -2958,5 +2985,412 @@ async function saveStory(A, btn, file) {
     <button class="btn" id="close">Fermer</button>`, w => { $("#close", w).onclick = () => w.remove(); });
 }
 
-home();
+/* -------- EN LIGNE : amis et parties où chacun joue sur son propre téléphone -------- */
+const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
+const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
+const SITE = "https://fabz13220.github.io/platon/";
+const ON_GAMES = { mix: ["Mix", 3], imposteur: ["L'Imposteur", 3], qui: ["Qui pourrait", 3], radar: ["Le Radar", 2] };
+let NETP = null;
+const ON = { off: [], ctx: null, r: null, leaveArmed: 0 };
+function net() {
+  return NETP || (NETP = (async () => {
+    const [{ initializeApp }, A, F] = await Promise.all(["app", "auth", "firestore"].map(m => import(FBV + m + ".js")));
+    const fapp = initializeApp(FBC), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
+    // tests locaux uniquement : base et comptes simulés sur l'ordinateur
+    if (store.get("emu", 0)) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
+    await auth.authStateReady();
+    const user = auth.currentUser || (await A.signInAnonymously(auth)).user;
+    return { F, db, uid: user.uid };
+  })().catch(e => { NETP = null; throw e; }));
+}
+const onStop = () => { ON.off.forEach(f => { try { f(); } catch (e) {} }); ON.off = []; };
+const genCode = (n, abc = "ABCDEFGHJKMNPQRSTUVWXYZ23456789") => Array.from({ length: n }, () => rnd([...abc])).join("");
+const roomUrl = code => (location.protocol.startsWith("http") && !window.claude ? location.origin + location.pathname : SITE) + "?salle=" + code;
+const setUrl = q => { try { if (!window.claude) history.replaceState(null, "", location.pathname + q); } catch (e) {} };
+async function shareIt(text, url) {
+  if (navigator.share) { try { await navigator.share({ text, url }); } catch (e) {} return; }
+  try { await navigator.clipboard.writeText(url ? text + " " + url : text); toast("Copié, colle-le à tes potes."); } catch (e) { toast(url || text); }
+}
+const onTop = (title, right = "") => `<div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">${title}</span>${right || `<span style="width:44px"></span>`}</div>`;
+
+// le profil : un pseudo et un code ami à 6 caractères, liés au compte anonyme du téléphone
+async function ensureProfile(name) {
+  const { F, db, uid } = await net();
+  let me = store.get("me", {});
+  if (me.uid !== uid || !me.code) {
+    const snap = await F.getDoc(F.doc(db, "users", uid));
+    if (snap.exists() && snap.data().code) me = { name: snap.data().name, code: snap.data().code, uid };
+    else {
+      let code = genCode(6);
+      for (let i = 0; i < 5 && (await F.getDoc(F.doc(db, "codes", code))).exists(); i++) code = genCode(6);
+      await F.setDoc(F.doc(db, "codes", code), { uid });
+      me = { name: name || me.name, code, uid };
+    }
+  }
+  if (name) me.name = name;
+  await F.setDoc(F.doc(db, "users", uid), { name: me.name, code: me.code, at: Date.now() }, { merge: true });
+  store.set("me", me);
+  return me;
+}
+
+async function onlineHome(join) {
+  onStop(); ON.ctx = null; setUrl("");
+  view(`${onTop("Chacun son téléphone")}<div class="stage"><p class="hint muted" style="text-align:center">Connexion…</p></div>`, () => { $("#back").onclick = home; });
+  let N;
+  try { N = await net(); } catch (e) {
+    $(".stage").innerHTML = `<div class="secret"><span class="mast" style="font-size:28px">Pas de connexion</span><p>${window.claude ? "Le jeu en ligne marche sur le site du jeu : " + SITE : "Vérifie ta connexion internet et réessaie."}</p></div>`;
+    return;
+  }
+  const me = store.get("me", null);
+  if (!me || !me.name) return pseudoView(join);
+  try { await ensureProfile(); } catch (e) { toast("Connexion impossible pour l'instant."); return; }
+  if (join) return roomJoin(join);
+  onlineMain(N);
+}
+function pseudoView(join) {
+  const me = store.get("me", {});
+  view(`${onTop("Ton pseudo")}
+    <p class="hint" style="text-align:center">C'est le nom que tes amis verront.</p>
+    <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(me.name || S.names[0] || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Pseudo"><button class="btn red" id="ok">OK</button></div>
+  `, () => {
+    $("#back").onclick = home;
+    const go = async () => {
+      const v = $("#pseudo").value.trim().replace(/\s+/g, " ");
+      if (!v) return;
+      $("#ok").disabled = true;
+      try { await ensureProfile(v); onlineHome(join); } catch (e) { $("#ok").disabled = false; toast("Connexion impossible pour l'instant."); }
+    };
+    $("#ok").onclick = go;
+    $("#pseudo").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+  });
+}
+function onlineMain(N) {
+  const { F, db, uid } = N, me = store.get("me");
+  view(`${onTop("Chacun son téléphone")}
+    <div class="on-card">
+      <div><span class="eyebrow">Ton pseudo</span><b class="on-name">${esc(me.name)}</b><button class="linkbtn" id="rename">Changer</button></div>
+      <div><span class="eyebrow">Ton code ami</span><span class="on-code">${me.code}</span></div>
+      <button class="btn white" id="sharecode">Envoyer mon code à un pote</button>
+    </div>
+    <button class="hero-mode on-hero" id="create">
+      <span class="tagline">Tes amis rejoignent sur leur téléphone</span>
+      <span class="mast">Créer une partie</span>
+      <p>L'Imposteur, Qui pourrait et Le Radar : chacun voit son secret et vote sur son écran.</p>
+    </button>
+    <div id="invites"></div>
+    <div class="section-label">Rejoindre avec un code</div>
+    <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div>
+    <div class="section-label">Mes amis</div>
+    <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
+    <div class="on-list" id="friends"><p class="hint muted">Chargement…</p></div>
+  `, () => {
+    $("#back").onclick = () => { onStop(); home(); };
+    $("#rename").onclick = () => { onStop(); pseudoView(); };
+    $("#sharecode").onclick = () => shareIt(`Ajoute-moi sur Platoz, mon code ami : ${me.code}`, SITE);
+    $("#create").onclick = roomCreate;
+    const join = () => roomJoin($("#room-in").value);
+    $("#join").onclick = join;
+    $("#room-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); join(); } };
+    const add = async () => {
+      const ok = await addFriend($("#friend-in").value);
+      if (ok) $("#friend-in").value = "";
+    };
+    $("#addf").onclick = add;
+    $("#friend-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+    ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "invites"), s => {
+      const box = $("#invites"); if (!box) return;
+      const inv = s.docs.map(d => d.data()).filter(i => Date.now() - i.at < 3 * 3600e3).sort((a, b) => b.at - a.at);
+      box.innerHTML = inv.length ? `<div class="section-label">Invitations</div><div class="on-list">${inv.map(i => `<div class="on-row"><span><b>${esc(i.from)}</b> t'invite à jouer</span><button class="btn red" data-room="${esc(i.room)}">Rejoindre</button></div>`).join("")}</div>` : "";
+      $$("[data-room]", box).forEach(b => b.onclick = () => roomJoin(b.dataset.room));
+      if (inv.length) buzz(20);
+    }, () => {}));
+    ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "friends"), s => {
+      const box = $("#friends"); if (!box) return;
+      const fr = s.docs.map(d => d.data()).sort((a, b) => a.name.localeCompare(b.name));
+      box.innerHTML = fr.length ? fr.map(f => `<div class="on-row"><span><b>${esc(f.name)}</b><small>${esc(f.code)}</small></span></div>`).join("")
+        : `<p class="hint muted">Pas encore d'amis. Demande son code ami à un pote, ou envoie-lui le tien.</p>`;
+    }, () => {}));
+  });
+}
+async function addFriend(raw) {
+  const code = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const me = store.get("me");
+  if (code.length !== 6) { toast("Un code ami fait 6 caractères."); return false; }
+  if (code === me.code) { toast("C'est ton propre code."); return false; }
+  try {
+    const { F, db, uid } = await net();
+    const c = await F.getDoc(F.doc(db, "codes", code));
+    if (!c.exists()) { toast("Aucun joueur avec ce code."); return false; }
+    const fuid = c.data().uid, u = await F.getDoc(F.doc(db, "users", fuid));
+    const name = u.exists() ? u.data().name : "Ami";
+    await Promise.all([
+      F.setDoc(F.doc(db, "users", uid, "friends", fuid), { name, code, at: Date.now() }),
+      F.setDoc(F.doc(db, "users", fuid, "friends", uid), { name: me.name, code: me.code, at: Date.now() })
+    ]);
+    toast(name + " est dans tes amis.");
+    return true;
+  } catch (e) { toast("Impossible d'ajouter cet ami pour l'instant."); return false; }
+}
+
+/* ---- salons ---- */
+const ids = r => Object.keys(r.players).sort((a, b) => r.players[a].t - r.players[b].t);
+const pname = (r, u) => r.players[u] ? r.players[u].name : "Un joueur parti";
+const needers = r => ids(r).filter(u => !(r.card.type === "radar" && u === r.card.giver));
+const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
+async function roomCreate() {
+  try {
+    const { F, db, uid } = await net(), me = store.get("me");
+    let code = genCode(4, "ABCDEFGHJKLMNPQRSTUVWXYZ");
+    for (let i = 0; i < 6; i++) {
+      const s = await F.getDoc(F.doc(db, "rooms", code));
+      if (!s.exists() || Date.now() - (s.data().at || 0) > 6 * 3600e3) break;
+      code = genCode(4, "ABCDEFGHJKLMNPQRSTUVWXYZ");
+    }
+    await F.setDoc(F.doc(db, "rooms", code), {
+      host: uid, status: "lobby", game: "mix", rounds: 6, level: S.level, hot: S.hot,
+      round: 0, phase: "", card: null, acts: {}, res: null, at: Date.now(),
+      players: { [uid]: { name: me.name, pts: 0, t: Date.now() } }
+    });
+    roomOpen(code);
+  } catch (e) { toast("Impossible de créer la partie pour l'instant."); }
+}
+async function roomJoin(raw) {
+  const code = String(raw || "").toUpperCase().replace(/[^A-Z]/g, "");
+  if (code.length !== 4) { toast("Le code d'une partie fait 4 lettres."); return; }
+  try {
+    const { F, db, uid } = await net(), me = store.get("me");
+    if (!me || !me.name) return pseudoView(code);
+    const ref = F.doc(db, "rooms", code), s = await F.getDoc(ref);
+    F.deleteDoc(F.doc(db, "users", uid, "invites", code)).catch(() => {});
+    if (!s.exists()) { toast("Aucune partie avec ce code."); return; }
+    const r = s.data();
+    if (!r.players[uid]) {
+      if (r.status !== "lobby") { toast("La partie a déjà commencé."); return; }
+      if (Object.keys(r.players).length >= 16) { toast("La partie est pleine."); return; }
+      const taken = Object.values(r.players).map(p => p.name.toLowerCase());
+      let name = me.name; for (let k = 2; taken.includes(name.toLowerCase()); k++) name = me.name + " " + k;
+      await F.updateDoc(ref, { [`players.${uid}`]: { name, pts: 0, t: Date.now() } });
+    }
+    roomOpen(code);
+  } catch (e) { toast("Impossible de rejoindre pour l'instant."); }
+}
+async function roomOpen(code) {
+  onStop();
+  const N = await net(), { F, db, uid } = N, ref = F.doc(db, "rooms", code);
+  ON.ctx = { N, ref, code, busy: "", last: "" };
+  setUrl("?salle=" + code);
+  keepAwake();
+  ON.off.push(F.onSnapshot(ref, s => {
+    if (!ON.ctx || ON.ctx.ref !== ref) return;
+    if (!s.exists()) { toast("La partie a été fermée."); return onlineHome(); }
+    const r = s.data();
+    if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return onlineHome(); }
+    ON.r = r; S.level = r.level; S.hot = r.hot;
+    if (r.host === uid) hostTick(r);
+    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host]) : "",
+      r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue].join("|");
+    if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
+    else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
+  }, () => toast("Connexion perdue, on réessaie…")));
+}
+async function roomLeave() {
+  const { F, uid } = ON.ctx.N, r = ON.r, rest = ids(r).filter(u => u !== uid), ref = ON.ctx.ref;
+  onStop(); ON.ctx = null;
+  try {
+    if (!rest.length) await F.deleteDoc(ref);
+    else await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: F.deleteField() }, r.host === uid ? { host: rest[0] } : {}));
+  } catch (e) {}
+  onlineHome();
+}
+const upd = o => ON.ctx.N.F.updateDoc(ON.ctx.ref, o).catch(() => toast("Connexion perdue, réessaie."));
+function waitTxt(r) {
+  const n = needers(r).length, a = actedN(r);
+  return a >= n ? "Tout le monde a joué." : `${a} / ${n} ${r.card.type === "radar" ? "flèches placées" : "votes"}`;
+}
+function hostTick(r) {
+  if (r.status !== "play" || !r.card) return;
+  const k = r.round + ":" + r.phase;
+  if ((r.phase === "vote" || r.phase === "guess") && actedN(r) >= needers(r).length && ON.ctx.busy !== k) { ON.ctx.busy = k; roomResolve(r); }
+}
+async function roomNext(r) {
+  const all = ids(r), n = all.length;
+  if (r.round >= r.rounds) return upd({ status: "end" });
+  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && ON_GAMES[t][1] <= n);
+  const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
+  const c = pool(t)[0]; used.add(c.id); store.set("used", [...used]);
+  let card;
+  if (t === "imposteur") card = { type: t, cat: c.data[1], word: c.data[2], imp: rnd(all), first: rnd(all) };
+  else if (t === "radar") card = { type: t, a: c.data[1], b: c.data[2], giver: all[r.round % n], target: 8 + Math.round(Math.random() * 84), clue: "" };
+  else { S.players = all.map(u => ({ name: r.players[u].name, pts: 0 })); card = { type: t, text: fill(c.data[1]) }; }
+  return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase: t === "imposteur" ? "word" : t === "radar" ? "clue" : "vote" });
+}
+function roomResolve(r) {
+  const { F } = ON.ctx.N, c = r.card, acts = r.acts || {}, pts = {};
+  const add = (u, n) => { if (n && r.players[u]) pts[u] = (pts[u] || 0) + n; };
+  let res;
+  if (c.type === "radar") {
+    const g = needers(r).filter(u => acts[u] != null).map(u => ({ u, v: acts[u], p: zonePts(Math.abs(acts[u] - c.target)) }));
+    g.forEach(o => add(o.u, o.p));
+    const gp = Math.round(g.reduce((s, o) => s + o.p, 0) / Math.max(1, g.length));
+    add(c.giver, gp);
+    res = { g, gp };
+  } else {
+    const tally = {};
+    Object.entries(acts).forEach(([u, v]) => { if (r.players[u] && r.players[v]) tally[v] = (tally[v] || 0) + 1; });
+    const max = Math.max(0, ...Object.values(tally)), top = Object.keys(tally).filter(u => tally[u] === max);
+    if (c.type === "imposteur") {
+      // égalité en tête : l'imposteur s'en sort
+      const caught = top.length === 1 && top[0] === c.imp;
+      if (caught) ids(r).forEach(u => { if (u !== c.imp) add(u, 1); }); else add(c.imp, 3);
+      res = { tally, caught };
+    } else { top.forEach(u => add(u, 1)); res = { tally, top }; }
+  }
+  const o = { phase: "reveal", res };
+  Object.entries(pts).forEach(([u, n]) => { o[`players.${u}.pts`] = F.increment(n); });
+  return upd(o);
+}
+
+function roomRender(r) {
+  const uid = ON.ctx.N.uid, host = r.host === uid;
+  S.inGame = r.status === "play";
+  if (r.status === "lobby") return lobbyView(r, host);
+  if (r.status === "end") return roomEnd(r, host);
+  const c = r.card, T = c.type, mine = r.acts ? r.acts[uid] : null, hostName = esc(pname(r, r.host));
+  const top = `<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="progress">Manche ${r.round} / ${r.rounds}</span><span class="on-pill">${ON.ctx.code}</span></div>`;
+  const last = r.round >= r.rounds;
+  const nextBtn = host ? `<button class="btn red" id="next">${last ? "Voir le classement" : "Manche suivante"}</button>` : `<p class="hint muted on-waiting">${hostName} lance la suite.</p>`;
+  const forceBtn = host ? `<button class="btn white" id="force">Révéler sans attendre</button>` : "";
+  const rows = (list, col) => `<div class="radar-res">${list.map(([u, v], i) => `<div><i style="background:${col ? col(i) : "#fff"}"></i><span>${esc(pname(r, u))}</span><b>${v}</b></div>`).join("")}</div>`;
+  const tallyRows = t => rows(Object.entries(t).sort((a, b) => b[1] - a[1]).map(([u, n]) => [u, n + " vote" + (n > 1 ? "s" : "")]));
+  const voteChips = list => `<div class="chips on-picks">${list.map(u => `<button class="chip pick" data-u="${u}" aria-pressed="${mine === u}">${esc(pname(r, u))}</button>`).join("")}</div>`;
+  let stage = "", acts = "";
+  if (T === "imposteur" && r.phase === "word") {
+    const isImp = uid === c.imp;
+    stage = `<div class="secret"><span class="eyebrow" style="color:var(--paper)">${isImp ? "Tu es" : "Ton mot"}</span><span class="mast" style="color:${isImp ? "var(--red)" : "var(--yellow)"}">${isImp ? "L'imposteur" : esc(c.word)}</span><p>${isImp ? "Thème : « " + esc(c.cat) + " ». Écoute les autres et bluffe." : "Thème : « " + esc(c.cat) + " ». Ne montre ton écran à personne."}</p></div>
+      <p class="sub on-sub"><b>${esc(pname(r, c.first))}</b> commence. Chacun dit un mot lié au mot secret, deux tours, puis vous votez sur vos téléphones.</p>`;
+    acts = host ? `<button class="btn red" id="tovote">Passer au vote</button>` : `<p class="hint muted on-waiting">${hostName} lancera le vote.</p>`;
+  } else if (r.phase === "vote") {
+    const q = T === "imposteur" ? "Qui est l'imposteur ?" : `Qui pourrait <b>${esc(c.text)}</b> ?`;
+    stage = cardShell(T, null, `<p class="text">${q}</p>${voteChips(ids(r).filter(u => u !== uid))}
+      <p class="sub" id="wait">${waitTxt(r)}</p>
+      ${rulePts(T === "imposteur" ? "Démasqué : +1 point pour chacun des autres · Raté : +3 points pour l'imposteur" : "+1 point pour la personne la plus désignée")}`);
+    acts = forceBtn;
+  } else if (T === "radar" && r.phase === "clue") {
+    const giver = uid === c.giver, cc = { data: [0, c.a, c.b] };
+    stage = giver ? cardShell("radar", { label: "Ta cible secrète", name: pname(r, uid) }, `${dialBox(cc, { target: c.target })}
+        <p class="sub">Trouve un indice qui tombe à cet endroit entre « ${esc(c.a)} » et « ${esc(c.b)} ».</p>
+        <div class="field on-clue"><input id="clue" maxlength="40" placeholder="Ton indice" autocomplete="off" enterkeyhint="send" aria-label="Ton indice"><button class="btn red" id="send">Envoyer</button></div>`)
+      : cardShell("radar", { label: "Indice en préparation", name: pname(r, c.giver) }, `${dialBox(cc, {})}<p class="sub">${esc(pname(r, c.giver))} regarde la cible et cherche un indice.</p>`);
+  } else if (T === "radar" && r.phase === "guess") {
+    const cc = { data: [0, c.a, c.b] }, giver = uid === c.giver;
+    if (!giver && mine == null) {
+      stage = cardShell("radar", { label: "Indice de " + esc(pname(r, c.giver)), name: c.clue }, `${dialBox(cc, { needle: 50 })}<p class="sub">Place la flèche où tu penses que se trouve la cible.</p>`);
+      acts = `<button class="btn red" id="lock">Valider ma flèche</button>`;
+    } else {
+      stage = cardShell("radar", { label: "Indice de " + esc(pname(r, c.giver)), name: c.clue }, `${dialBox(cc, giver ? { target: c.target } : { needle: mine })}
+        <p class="sub">${giver ? "Les autres placent leur flèche." : "Flèche placée. On attend les autres."}</p><p class="sub" id="wait">${waitTxt(r)}</p>`);
+      acts = forceBtn;
+    }
+  } else if (r.phase === "reveal") {
+    const res = r.res || {};
+    if (T === "imposteur") {
+      stage = cardShell("imposteur", { label: "L'imposteur était", name: pname(r, c.imp) }, `<p class="text">Le mot secret : <b>${esc(c.word)}</b>.</p>${tallyRows(res.tally || {})}
+        ${rulePts(res.caught ? "Démasqué : +1 point pour chacun des autres" : `Raté : +3 points pour ${esc(pname(r, c.imp))}`)}`);
+    } else if (T === "radar") {
+      const g = res.g || [], col = i => NEEDLE_COLS[i % NEEDLE_COLS.length];
+      stage = cardShell("radar", { label: "Résultat · indice", name: c.clue }, `${dialBox({ data: [0, c.a, c.b] }, { target: c.target, needles: g.map((o, i) => ({ v: o.v, col: col(i) })) })}
+        ${rows(g.map(o => [o.u, o.p ? "+" + o.p : "0"]), col)}
+        <div class="radar-res"><div class="guide"><i></i><span>${esc(pname(r, c.giver))} (indice)</span><b>${res.gp ? "+" + res.gp : "0"}</b></div></div>`);
+    } else {
+      const tp = res.top || [];
+      stage = cardShell("qui", tp.length ? { label: "Le plus désigné", name: tp.map(u => pname(r, u)).join(" et ") } : null, `<p class="text">Qui pourrait <b>${esc(c.text)}</b> ?</p>${tallyRows(res.tally || {})}${rulePts("+1 point pour la personne la plus désignée")}`);
+    }
+    stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
+    acts = nextBtn;
+  }
+  view(`${top}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => {
+    $("#leave").onclick = () => {
+      if (Date.now() - ON.leaveArmed < 2500) return roomLeave();
+      ON.leaveArmed = Date.now(); toast("Touche encore × pour quitter la partie.");
+    };
+    const b = id => $("#" + id);
+    if (b("tovote")) b("tovote").onclick = () => upd({ phase: "vote" });
+    if (b("force")) b("force").onclick = () => roomResolve(ON.r);
+    if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
+    $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
+    if (r.phase === "reveal" && ON.ctx.stamped !== r.round) {
+      ON.ctx.stamped = r.round;
+      const res = r.res || {};
+      if (T === "imposteur") stamp(res.caught ? "Démasqué" : "Raté", res.caught ? "green" : "");
+      else if (T === "radar") { const best = Math.max(0, ...(res.g || []).map(o => o.p)); stamp(best === 3 ? "En plein dans le mille" : best ? "Pas mal" : "Raté", best ? "green" : ""); }
+    }
+    if (b("send")) {
+      const send = () => { const v = b("clue").value.trim(); if (!v) return; upd({ "card.clue": v, phase: "guess" }); };
+      b("send").onclick = send;
+      b("clue").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); send(); } };
+    }
+    if (b("lock")) {
+      let v = 50;
+      const cc = { data: [0, c.a, c.b] }, box = $("#dialbox");
+      const move = e => {
+        const svg = $("svg", box), bb = svg.getBoundingClientRect();
+        const x = (e.clientX - bb.left) / bb.width * 300, y = (e.clientY - bb.top) / bb.height * 168;
+        let a = Math.atan2(152 - y, x - 150) * 180 / Math.PI; if (a < 0) a = x < 150 ? 180 : 0;
+        v = Math.max(0, Math.min(100, (180 - a) / 1.8));
+        svg.outerHTML = dial({ needle: v });
+      };
+      box.onpointerdown = e => { e.preventDefault(); box.setPointerCapture(e.pointerId); move(e); box.onpointermove = move; };
+      box.onpointerup = box.onpointercancel = () => { box.onpointermove = null; };
+      b("lock").onclick = () => { buzz(15); upd({ [`acts.${uid}`]: Math.round(v) }); };
+    }
+  });
+}
+function lobbyView(r, host) {
+  const { F, db, uid } = ON.ctx.N, all = ids(r), n = all.length, min = ON_GAMES[r.game][1];
+  view(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="title">Salle d'attente</span><span style="width:44px"></span></div>
+    <div class="on-card">
+      <div><span class="eyebrow">Code de la partie</span><span class="on-code">${ON.ctx.code}</span></div>
+      <button class="btn white" id="share">Envoyer le lien de la partie</button>
+    </div>
+    <div class="section-label">Joueurs (${n})</div>
+    <div class="chips on-players">${all.map(u => `<span class="chip">${esc(r.players[u].name)}${u === r.host ? " ★" : ""}</span>`).join("")}</div>
+    ${host ? `<div class="section-label">Jeu</div>
+      <div class="seg on-seg" id="g">${Object.entries(ON_GAMES).map(([k, [l]]) => `<button data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
+      <div class="section-label">Manches</div>
+      <div class="seg" id="nr">${[4, 6, 10].map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.</p>`}
+    <div class="section-label">Inviter mes amis</div>
+    <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
+    <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
+  `, async () => {
+    $("#leave").onclick = () => roomLeave();
+    $("#share").onclick = () => shareIt(`Viens jouer sur Platoz, code ${ON.ctx.code} :`, roomUrl(ON.ctx.code));
+    $$("#g button").forEach(b => b.onclick = () => upd({ game: b.dataset.v }));
+    $$("#nr button").forEach(b => b.onclick = () => upd({ rounds: +b.dataset.v }));
+    const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; upd(Object.assign({ round: 0, card: null }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
+    try {
+      const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => ({ id: d.id, ...d.data() }));
+      const box = $("#inv"); if (!box) return;
+      box.innerHTML = fr.length ? fr.map(f => `<div class="on-row"><span><b>${esc(f.name)}</b></span>${r.players[f.id] ? `<small>Déjà là</small>` : `<button class="btn" data-f="${f.id}">Inviter</button>`}</div>`).join("")
+        : `<p class="hint muted">Ajoute des amis avec leur code ami, ou envoie le lien de la partie.</p>`;
+      $$("[data-f]", box).forEach(b => b.onclick = async () => {
+        b.disabled = true;
+        try { await F.setDoc(F.doc(db, "users", b.dataset.f, "invites", ON.ctx.code), { from: store.get("me").name, room: ON.ctx.code, at: Date.now() }); b.textContent = "Invité"; }
+        catch (e) { b.disabled = false; toast("Invitation pas envoyée, réessaie."); }
+      });
+    } catch (e) {}
+  });
+}
+function roomEnd(r, host) {
+  S.players = ids(r).map(u => ({ name: r.players[u].name, pts: r.players[u].pts || 0 }));
+  ranking();
+  const again = $("#again"), out = $("#home");
+  if (host) again.onclick = () => upd({ status: "lobby", round: 0, card: null, phase: "", acts: {}, res: null });
+  else again.outerHTML = `<p class="hint muted on-waiting">${esc(pname(r, r.host))} peut relancer une partie.</p>`;
+  out.textContent = "Quitter";
+  out.onclick = roomLeave;
+}
+
+const salle = (() => { try { return new URLSearchParams(location.search).get("salle"); } catch (e) { return null; } })();
+salle ? onlineHome(salle) : home();
 </script>
