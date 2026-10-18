@@ -935,6 +935,28 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .on-choices { display: flex; flex-direction: column; gap: 10px; margin: 6px 0; }
 .on-choices .btn { min-height: 56px; }
 .on-games .chip.pick { font-size: 15px; min-height: 44px; padding: 8px 14px; }
+/* ---------- mini tuto des règles ---------- */
+.tuto-wrap { position: fixed; inset: 0; z-index: 80; background: rgba(6,3,18,.45); display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease-out both; }
+.tuto { width: 100%; max-width: 480px; max-height: 45vh; max-height: 45dvh; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; gap: 8px;
+  background: linear-gradient(180deg, #1D1447 0%, #0B0720 100%); color: var(--text); border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: 0 -18px 60px -16px rgba(255,59,110,.6), 0 -2px 0 rgba(255,59,110,.7), inset 0 1px 0 rgba(255,255,255,.16);
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); animation: up .26s cubic-bezier(.25,1.2,.4,1) both; }
+.tuto-head { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tuto-head b { color: var(--yellow); font-weight: 900; }
+.tuto-track { flex: 1 1 auto; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; margin: 0 -4px; }
+.tuto-track::-webkit-scrollbar { display: none; }
+.tuto-step { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always; padding: 0 4px; display: flex; gap: 12px; align-items: center; }
+.tuto-ico { flex: none; width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 32px; background: var(--glass-2); box-shadow: inset 0 0 0 1.5px var(--hair), 0 0 24px -6px rgba(255,59,110,.7); }
+.tuto-step h3 { margin: 0 0 3px; font-family: var(--display); font-size: 17px; line-height: 1.15; color: #fff; }
+.tuto-step p { margin: 0; font-size: 15.5px; line-height: 1.32; font-weight: 700; color: var(--ink-soft); }
+.tuto-dots { display: flex; justify-content: center; gap: 7px; }
+.tuto-dots i { width: 7px; height: 7px; border-radius: 99px; background: rgba(255,255,255,.28); transition: all .2s; }
+.tuto-dots i.on { width: 20px; background: var(--red); box-shadow: 0 0 10px rgba(255,59,110,.8); }
+.tuto-never { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--muted); min-height: 28px; cursor: pointer; }
+.tuto-never input { width: 18px; height: 18px; accent-color: var(--red); margin: 0; }
+.tuto-btns { display: flex; gap: 8px; }
+.tuto-btns .btn { flex: 1; min-height: 48px; padding: 0 10px; font-size: 15px; }
+.tuto-btns #tuto-skip { flex: 1.25; }
 </style>
 
 <script>window.THEME = {
@@ -1542,9 +1564,10 @@ function playersScreen() {
     <div class="field"><input id="name-input" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom du joueur"><button class="btn" type="button" id="add">Ajouter</button></div>
     <div class="chips" id="chips"></div>
     <div id="bubbles"></div>
+    ${tutoLink()}
     <div class="actions"><button class="btn red" id="next"></button></div>
   `, () => {
-    $("#back").onclick = home;
+    $("#back").onclick = home; bindTutoLink(S.mode);
     // pas de <form> : le cadre de l'artifact bloque l'envoi des formulaires
     const add = () => {
       const v = $("#name-input").value.trim().replace(/\s+/g, " ");
@@ -1648,6 +1671,7 @@ function ambiance() {
 
 /* -------- DÉMARRAGE -------- */
 function startGame() {
+  if (tutoGate(S.mode, startGame)) return;
   S.players = shuffle(S.names).map(n => ({ name: n, pts: 0 }));
   S.idx = 0; S.round = 0; S.lastGame = null; turn = 0; S.inGame = true; S.changed = false;
   keepAwake();
@@ -2511,6 +2535,7 @@ function tabooFinal() {
 /* -------- PUISSANCE 4 : deux joueurs sur le même écran -------- */
 const P4 = { wins: [0, 0], first: 0 };
 function p4Start() {
+  if (tutoGate("p4", p4Start)) return;
   const names = S.duo, R = 6, W = 7;
   const g = Array.from({ length: R }, () => Array(W).fill(-1));
   let cur = P4.first, over = false, line = null, last = null;
@@ -2567,6 +2592,7 @@ function unoDeck() {
 const unoLabel = v => ({ skip: "⊘", rev: "⇄", w: "★" }[v] || v);
 const unoCard = (k, cls = "", i) => `<button class="uno ${k.c === "w" ? "wild" : ""} ${cls}" ${i != null ? `data-i="${i}"` : ""} style="--uc:${UNO_COLS[k.c] || "#1A0F2E"}"><span>${unoLabel(k.v)}</span></button>`;
 function unoStart() {
+  if (S.names.length <= 10 && tutoGate("uno", unoStart)) return;
   if (S.names.length > 10) { toast("10 joueurs maximum au Uno."); return; }
   const P = shuffle(S.names).map(n => ({ name: n, hand: [] }));
   let pile = unoDeck(), disc = [], color, dir = 1, cur = 0, log = "", locked = false;
@@ -2665,6 +2691,65 @@ function sheet(html, bind) {
   w.onclick = e => { if (e.target === w) w.remove(); };
   document.body.appendChild(w); bind && bind(w); return w;
 }
+/* -------- MINI TUTO DES RÈGLES -------- */
+const TUTO = {
+  jamais: [["📖", "Tu lis la carte", "Tu lis à voix haute : « Je n'ai jamais… »."], ["🙋", "Les coupables avouent", "Ceux qui l'ont déjà fait se balancent. Pas de triche, on se regarde dans les yeux."], ["👆", "Tu touches les prénoms", "Tu touches le prénom de chaque coupable sur l'écran."], ["🏅", "Les points", "Chaque personne qui l'a fait marque +1 point."]],
+  av: [["😈", "Vérité ou action", "Chacun son tour, tu choisis : vérité ou action."], ["🎲", "L'appli te donne la carte", "Tu lis la question ou tu fais le défi, devant tout le monde."], ["🏅", "Les points", "Vérité réussie : +1 point. Action réussie : +2 points."], ["🙅", "Tu refuses ?", "Pas de gage, mais tu marques 0 sur cette carte."]],
+  pref: [["🤔", "Deux choix impossibles", "Tu lis les deux options à voix haute."], ["🙌", "Vote à main levée", "Tout le monde choisit en même temps, sans discuter."], ["👆", "Tu touches les prénoms", "Tu touches ceux qui ont pris la première option."], ["🏅", "Les points", "Chaque personne de la majorité marque +1 point. Égalité : personne."]],
+  ouinon: [["👍", "Une question, deux réponses", "Tu lis la question. Pas de débat."], ["⏱️", "Au signal", "Pouce en l'air pour oui, pouce en bas pour non, tous en même temps."], ["👆", "Tu touches les prénoms", "Tu touches ceux qui ont dit oui."], ["🏅", "Les points", "Chaque personne de la majorité marque +1 point."]],
+  classement: [["📱", "Un joueur classe", "L'appli te passe le téléphone : tu lis la question en secret."], ["🏆", "Tu classes tout le monde", "Tu touches les prénoms dans l'ordre, toi compris."], ["🕵️", "Les autres devinent", "Chacun son tour choisit en secret la bonne question parmi plusieurs."], ["🏅", "Les points", "Bonne réponse : +2 points pour toi, et +1 point pour celui qui a classé."]],
+  qui: [["👉", "Qui pourrait…", "Tu lis la question : qui pourrait faire ça ?"], ["⏱️", "3, 2, 1, pointez", "Au signal, tout le monde pointe quelqu'un du doigt en même temps."], ["👆", "Tu touches le gagnant", "Tu touches le prénom le plus désigné. Égalité : personne."], ["🏅", "Les points", "La personne la plus désignée marque +1 point."]],
+  radar: [["🎯", "Une cible secrète", "Un joueur voit la cible sur l'échelle, en secret."], ["💬", "Il donne un indice", "Un mot, un film, une situation qui tombe à cet endroit. À voix haute."], ["➡️", "Les autres visent", "Chacun son tour place sa flèche, sans montrer aux suivants."], ["🏅", "Les points", "Tout près de la cible : 3 points. Pas trop loin : 2. Dans la zone : 1. Le donneur marque la moyenne des autres."]],
+  taboo: [["🤐", "Deux équipes", "L'appli coupe le groupe en deux. Un joueur fait deviner, son équipe devine."], ["⛔", "Mots interdits", "Tu fais deviner le mot sans le dire, sans les mots interdits, sans gestes."], ["👀", "Un surveillant", "Un joueur de l'autre équipe regarde l'écran et appuie sur « Interdit » s'il t'attrape."], ["🏅", "Les points", "Trouvé : +1 point. Interdit : −1 point. Tu peux passer 3 fois par tour."]],
+  imposteur: [["🕵️", "Un seul n'a pas le mot", "L'appli donne le mot secret à tous, sauf à l'imposteur."], ["📱", "Tu regardes en secret", "Le téléphone passe de main en main. Tu caches l'écran après."], ["💬", "Un mot chacun", "À tour de rôle, tu dis un seul mot lié au mot secret. Deux tours."], ["🏅", "Les points", "Imposteur démasqué : +1 point pour chacun des autres. Raté : +3 points pour l'imposteur."]],
+  menteur: [["🤥", "Une consigne secrète", "L'appli te dit en secret si tu dois dire la vérité ou mentir."], ["🗣️", "Tu réponds", "Tu réponds à la question, face à tout le monde."], ["❓", "Le groupe enquête", "Les autres te posent 3 questions, puis votent : vérité ou mensonge ?"], ["🏅", "Les points", "Groupe trompé : +2 points pour toi. Bien vu : +1 point pour chacun des autres."]],
+  p4: [["🔴", "Chacun sa couleur", "À deux sur le même téléphone, chacun son tour."], ["⬇️", "Tu lâches un jeton", "Tu touches une colonne, le jeton tombe tout en bas."], ["🎯", "Aligne 4 jetons", "En ligne, en colonne ou en diagonale."], ["🏅", "Le gagnant", "Le premier qui aligne 4 jetons gagne la manche."]],
+  uno: [["🃏", "7 cartes chacun", "Tu reçois 7 cartes. Le téléphone passe de main en main : tu caches ta main."], ["🎨", "Même couleur ou même valeur", "Tu joues une carte en surbrillance. Joker : tu choisis la couleur."], ["⚡", "Les cartes spéciales", "+2 et +4 : le suivant pioche et passe. Passe-tour et changement de sens."], ["🏁", "Le gagnant", "Rien à jouer ? Tu pioches. Le premier à vider sa main gagne."]],
+  deux: [["💞", "Qui de nous deux ?", "Tu lis la question à voix haute."], ["⏱️", "3, 2, 1, désignez", "Au signal, vous pointez chacun l'un de vous deux, en même temps."], ["🤝", "Complices ou pas", "Vous avez désigné la même personne ? Tu l'indiques dans l'appli."], ["🏅", "Les points", "Même personne : +1 point pour elle. Sinon, 20 secondes pour défendre sa version."]],
+  reflexe: [["⚡", "Attends le rouge", "L'écran attend, puis devient rouge d'un coup."], ["👆", "Touche vite", "Tu touches l'écran dès qu'il devient rouge. Trop tôt, c'est perdu."], ["🧍", "Seul", "5 essais, tu essaies de battre ton record."], ["🏅", "À deux", "Face à face : le plus rapide marque 1 point. Premier à 3 points gagne."]],
+  test: [["😇", "Es-tu si sage ?", "Tu réponds oui ou non à chaque question, honnêtement."], ["🤫", "Personne ne voit", "Tes réponses restent secrètes, seul ton score ressort."], ["📰", "Ton indice de scandale", "À la fin, tu obtiens ton pourcentage, un titre et trois aveux."], ["📲", "Tu partages ?", "Tu envoies ta Une à tes potes, si tu assumes."]],
+  mix: [["🎡", "La roue choisit", "Tu lances la roue, elle choisit le jeu du tour."], ["🃏", "Tu joues les cartes", "Chaque jeu a ses règles, elles sont écrites sur les cartes."], ["🏅", "Les points s'accumulent", "Tous les jeux comptent pour le même classement."], ["🏆", "Le classement final", "Après le dernier tour, le plus haut score gagne."]]
+};
+const tutoSession = new Set();
+// affiche les règles d'un jeu puis appelle then ; passe directement si déjà vu (force = rouvrir à la main)
+function showTuto(key, then, force) {
+  const steps = TUTO[key], seen = store.get("tutoSeen", []);
+  const done = () => { try { then && then(); } catch (e) { console.error(e); } };
+  if (!steps || (!force && (seen.includes(key) || tutoSession.has(key)))) return done();
+  tutoSession.add(key); clearTimers(); $$(".tuto-wrap").forEach(t => t.remove());
+  const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Puissance 4", mix: "Mode Mix" })[key] || key;
+  const w = document.createElement("div"); w.className = "tuto-wrap";
+  w.innerHTML = `<div class="tuto" role="dialog" aria-modal="true" aria-label="Règles : ${esc(name)}">
+    <div class="tuto-head"><span>Règles · <b>${esc(name)}</b></span><span id="tuto-n">1 / ${steps.length}</span></div>
+    <div class="tuto-track" id="tuto-track">${steps.map(s => `<div class="tuto-step"><span class="tuto-ico" aria-hidden="true">${s[0]}</span><div><h3>${esc(s[1])}</h3><p>${esc(s[2])}</p></div></div>`).join("")}</div>
+    <div class="tuto-dots" id="tuto-dots">${steps.map(() => "<i></i>").join("")}</div>
+    <label class="tuto-never"><input type="checkbox" id="tuto-never"${seen.includes(key) ? " checked" : ""}> Ne plus me montrer pour ce jeu</label>
+    <div class="tuto-btns"><button class="btn white" id="tuto-skip">Je connais, passer</button><button class="btn red" id="tuto-next">Suivant</button></div>
+  </div>`;
+  document.body.appendChild(w);
+  const tr = $("#tuto-track", w), dots = $$("#tuto-dots i", w), nextBtn = $("#tuto-next", w);
+  let cur = 0;
+  const sync = () => {
+    cur = Math.max(0, Math.min(steps.length - 1, Math.round(tr.scrollLeft / Math.max(1, tr.clientWidth))));
+    dots.forEach((d, i) => d.classList.toggle("on", i === cur));
+    $("#tuto-n", w).textContent = (cur + 1) + " / " + steps.length;
+    nextBtn.textContent = cur === steps.length - 1 ? "C'est parti" : "Suivant";
+  };
+  const close = () => {
+    const list = store.get("tutoSeen", []), on = $("#tuto-never", w).checked;
+    if (on && !list.includes(key)) store.set("tutoSeen", [...list, key]);
+    if (!on && list.includes(key)) store.set("tutoSeen", list.filter(k => k !== key));
+    w.remove(); done();
+  };
+  tr.addEventListener("scroll", sync, { passive: true });
+  nextBtn.onclick = () => { buzz(10); if (cur >= steps.length - 1) return close(); tr.scrollTo({ left: (cur + 1) * tr.clientWidth, behavior: "smooth" }); };
+  $("#tuto-skip", w).onclick = close;
+  sync();
+}
+// garde-fou en tête d'un lancement de jeu : true = les règles s'affichent, la fonction sera relancée ensuite
+const tutoGate = (key, fn) => { if (tutoSession.has(key) || store.get("tutoSeen", []).includes(key) || !TUTO[key]) return false; showTuto(key, fn); return true; };
+const tutoLink = key => `<p style="text-align:center;margin:0"><button class="linkbtn" id="rules-link">Voir les règles</button></p>`;
+const bindTutoLink = key => { const b = $("#rules-link"); if (b) b.onclick = () => showTuto(key, null, true); };
 function standings() {
   const list = S.players.slice().sort((a, b) => b.pts - a.pts);
   let rank = 0, prev = null;
@@ -2934,9 +3019,10 @@ function duoSetup(then) {
       <input class="duo-in" id="duo-a" maxlength="14" placeholder="Joueur 1" autocomplete="off" autocapitalize="words" enterkeyhint="next" value="${esc(d[0])}" aria-label="Prénom du joueur 1">
       <input class="duo-in" id="duo-b" maxlength="14" placeholder="Joueur 2" autocomplete="off" autocapitalize="words" enterkeyhint="done" value="${esc(d[1])}" aria-label="Prénom du joueur 2">
     </div>
+    ${tutoLink()}
     <div class="actions"><button class="btn red" id="next">Continuer</button></div>
   `, () => {
-    $("#back").onclick = home;
+    $("#back").onclick = home; bindTutoLink(then === p4Start ? "p4" : then === reflexDuo ? "reflexe" : "deux");
     const go = () => {
       const a = $("#duo-a").value.trim(), b = $("#duo-b").value.trim();
       if (!a || !b) { toast("Il faut deux prénoms."); return; }
@@ -2975,6 +3061,7 @@ function miniUne(A) {
 
 /* ---------- QUI DE NOUS DEUX ---------- */
 function startDeux() {
+  if (tutoGate("deux", startDeux)) return;
   const lv = S.level;
   const qs = DEUX.filter(q => q[0] <= lv && (S.hot || !isHot([q[1]]))).map(q => ({ q, k: Math.random() + (q[0] === lv ? .35 : 0) })).sort((a, b) => b.k - a.k).slice(0, 15).map(o => o.q[1]);
   const st = { i: 0, ok: 0, qs, pts: { [S.duo[0]]: 0, [S.duo[1]]: 0 } };
@@ -3041,6 +3128,7 @@ function resultDeux(st) {
 
 /* ---------- DUEL RÉFLEXE ---------- */
 function reflexMenu() {
+  if (tutoGate("reflexe", reflexMenu)) return;
   const best = store.get("reflex-best", null);
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Duel réflexe</span><span style="width:44px"></span></div>
@@ -3124,6 +3212,7 @@ function reflexDuo() {
 /* ---------- TEST DE SCANDALE ---------- */
 const testQs = () => TEST.filter(q => S.hot || !isHot(q));
 function testIntro() {
+  if (tutoGate("test", testIntro)) return;
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Test de scandale</span><span style="width:44px"></span></div>
     <div class="stage">${cardShell("test", null, `
