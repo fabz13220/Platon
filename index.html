@@ -826,6 +826,19 @@ p { margin: 0; }
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
 input, textarea { -webkit-user-select: text; user-select: text; }
 /* ---------- en ligne ---------- */
+.where-row { display: flex; gap: 8px; align-items: center; }
+.where-seg { flex: 1; min-width: 0; }
+.where-seg button { font-size: 14.5px; padding: 11px 4px; }
+.friends-btn { position: relative; flex: none; display: flex; align-items: center; gap: 6px; border: 1px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); border-radius: 999px; padding: 0 14px; min-height: 50px; font-weight: 900; font-size: 15px; }
+.friends-btn b[hidden] { display: none; }
+.friends-btn b { position: absolute; top: -5px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #2EE6A0; color: #062A26; font-size: 12px; display: grid; place-items: center; }
+.fr-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid var(--hair); }
+.fr-av { position: relative; flex: none; width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,.12); display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 18px; }
+.fr-av::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 13px; height: 13px; border-radius: 50%; background: #5A5080; border: 2.5px solid #1A1238; }
+.fr-av.on::after { background: #2EE6A0; }
+.fr-txt { display: flex; flex-direction: column; min-width: 0; font-size: 17px; }
+.fr-txt small { color: var(--muted); font-weight: 800; font-size: 13.5px; }
+.fr-txt small.on { color: #2EE6A0; }
 .hero-mode.on-hero { background: linear-gradient(135deg, #13C9B4, #2F6BFF 70%); box-shadow: 0 22px 60px -18px rgba(40,140,255,.7), inset 0 2px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.14); }
 .on-card { background: rgba(255,255,255,.06); border: 1px solid var(--hair); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
 .on-card > div { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
@@ -1333,7 +1346,8 @@ function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "lon
 
 /* -------- ACCUEIL -------- */
 function home() {
-  S.inGame = false;
+  S.inGame = false; onStop(); ON.ctx = null;
+  const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => t === "taboo" ? 4 : (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const tiles = ["jamais", "av", "qui", "pref", "taboo", "imposteur", "menteur", "classement", "ouinon", "radar"].filter(t => minOf(t) <= n);
@@ -1345,11 +1359,11 @@ function home() {
       <div class="logo">Platoz</div>
       <div class="rule"><span>Le jeu de vos soirées</span><span>1 à 16 joueurs</span></div>
     </header>
-    <button class="hero-mode on-hero" id="go-online">
-      <span class="tagline">Avec tes amis</span>
-      <span class="mast">Chacun son téléphone</span>
-      <p>Ajoute tes potes et jouez à L'Imposteur, Qui pourrait ou Le Radar, chacun sur son écran.</p>
-    </button>
+    <div class="where-row">
+      <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}">Un téléphone</button><button data-v="1" aria-pressed="${multi}">Chacun le sien</button></div>
+      <button class="friends-btn" id="friends-btn" aria-label="Amis">${FRIEND_ICON}<span>Amis</span><b id="fr-on" hidden></b></button>
+    </div>
+    ${multi ? multiHome() : `
     <div class="section-label">Vous êtes combien ?</div>
     <div class="seg count-seg" id="count">${[1, 2, 3, 4, 5].map(v => `<button data-v="${v}" aria-pressed="${v === Math.min(n, 5)}">${v === 1 ? "Seul" : v === 5 ? "5 +" : v}</button>`).join("")}</div>
     ${n >= 3 ? `<button class="hero-mode" id="go-mix">
@@ -1363,17 +1377,24 @@ function home() {
     </div>` : ""}
     ${board.length ? `<div class="section-label">Jeux de société</div><div class="opts">${board.map(opt).join("")}</div>` : ""}
     ${n <= 2 ? `<div class="section-label">${n === 1 ? "En solo" : "Rien que vous deux"}</div><div class="opts">${solo.map(opt).join("")}</div>` : ""}
+    `}
     <div class="section-label">Outils</div>
     <div class="tools-row"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
     <div class="tools-row" style="margin-top:-8px"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" data-tool="propose">Proposer une carte</button></div>
-    <p class="hint muted" style="text-align:center">Un seul téléphone qu'on se passe, ou chacun le sien. Jouez avec modération et consentement.</p>
+    <p class="hint muted" style="text-align:center">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
     ${ban.size ? `<p style="text-align:center;margin:0"><button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button></p>` : ""}
   `, () => {
     $$("#count button").forEach(b => b.onclick = () => { store.set("count", +b.dataset.v); buzz(10); home(); });
     const bs = $("#bans"); if (bs) bs.onclick = banList;
-    $("#go-online").onclick = () => onlineHome();
+    $$("#where button").forEach(b => b.onclick = () => {
+      const m = b.dataset.v === "1"; buzz(10);
+      if (m && !hasProfile()) return pseudoView(() => { store.set("multi", true); home(); });
+      store.set("multi", m); home();
+    });
+    $("#friends-btn").onclick = () => hasProfile() ? friendsView() : pseudoView(friendsView);
+    if (hasProfile()) homeOnline(multi);
     const mx = $("#go-mix"); if (mx) mx.onclick = () => { S.mode = "mix"; playersScreen(); };
-    $$(".tile").forEach(b => b.onclick = () => { S.mode = b.dataset.mode; playersScreen(); });
+    $$(".tile:not([data-on])").forEach(b => b.onclick = () => { S.mode = b.dataset.mode; playersScreen(); });
     bindTools();
     $("#tester").onclick = testerMenu;
     $$("[data-solo]").forEach(b => b.onclick = () => {
@@ -3033,21 +3054,76 @@ async function ensureProfile(name) {
   return me;
 }
 
+const hasProfile = () => { const me = store.get("me", null); return !!(me && me.name && me.code); };
+const FRIEND_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.4 0 4 1.5 4.5 4"/></svg>`;
+const ONLINE_MS = 150e3;
+const isOnline = u => u && u.seen && Date.now() - u.seen < ONLINE_MS;
+function seenTxt(t) {
+  if (!t) return "Hors ligne";
+  const m = Math.round((Date.now() - t) / 60e3);
+  return m < 60 ? `Vu il y a ${Math.max(1, m)} min` : m < 1440 ? `Vu il y a ${Math.round(m / 60)} h` : m < 2880 ? "Vu hier" : `Vu il y a ${Math.round(m / 1440)} jours`;
+}
+// présence : le téléphone signale qu'il est ouvert, toutes les minutes
+let beatT = null;
+function heartbeat() {
+  if (!hasProfile()) return;
+  const beat = () => { if (document.visibilityState !== "hidden") net().then(({ F, db, uid }) => F.setDoc(F.doc(db, "users", uid), { seen: Date.now() }, { merge: true })).catch(() => {}); };
+  if (!beatT) { beatT = setInterval(beat, 60e3); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") beat(); }); }
+  beat();
+}
+// accueil en mode « chacun le sien » : jeux jouables à plusieurs téléphones
+function multiHome() {
+  return `<button class="hero-mode" id="on-mix">
+      <span class="tagline">Chacun sur son téléphone</span>
+      <span class="mast">Mode Mix</span>
+      <p>L'Imposteur, Qui pourrait et Le Radar tombent au hasard. Crée la partie, puis invite tes amis.</p>
+    </button>
+    <div class="section-label">Jeux chacun sur son téléphone</div>
+    <div class="grid">
+      ${["imposteur", "qui", "radar"].map(t => `<button class="tile" data-mode="${t}" data-on="1"><span class="sw" style="background:${TYPES[t].color}"></span><span class="mast">${TYPES[t].label}</span><p>${t === "radar" ? "Dès 2 joueurs." : "Dès 3 joueurs."} Chacun voit son secret et vote sur son écran.</p></button>`).join("")}
+    </div>
+    <div id="invites"></div>
+    <div class="section-label">Rejoindre une partie</div>
+    <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div>
+    <p class="hint muted" style="text-align:center;margin:0">Les autres jeux se jouent sur un seul téléphone.</p>`;
+}
+function homeOnline(multi) {
+  heartbeat();
+  if (multi) {
+    const create = g => () => roomCreate(g);
+    $("#on-mix").onclick = create("mix");
+    $$(".tile[data-on]").forEach(b => b.onclick = create(b.dataset.mode));
+    const join = () => roomJoin($("#room-in").value);
+    $("#join").onclick = join;
+    $("#room-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); join(); } };
+  }
+  net().then(async ({ F, db, uid }) => {
+    if (!$("#where")) return;
+    if (multi) ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "invites"), s => {
+      const box = $("#invites"); if (!box) return;
+      const inv = s.docs.map(d => d.data()).filter(i => Date.now() - i.at < 3 * 3600e3).sort((a, b) => b.at - a.at);
+      box.innerHTML = inv.length ? `<div class="section-label">Invitations</div><div class="on-list">${inv.map(i => `<div class="on-row"><span><b>${esc(i.from)}</b> t'invite à jouer</span><button class="btn red" data-room="${esc(i.room)}">Rejoindre</button></div>`).join("")}</div>` : "";
+      $$("[data-room]", box).forEach(b => b.onclick = () => roomJoin(b.dataset.room));
+      if (inv.length) buzz(20);
+    }, () => {}));
+    // nombre d'amis en ligne sur le bouton Amis
+    const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => d.id);
+    const us = await Promise.all(fr.map(id => F.getDoc(F.doc(db, "users", id)).then(d => d.data()).catch(() => null)));
+    const n = us.filter(isOnline).length, b = $("#fr-on");
+    if (b && n) { b.textContent = n; b.hidden = false; }
+  }).catch(() => {});
+}
+// lien d'invitation ?salle=CODE
 async function onlineHome(join) {
-  onStop(); ON.ctx = null; setUrl("");
-  view(`${onTop("Chacun son téléphone")}<div class="stage"><p class="hint muted" style="text-align:center">Connexion…</p></div>`, () => { $("#back").onclick = home; });
-  let N;
-  try { N = await net(); } catch (e) {
+  view(`${onTop("Partie en ligne")}<div class="stage"><p class="hint muted" style="text-align:center">Connexion…</p></div>`, () => { $("#back").onclick = home; });
+  try { await net(); } catch (e) {
     $(".stage").innerHTML = `<div class="secret"><span class="mast" style="font-size:28px">Pas de connexion</span><p>${window.claude ? "Le jeu en ligne marche sur le site du jeu : " + SITE : "Vérifie ta connexion internet et réessaie."}</p></div>`;
     return;
   }
-  const me = store.get("me", null);
-  if (!me || !me.name) return pseudoView(join);
-  try { await ensureProfile(); } catch (e) { toast("Connexion impossible pour l'instant."); return; }
-  if (join) return roomJoin(join);
-  onlineMain(N);
+  if (!hasProfile()) return pseudoView(() => onlineHome(join));
+  if (!(await roomJoin(join))) { setUrl(""); home(); }
 }
-function pseudoView(join) {
+function pseudoView(then) {
   const me = store.get("me", {});
   view(`${onTop("Ton pseudo")}
     <p class="hint" style="text-align:center">C'est le nom que tes amis verront.</p>
@@ -3058,58 +3134,52 @@ function pseudoView(join) {
       const v = $("#pseudo").value.trim().replace(/\s+/g, " ");
       if (!v) return;
       $("#ok").disabled = true;
-      try { await ensureProfile(v); onlineHome(join); } catch (e) { $("#ok").disabled = false; toast("Connexion impossible pour l'instant."); }
+      try { await ensureProfile(v); (then || home)(); }
+      catch (e) { $("#ok").disabled = false; toast(window.claude ? "Le jeu en ligne marche sur le site du jeu." : "Connexion impossible pour l'instant."); }
     };
     $("#ok").onclick = go;
     $("#pseudo").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
   });
 }
-function onlineMain(N) {
-  const { F, db, uid } = N, me = store.get("me");
-  view(`${onTop("Chacun son téléphone")}
+// écran Amis : qui est en ligne, avec son code ami
+function friendsView() {
+  onStop();
+  const me = store.get("me");
+  view(`${onTop("Amis")}
     <div class="on-card">
       <div><span class="eyebrow">Ton pseudo</span><b class="on-name">${esc(me.name)}</b><button class="linkbtn" id="rename">Changer</button></div>
       <div><span class="eyebrow">Ton code ami</span><span class="on-code">${me.code}</span></div>
       <button class="btn white" id="sharecode">Envoyer mon code à un pote</button>
     </div>
-    <button class="hero-mode on-hero" id="create">
-      <span class="tagline">Tes amis rejoignent sur leur téléphone</span>
-      <span class="mast">Créer une partie</span>
-      <p>L'Imposteur, Qui pourrait et Le Radar : chacun voit son secret et vote sur son écran.</p>
-    </button>
-    <div id="invites"></div>
-    <div class="section-label">Rejoindre avec un code</div>
-    <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div>
-    <div class="section-label">Mes amis</div>
-    <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
-    <div class="on-list" id="friends"><p class="hint muted">Chargement…</p></div>
+    <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami d'un pote" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
+    <div id="friends"><p class="hint muted">Chargement…</p></div>
   `, () => {
-    $("#back").onclick = () => { onStop(); home(); };
-    $("#rename").onclick = () => { onStop(); pseudoView(); };
+    $("#back").onclick = home;
+    $("#rename").onclick = () => pseudoView(friendsView);
     $("#sharecode").onclick = () => shareIt(`Ajoute-moi sur Platoz, mon code ami : ${me.code}`, SITE);
-    $("#create").onclick = roomCreate;
-    const join = () => roomJoin($("#room-in").value);
-    $("#join").onclick = join;
-    $("#room-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); join(); } };
-    const add = async () => {
-      const ok = await addFriend($("#friend-in").value);
-      if (ok) $("#friend-in").value = "";
-    };
+    const add = async () => { if (await addFriend($("#friend-in").value)) $("#friend-in").value = ""; };
     $("#addf").onclick = add;
     $("#friend-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
-    ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "invites"), s => {
-      const box = $("#invites"); if (!box) return;
-      const inv = s.docs.map(d => d.data()).filter(i => Date.now() - i.at < 3 * 3600e3).sort((a, b) => b.at - a.at);
-      box.innerHTML = inv.length ? `<div class="section-label">Invitations</div><div class="on-list">${inv.map(i => `<div class="on-row"><span><b>${esc(i.from)}</b> t'invite à jouer</span><button class="btn red" data-room="${esc(i.room)}">Rejoindre</button></div>`).join("")}</div>` : "";
-      $$("[data-room]", box).forEach(b => b.onclick = () => roomJoin(b.dataset.room));
-      if (inv.length) buzz(20);
-    }, () => {}));
-    ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "friends"), s => {
-      const box = $("#friends"); if (!box) return;
-      const fr = s.docs.map(d => d.data()).sort((a, b) => a.name.localeCompare(b.name));
-      box.innerHTML = fr.length ? fr.map(f => `<div class="on-row"><span><b>${esc(f.name)}</b><small>${esc(f.code)}</small></span></div>`).join("")
-        : `<p class="hint muted">Pas encore d'amis. Demande son code ami à un pote, ou envoie-lui le tien.</p>`;
-    }, () => {}));
+    heartbeat();
+    net().then(({ F, db, uid }) => {
+      const info = {}, subs = {};
+      let list = [];
+      const draw = () => {
+        const box = $("#friends"); if (!box) return;
+        const rows = list.map(f => Object.assign({}, f, info[f.id] || {})), on = rows.filter(isOnline), off = rows.filter(f => !isOnline(f));
+        const row = f => `<div class="fr-row"><span class="fr-av${isOnline(f) ? " on" : ""}">${esc((f.name || "?")[0].toUpperCase())}</span><span class="fr-txt"><b>${esc(f.name)}</b><small${isOnline(f) ? ' class="on"' : ""}>${isOnline(f) ? "En ligne" : seenTxt(f.seen)} · ${esc(f.code)}</small></span></div>`;
+        box.innerHTML = !rows.length ? `<p class="hint muted">Pas encore d'amis. Demande son code ami à un pote, ou envoie-lui le tien.</p>`
+          : (on.length ? `<div class="section-label">En ligne (${on.length})</div><div class="on-list">${on.map(row).join("")}</div>` : "")
+          + (off.length ? `<div class="section-label">Hors ligne (${off.length})</div><div class="on-list">${off.map(row).join("")}</div>` : "");
+      };
+      ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "friends"), s => {
+        list = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
+        list.forEach(f => { if (!subs[f.id]) { subs[f.id] = 1; ON.off.push(F.onSnapshot(F.doc(db, "users", f.id), d => { if (d.exists()) { info[f.id] = { name: d.data().name, seen: d.data().seen }; draw(); } }, () => {})); } });
+        draw();
+      }, () => {}));
+      // le statut « en ligne » se périme tout seul
+      const t = setInterval(draw, 30e3); ON.off.push(() => clearInterval(t));
+    }).catch(() => { const box = $("#friends"); if (box) box.innerHTML = `<p class="hint muted">${window.claude ? "Les amis marchent sur le site du jeu : " + SITE : "Connexion impossible pour l'instant."}</p>`; });
   });
 }
 async function addFriend(raw) {
@@ -3137,7 +3207,7 @@ const ids = r => Object.keys(r.players).sort((a, b) => r.players[a].t - r.player
 const pname = (r, u) => r.players[u] ? r.players[u].name : "Un joueur parti";
 const needers = r => ids(r).filter(u => !(r.card.type === "radar" && u === r.card.giver));
 const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
-async function roomCreate() {
+async function roomCreate(game = "mix") {
   try {
     const { F, db, uid } = await net(), me = store.get("me");
     let code = genCode(4, "ABCDEFGHJKLMNPQRSTUVWXYZ");
@@ -3147,7 +3217,7 @@ async function roomCreate() {
       code = genCode(4, "ABCDEFGHJKLMNPQRSTUVWXYZ");
     }
     await F.setDoc(F.doc(db, "rooms", code), {
-      host: uid, status: "lobby", game: "mix", rounds: 6, level: S.level, hot: S.hot,
+      host: uid, status: "lobby", game, rounds: 6, level: S.level, hot: S.hot,
       round: 0, phase: "", card: null, acts: {}, res: null, at: Date.now(),
       players: { [uid]: { name: me.name, pts: 0, t: Date.now() } }
     });
@@ -3156,35 +3226,36 @@ async function roomCreate() {
 }
 async function roomJoin(raw) {
   const code = String(raw || "").toUpperCase().replace(/[^A-Z]/g, "");
-  if (code.length !== 4) { toast("Le code d'une partie fait 4 lettres."); return; }
+  if (code.length !== 4) { toast("Le code d'une partie fait 4 lettres."); return false; }
   try {
     const { F, db, uid } = await net(), me = store.get("me");
-    if (!me || !me.name) return pseudoView(code);
+    if (!hasProfile()) { pseudoView(() => roomJoin(code)); return true; }
     const ref = F.doc(db, "rooms", code), s = await F.getDoc(ref);
     F.deleteDoc(F.doc(db, "users", uid, "invites", code)).catch(() => {});
-    if (!s.exists()) { toast("Aucune partie avec ce code."); return; }
+    if (!s.exists()) { toast("Aucune partie avec ce code."); return false; }
     const r = s.data();
     if (!r.players[uid]) {
-      if (r.status !== "lobby") { toast("La partie a déjà commencé."); return; }
-      if (Object.keys(r.players).length >= 16) { toast("La partie est pleine."); return; }
+      if (r.status !== "lobby") { toast("La partie a déjà commencé."); return false; }
+      if (Object.keys(r.players).length >= 16) { toast("La partie est pleine."); return false; }
       const taken = Object.values(r.players).map(p => p.name.toLowerCase());
       let name = me.name; for (let k = 2; taken.includes(name.toLowerCase()); k++) name = me.name + " " + k;
       await F.updateDoc(ref, { [`players.${uid}`]: { name, pts: 0, t: Date.now() } });
     }
     roomOpen(code);
-  } catch (e) { toast("Impossible de rejoindre pour l'instant."); }
+    return true;
+  } catch (e) { toast("Impossible de rejoindre pour l'instant."); return false; }
 }
 async function roomOpen(code) {
-  onStop();
+  onStop(); heartbeat();
   const N = await net(), { F, db, uid } = N, ref = F.doc(db, "rooms", code);
   ON.ctx = { N, ref, code, busy: "", last: "" };
   setUrl("?salle=" + code);
   keepAwake();
   ON.off.push(F.onSnapshot(ref, s => {
     if (!ON.ctx || ON.ctx.ref !== ref) return;
-    if (!s.exists()) { toast("La partie a été fermée."); return onlineHome(); }
+    if (!s.exists()) { toast("La partie a été fermée."); return home(); }
     const r = s.data();
-    if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return onlineHome(); }
+    if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return home(); }
     ON.r = r; S.level = r.level; S.hot = r.hot;
     if (r.host === uid) hostTick(r);
     const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host]) : "",
@@ -3200,7 +3271,7 @@ async function roomLeave() {
     if (!rest.length) await F.deleteDoc(ref);
     else await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: F.deleteField() }, r.host === uid ? { host: rest[0] } : {}));
   } catch (e) {}
-  onlineHome();
+  setUrl(""); home();
 }
 const upd = o => ON.ctx.N.F.updateDoc(ON.ctx.ref, o).catch(() => toast("Connexion perdue, réessaie."));
 function waitTxt(r) {
