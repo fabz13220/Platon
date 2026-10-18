@@ -473,6 +473,8 @@ p { margin: 0; }
 .poles span { max-width: 46%; }
 .poles span + span { text-align: right; }
 /* roue du mode Mix */
+.skip-rank { display: flex; justify-content: center; padding: 6px 0; }
+.skip-rank .btn { width: auto; padding: 12px 22px; }
 .wheel-stage { align-items: center; gap: 22px; }
 .wheel-box { position: relative; width: min(84vw, 340px); aspect-ratio: 1; }
 .wheel { width: 100%; height: 100%; display: block; border-radius: 50%; transition: transform 3.6s cubic-bezier(.12,.72,.08,1); box-shadow: 0 0 0 6px rgba(255,255,255,.1), 0 20px 60px -10px rgba(170,60,255,.6); cursor: pointer; }
@@ -1463,7 +1465,7 @@ function home() {
       ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
       ${rail("En équipes", fit(["taboo", "imposteur", "menteur"])).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
-      ${rail("Jeux de société", ["p4", "uno"], "row-societe")}
+      ${n > 1 ? rail("Jeux de société", ["p4", "uno"], "row-societe") : ""}
       ${n <= 2 ? rail(n === 1 ? "En solo" : "Rien que vous deux", fit(["deux", "reflexe", "test"])) : ""}
       ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
@@ -1491,7 +1493,7 @@ function home() {
       buzz(15);
       if (multi) return roomCreate("mix");
       // seul : la roue choisit parmi les jeux solo
-      if (n === 1) { const g = rnd([["Duel réflexe", reflexSolo], ["Test de scandale", testIntro]]); toast("La roue a choisi : " + g[0]); return g[1](); }
+      if (n === 1) return soloWheel();
       S.mode = "mix"; playersScreen();
     };
     $$(".tile:not([data-on])").forEach(b => b.onclick = () => {
@@ -1738,6 +1740,34 @@ function wheel(auto) {
     };
     $("#spin").onclick = spin; $("#wheel").onclick = spin;
     if (auto) later(spin, 60);
+  });
+}
+// roue du mode 1 joueur : deux parts, résultat tiré au sort
+function soloWheel() {
+  const games = [{ name: "Duel réflexe", col: "#FF3B6E", run: reflexSolo }, { name: "Test de scandale", col: "#4D8BFF", run: testIntro }];
+  const R = 140, C0 = 150;
+  const pt = (a, r) => { const t = (a - 90) * Math.PI / 180; return [C0 + r * Math.cos(t), C0 + r * Math.sin(t)]; };
+  const slices = games.map((g, i) => {
+    const a0 = i * 180, [x0, y0] = pt(a0, R), [x1, y1] = pt(a0 + 180, R), mid = a0 + 90, [tx, ty] = pt(mid, R * .55);
+    return `<path d="M${C0},${C0} L${x0},${y0} A${R},${R} 0 0 1 ${x1},${y1} Z" fill="${g.col}" stroke="#0B0720" stroke-width="3"/>
+      <text x="${tx}" y="${ty}" transform="rotate(${mid > 180 ? mid + 90 : mid - 90} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" class="wl" style="font-size:13px">${esc(g.name)}</text>`;
+  }).join("");
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="progress">Mix solo</span><span style="width:44px"></span></div>
+    <div class="stage wheel-stage">
+      <div class="wheel-box"><div class="wheel-pin"></div>
+        <svg class="wheel" id="wheel" viewBox="0 0 300 300" aria-label="Roue des jeux solo" style="transition-duration:2.5s">${slices}<circle cx="150" cy="150" r="26" fill="#0B0720" stroke="rgba(255,255,255,.35)" stroke-width="3"/></svg>
+      </div>
+      <p class="wheel-res" id="res">La roue tourne…</p>
+    </div>
+  `, () => {
+    $("#back").onclick = home;
+    const pick = Math.floor(Math.random() * 2), g = games[pick];
+    const rot = 360 * 5 + (360 - (pick * 180 + 90)) + (Math.random() - .5) * 90;
+    buzz(20);
+    later(() => { $("#wheel").style.transform = `rotate(${rot}deg)`; }, 60);
+    later(() => { buzz([40, 30, 60]); $("#res").innerHTML = `<small>On joue à</small>${esc(g.name)}`; }, 2700);
+    later(() => g.run(), 3900);
   });
 }
 function afterRound() {
@@ -2808,6 +2838,7 @@ function ranking() {
       ${rest.length ? `<ol class="rank-list">${rest.map(r => `<li><span class="rk">${r.rank}</span><span class="nm">${esc(r.name)}</span>${tag(r)}<b>${r.pts}</b></li>`).join("")}</ol>` : ""}
       <div class="confetti" id="confetti"></div>
     </div>
+    <div class="skip-rank" id="skiprow"><button class="btn white" id="skiprank">⏩ Passer l'animation</button></div>
     <div class="actions wait" id="acts">
       <button class="btn red" id="save">Enregistrer le classement <small>Une image au format story</small></button>
       <div class="row"><button class="btn" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div>
@@ -2832,9 +2863,10 @@ function ranking() {
     });
     steps.push([700, () => $("#acts").classList.remove("wait")]);
     let k = 0, done = false;
-    const run = () => { if (done || k >= steps.length) return; const [ms, fn] = steps[k++]; later(() => { fn(); run(); }, ms); };
-    const finish = () => { if (done) return; done = true; clearTimers(); while (k < steps.length) steps[k++][1](); };
+    const run = () => { if (done || k >= steps.length) return; later(() => { steps[k++][1](); run(); }, steps[k][0]); };
+    const finish = () => { if (done) return; done = true; clearTimers(); const sr = $("#skiprow"); if (sr) sr.remove(); while (k < steps.length) steps[k++][1](); };
     $("#rank").onclick = finish;
+    $("#skiprank").onclick = finish;
     run();
   });
 }
@@ -3402,6 +3434,35 @@ function pseudoView(then) {
     $("#pseudo").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
   });
 }
+// QR code ami : librairie chargée à la demande, une seule fois
+let qrLib = null;
+function loadQr() {
+  if (window.qrcode) return Promise.resolve(window.qrcode);
+  return qrLib || (qrLib = new Promise((ok, ko) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";
+    s.onload = () => window.qrcode ? ok(window.qrcode) : ko(new Error("qr")); s.onerror = () => ko(new Error("qr"));
+    document.head.appendChild(s);
+  })).catch(e => { qrLib = null; throw e; });
+}
+function qrSheet(me) {
+  const w = sheet(`
+    <span class="mast" style="font-size:30px">Mon QR code</span>
+    <div id="qrbox" style="background:#fff;border-radius:16px;padding:10px;width:240px;height:240px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#555;font-weight:800">…</div>
+    <p class="hint muted" style="text-align:center;margin:0">Un pote le scanne : tu es dans ses amis.</p>
+    <button class="btn white" id="qrclose">Fermer</button>
+  `, w => { w.querySelector("#qrclose").onclick = () => w.remove(); });
+  loadQr().then(qrcode => {
+    const q = qrcode(0, "M"); q.addData(SITE + "?ami=" + me.code); q.make();
+    const box = w.querySelector("#qrbox"); if (!box) return;
+    box.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2 });
+    const sv = box.querySelector("svg"); if (sv) { sv.style.width = "100%"; sv.style.height = "100%"; sv.setAttribute("viewBox", `0 0 ${sv.getAttribute("width")} ${sv.getAttribute("height")}`); }
+  }).catch(() => {
+    const box = w.querySelector("#qrbox"); if (!box) return;
+    box.style.flexDirection = "column";
+    box.innerHTML = `<small>Ton code ami</small><span class="on-code" style="color:#15130F;font-size:40px">${esc(me.code)}</span>`;
+  });
+}
 // écran Amis : qui est en ligne, avec son code ami
 function friendsView() {
   onStop();
@@ -3411,6 +3472,7 @@ function friendsView() {
       <div><span class="eyebrow">Ton pseudo</span><b class="on-name">${esc(me.name)}</b><button class="linkbtn" id="rename">Changer</button></div>
       <div><span class="eyebrow">Ton code ami</span><span class="on-code">${me.code}</span></div>
       <button class="btn white" id="sharecode">Envoyer mon code à un pote</button>
+      <button class="btn white" id="qrbtn">Afficher mon QR code</button>
     </div>
     <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami d'un pote" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
     <div id="friends"><p class="hint muted">Chargement…</p></div>
@@ -3418,6 +3480,7 @@ function friendsView() {
     $("#back").onclick = home;
     $("#rename").onclick = () => pseudoView(friendsView);
     $("#sharecode").onclick = () => shareIt(`Ajoute-moi sur Platoz, mon code ami : ${me.code}`, SITE);
+    $("#qrbtn").onclick = () => qrSheet(me);
     const add = async () => { if (await addFriend($("#friend-in").value)) $("#friend-in").value = ""; };
     $("#addf").onclick = add;
     $("#friend-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
@@ -3828,5 +3891,15 @@ function roomEnd(r, host) {
 }
 
 const salle = (() => { try { return new URLSearchParams(location.search).get("salle"); } catch (e) { return null; } })();
-salle ? onlineHome(salle) : home();
+const ami = (() => { try { return new URLSearchParams(location.search).get("ami"); } catch (e) { return null; } })();
+if (salle) onlineHome(salle);
+else {
+  home();
+  // lien « ?ami=CODE » : on ajoute l'ami, puis on ouvre l'écran Amis
+  if (ami) {
+    setUrl("");
+    const go = async () => { await addFriend(ami); friendsView(); };
+    hasProfile() ? go() : pseudoView(go);
+  }
+}
 </script>
