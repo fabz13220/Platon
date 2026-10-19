@@ -2604,7 +2604,7 @@ function tabooSetup() {
   });
 }
 function tabooSplit() { const n = shuffle(S.names); TB.teams = [n.filter((_, i) => i % 2 === 0), n.filter((_, i) => i % 2 === 1)]; }
-const tbCard = () => { if (!TB.deck.length) TB.deck = shuffle(pool("taboo")); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
+const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(pool("taboo")); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
 const tbBoard = cur => `<div class="tb-score">${TB_NAMES.map((n, i) => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${n.replace("Équipe ", "")} <b>${TB.score[i]}</b></span>`).join("")}</div>`;
 function tabooTurn() {
   const t = TB.turns % 2, team = TB.teams[t], g = team[TB.giver[t] % team.length], other = TB_NAMES[1 - t];
@@ -3438,7 +3438,10 @@ async function saveStory(A, btn, file) {
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const SITE = "https://fabz13220.github.io/platon/";
-const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 3], imposteur: ["L'Imposteur", 3] };
+const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 3], imposteur: ["L'Imposteur", 3], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Puissance 4", 2], uno: ["Uno", 2] };
+// jeux longs : une manche = une partie entière, jamais tirés par le Mix
+const LONG = ["p4", "uno", "taboo"], NEWG = ["deux", "reflexe", "p4", "uno", "taboo"];
+const roundOpts = g => ({ p4: [3, 5, 7], uno: [1, 2, 3], taboo: [4, 6, 8] })[g] || [4, 6, 10];
 // le joueur qui ne vote pas pendant la manche (il est interrogé, classe ou donne l'indice)
 const solo = c => ({ radar: c.giver, av: c.target, menteur: c.target, classement: c.ranker })[c.type];
 let NETP = null;
@@ -3508,7 +3511,7 @@ function multiHome(rail) {
     <div id="invites"></div>
     <section class="rail-box"><h2 class="rail-title">Rejoindre une partie</h2>
     <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div></section>
-    <p class="hint muted" style="text-align:center;margin:0">Les autres jeux se jouent sur un seul téléphone.</p>`;
+    <p class="hint muted" style="text-align:center;margin:0">Le Test de scandale se joue seul, sur ton téléphone.</p>`;
 }
 function homeOnline(multi) {
   heartbeat();
@@ -3657,7 +3660,7 @@ async function addFriend(raw) {
 /* ---- salons ---- */
 const ids = r => Object.keys(r.players).sort((a, b) => r.players[a].t - r.players[b].t);
 const pname = (r, u) => r.players[u] ? r.players[u].name : "Un joueur parti";
-const needers = r => ids(r).filter(u => u !== solo(r.card));
+const needers = r => r.card && r.card.type === "deux" ? r.card.pair.filter(u => r.players[u]) : ids(r).filter(u => u !== solo(r.card));
 const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
 async function roomCreate(game = "mix") {
   try {
@@ -3711,7 +3714,7 @@ async function roomOpen(code) {
     ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
     if (r.host === uid) hostTick(r);
     const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host]) : "",
-      r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue].join("|");
+      r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue, c && LONG.includes(c.type) ? JSON.stringify(c) : ""].join("|");
     if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
     else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
   }, () => toast("Connexion perdue, on réessaie…")));
@@ -3728,7 +3731,7 @@ async function roomLeave() {
 const upd = o => ON.ctx.N.F.updateDoc(ON.ctx.ref, o).catch(() => toast("Connexion perdue, réessaie."));
 function waitTxt(r) {
   const n = needers(r).length, a = actedN(r);
-  return a >= n ? "Tout le monde a joué." : `${a} / ${n} ${r.card.type === "radar" ? "flèches placées" : "votes"}`;
+  return a >= n ? "Tout le monde a joué." : `${a} / ${n} ${({ radar: "flèches placées", reflexe: "ont tapé", deux: "réponses" })[r.card.type] || "votes"}`;
 }
 function hostTick(r) {
   if (r.status !== "play" || !r.card) return;
@@ -3738,9 +3741,9 @@ function hostTick(r) {
 async function roomNext(r) {
   const all = ids(r), n = all.length;
   if (r.round >= r.rounds) return upd({ status: "end" });
-  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && ON_GAMES[t][1] <= n);
+  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && !LONG.includes(t) && ON_GAMES[t][1] <= n);
   const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
-  const c = t === "av" ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
+  const c = t === "av" || NEWG.includes(t) ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
   S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
   const turnOf = all[r.round % n], pl = u => S.players[all.indexOf(u)];
   let card, phase = "vote";
@@ -3752,6 +3755,23 @@ async function roomNext(r) {
   else if (t === "classement") {
     const decoys = shuffle(pool("classement").filter(x => x.data[1] !== c.data[1])).slice(0, 3).map(x => x.data[1]);
     card = { type: t, ranker: turnOf, q: c.data[1], opts: shuffle([c.data[1], ...decoys]), order: [] }; phase = "rank";
+  }
+  else if (t === "deux") {
+    const qs = DEUX.filter(q => q[0] <= S.level && (S.hot || !isHot([q[1]]))), fresh = qs.filter(q => !used.has("deux:" + q[1]));
+    const q = rnd(fresh.length ? fresh : qs); used.add("deux:" + q[1]); store.set("used", [...used]);
+    card = { type: t, pair: [turnOf, all[(r.round + 1) % n]], text: q[1] };
+  }
+  else if (t === "reflexe") card = { type: t, delay: 1500 + Math.round(Math.random() * 3000) };
+  else if (t === "p4") { card = { type: t, a: turnOf, b: all[(r.round + 1) % n], board: ".".repeat(42), turn: 0, last: -1, line: [], win: null }; phase = "play"; }
+  else if (t === "uno") {
+    const order = shuffle(all).slice(0, 10), pile = unoDeck().map(k => k.c + k.v), hands = {};
+    order.forEach(u => { hands[u] = pile.splice(0, 7); });
+    const top = pile.splice(pile.findIndex(x => /^[rygb]\d$/.test(x)), 1)[0];
+    card = { type: t, order, hands, pile, disc: [], top, color: top[0], dir: 1, cur: 0, drew: false, log: "" }; phase = "play";
+  }
+  else if (t === "taboo") {
+    const t0 = all.filter((_, i) => i % 2 === 0), t1 = all.filter((_, i) => i % 2 === 1), tm = r.round % 2, team = tm ? t1 : t0;
+    card = { type: t, t0, t1, tm, giver: team[Math.floor(r.round / 2) % team.length], word: "", ban: [], wn: 0, hit: -1, ok: 0, no: 0, pass: 0, log: [], secs: 60 }; phase = "ready";
   }
   else card = { type: t, text: fill(c.data[1]) };
   return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase });
@@ -3782,6 +3802,13 @@ function roomResolve(r) {
   } else if (c.type === "classement") {
     const right = needers(r).filter(u => acts[u] != null && c.opts[+acts[u]] === c.q);
     right.forEach(u => add(u, 2)); add(c.ranker, right.length); res = { right, wrong: needers(r).filter(u => acts[u] != null && !right.includes(u)) };
+  } else if (c.type === "deux") {
+    const [a, b] = c.pair, same = acts[a] != null && acts[a] === acts[b];
+    if (same) add(acts[a], 1); res = { same, who: same ? acts[a] : "" };
+  } else if (c.type === "reflexe") {
+    const t = ids(r).filter(u => acts[u] != null).map(u => ({ u, ms: acts[u] })).sort((x, y) => x.ms - y.ms), fast = t.filter(o => o.ms < 99999);
+    if (fast[0]) add(fast[0].u, 2); if (fast[1] && ids(r).length > 2) add(fast[1].u, 1);
+    res = { t };
   } else {
     const tally = {};
     Object.entries(acts).forEach(([u, v]) => { if (r.players[u] && r.players[v]) tally[v] = (tally[v] || 0) + 1; });
@@ -3816,6 +3843,7 @@ function roomRender(r) {
   const choices = list => `<div class="on-choices">${list.map(([v, l, cls]) => `<button class="btn ${mine === v ? "red" : cls || "white"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const isSolo = uid === solo(c), soloName = esc(pname(r, solo(c)));
   const waitP = `<p class="sub" id="wait">${waitTxt(r)}</p>`;
+  if (NEWG.includes(T)) return roomRenderX(r, { top, nextBtn, forceBtn, rows, choices, waitP, mine, host });
   if (r.phase === "vote" && ["jamais", "pref", "ouinon", "av", "menteur"].includes(T)) {
     if (T === "jamais") stage = cardShell(T, null, `<p class="text">Je n'ai jamais <b>${esc(c.text)}</b>.</p>
       ${choices([["1", "Je l'ai fait", "green"], ["0", "Jamais"]])}${waitP}${rulePts("+1 point pour chaque personne qui l'a fait")}`);
@@ -3972,6 +4000,214 @@ function roomRender(r) {
     }
   });
 }
+// jeux ajoutés en ligne : Qui de nous deux, Duel réflexe, Puissance 4, Uno, Sans le dire
+const unoDec = s => ({ c: s[0], v: s.slice(1) });
+function p4Line(g, r, c) {
+  const p = g[r * 7 + c];
+  for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+    const cells = [r * 7 + c];
+    for (const s of [1, -1]) { let y = r + dr * s, x = c + dc * s; while (y >= 0 && y < 6 && x >= 0 && x < 7 && g[y * 7 + x] === p) { cells.push(y * 7 + x); y += dr * s; x += dc * s; } }
+    if (cells.length >= 4) return cells;
+  }
+  return null;
+}
+// fin de manche écrite par le joueur qui agit, avec ses points
+function roomFinish(o, pts) {
+  const F = ON.ctx.N.F;
+  Object.entries(pts).forEach(([u, n]) => { if (n && ON.r.players[u]) o[`players.${u}.pts`] = F.increment(n); });
+  return upd(o);
+}
+function tabooFinish() {
+  const r = ON.r, c = r && r.card;
+  if (!c || c.type !== "taboo" || r.phase !== "play" || ON.ctx.busy === "tb" + r.round) return;
+  ON.ctx.busy = "tb" + r.round;
+  const net = (c.ok || 0) - (c.no || 0), team = c.tm ? c.t1 : c.t0, pts = {};
+  team.forEach(u => { pts[u] = net; });
+  roomFinish({ phase: "reveal", res: { net }, [`tb${c.tm}`]: ON.ctx.N.F.increment(net) }, pts);
+}
+function roomRenderX(r, h) {
+  const uid = ON.ctx.N.uid, c = r.card, T = c.type, F = ON.ctx.N.F, G = "#2EE6A0", R = "#FF3B6E";
+  const N = u => esc(pname(r, u)), over = r.phase === "reveal";
+  const scores = `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
+  const bindLeave = () => {
+    $("#leave").onclick = () => {
+      if (Date.now() - ON.leaveArmed < 2500) return roomLeave();
+      ON.leaveArmed = Date.now(); toast("Touche encore × pour quitter la partie.");
+    };
+    const nx = $("#next"); if (nx) nx.onclick = () => { nx.disabled = true; roomNext(ON.r); };
+    const fo = $("#force"); if (fo) fo.onclick = () => roomResolve(ON.r);
+    $$(".on-choices [data-v]").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.v }); });
+  };
+  const show = (stage, acts, bind) => view(`${h.top}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => { bindLeave(); bind && bind(); });
+
+  if (T === "deux") {
+    const [a, b] = c.pair, q = `<p class="text">Qui de nous deux <b>${esc(c.text)}</b> ?</p>`, duo = { label: "Le duo", name: pname(r, a) + " et " + pname(r, b) };
+    if (!over) return show(cardShell(T, duo, c.pair.includes(uid)
+      ? `${q}<p class="sub">Choisis en secret. Si vous désignez la même personne, elle marque.</p>${h.choices([[a, N(a)], [b, N(b)]])}${h.waitP}`
+      : `${q}<p class="sub">${N(a)} et ${N(b)} répondent en secret sur leur téléphone.</p>${h.waitP}`), h.forceBtn);
+    const res = r.res || {};
+    return show(cardShell(T, res.same ? { label: "Complices, ils ont désigné", name: pname(r, res.who) } : { label: "Désaccord", name: "Pas d'accord" }, `${q}
+      ${h.rows(c.pair.map(u => [u, r.acts && r.acts[u] ? N(r.acts[u]) : "pas répondu"]), () => res.same ? G : R)}
+      ${rulePts(res.same ? `+1 point pour ${N(res.who)}` : "Chacun a 20 secondes pour défendre sa version")}`) + scores, h.nextBtn);
+  }
+
+  if (T === "reflexe") {
+    if (!over && h.mine == null) return view(`<div class="pad wait" id="pad"><span class="pad-big" id="big">Attends le rouge…</span><span class="pad-small">Manche ${r.round} / ${r.rounds}</span></div>
+      <button class="iconbtn pad-quit" id="leave" aria-label="Quitter">×</button>`, () => {
+      bindLeave();
+      const pad = $("#pad"), big = $("#big"); let go = 0, done = false;
+      later(() => { if (done) return; go = performance.now(); pad.className = "pad go"; big.textContent = "Tape !"; buzz(30); }, c.delay);
+      pad.onpointerdown = e => {
+        e.preventDefault(); if (done) return; done = true;
+        const ms = go ? Math.round(performance.now() - go) : 99999;
+        if (go) { pad.className = "pad idle"; big.textContent = ms + " ms"; } else { pad.className = "pad early"; big.textContent = "Trop tôt !"; buzz([60, 40, 60]); }
+        later(() => upd({ [`acts.${uid}`]: ms }), 700);
+      };
+    });
+    const t = (r.res && r.res.t) || [], fmt = ms => ms >= 99999 ? "Faux départ" : ms + " ms";
+    if (!over) return show(cardShell(T, { label: "Ton temps", name: fmt(h.mine) }, `<p class="sub">On attend les autres.</p>${h.waitP}`), h.forceBtn);
+    const big = ids(r).length > 2;
+    return show(cardShell(T, t[0] && t[0].ms < 99999 ? { label: "Le plus rapide", name: pname(r, t[0].u) } : { label: "Résultat", name: "Personne" }, `
+      ${h.rows(t.map((o, i) => [o.u, fmt(o.ms) + (o.ms < 99999 && i === 0 ? " · +2" : o.ms < 99999 && i === 1 && big ? " · +1" : "")]), i => t[i].ms >= 99999 ? R : i === 0 ? G : "#fff")}
+      ${rulePts(big ? "Le plus rapide : +2 points · Le deuxième : +1 point" : "Le plus rapide : +2 points")}`) + scores, h.nextBtn);
+  }
+
+  if (T === "p4") {
+    const g = c.board, turnU = c.turn ? c.b : c.a, myTurn = !over && turnU === uid, line = c.line || [];
+    const msg = over ? (c.win != null && c.win >= 0 ? `<b class="p4c p${c.win}"></b>${N(c.win ? c.b : c.a)} gagne !` : "Match nul")
+      : `<b class="p4c p${c.turn}"></b>${myTurn ? "À toi de jouer" : "Au tour de " + N(turnU)}`;
+    const board = `<div class="p4" id="p4">${Array.from({ length: 7 }, (_, x) => `<button class="p4col" data-c="${x}" aria-label="Colonne ${x + 1}" ${myTurn ? "" : "disabled"}>${Array.from({ length: 6 }, (_, y) => {
+      const v = g[y * 7 + x], i = y * 7 + x;
+      return `<i class="${v !== "." ? "p" + v : ""}${line.includes(i) ? " hl" : ""}${c.last === i ? " drop" : ""}" style="--r:${y + 1}"></i>`;
+    }).join("")}</button>`).join("")}</div>`;
+    const who = `<p class="hint muted" style="text-align:center;margin:0"><b class="p4c p0"></b>${N(c.a)} contre <b class="p4c p1"></b>${N(c.b)}</p>`;
+    let acts = over ? h.nextBtn : ![c.a, c.b].includes(uid) ? `<p class="hint muted on-waiting">Tu regardes le match.</p>` : "";
+    if (!over && h.host && !r.players[turnU]) acts = `<button class="btn white" id="abort">Arrêter le match</button>`;
+    return view(`${h.top}${who}<p class="p4-msg">${msg}</p>${board}${over ? scores : ""}<div class="actions">${acts}</div>`, () => {
+      bindLeave();
+      const ab = $("#abort"); if (ab) ab.onclick = () => upd({ "card.win": -1, phase: "reveal" });
+      let locked = false;
+      if (myTurn) $$(".p4col").forEach(b => b.onclick = () => {
+        if (locked) return;
+        const x = +b.dataset.c; let y = 5; while (y >= 0 && g[y * 7 + x] !== ".") y--;
+        if (y < 0) { buzz([20, 30, 20]); return; }
+        locked = true; buzz(15);
+        const i = y * 7 + x, nb = g.slice(0, i) + c.turn + g.slice(i + 1), win = p4Line(nb, y, x), o = { "card.board": nb, "card.last": i };
+        if (win) { Object.assign(o, { "card.line": win, "card.win": c.turn, phase: "reveal" }); roomFinish(o, { [uid]: 3 }); }
+        else if (!nb.slice(0, 7).includes(".")) upd(Object.assign(o, { "card.win": -1, phase: "reveal" }));
+        else upd(Object.assign(o, { "card.turn": 1 - c.turn }));
+      });
+    });
+  }
+
+  if (T === "uno") {
+    const P = c.order, curU = P[c.cur], top = unoDec(c.top), ok = k => k.c === "w" || k.c === c.color || k.v === top.v;
+    const hand = (c.hands[uid] || []).map(unoDec), isMe = !over && curU === uid, can = hand.some(ok);
+    const table = `<div class="uno-table">
+      <div class="uno-top">${unoCard(top, "big")}<span class="uno-col" style="background:${UNO_COLS[c.color]}">${UNO_NAMES[c.color]}</span></div>
+      <div class="uno-players">${P.map((u, i) => `<span class="${i === c.cur && !over ? "on" : ""}">${N(u)} <b>${(c.hands[u] || []).length}</b></span>`).join("")}</div>
+      ${c.log ? `<p class="uno-log">${esc(c.log)}</p>` : ""}</div>`;
+    if (over) {
+      const w = r.res && r.res.winner;
+      return show(cardShell("uno", { label: "Victoire de", name: pname(r, w) }, `${h.rows(P.filter(u => u !== w).sort((a, b) => c.hands[a].length - c.hands[b].length).map(u => [u, c.hands[u].length + " carte" + (c.hands[u].length > 1 ? "s" : "")]))}
+        ${rulePts(`+3 points pour ${N(w)}`)}`) + scores, h.nextBtn);
+    }
+    const sub = isMe ? (c.drew ? (can ? "Tu peux jouer une carte ou passer." : "Toujours rien, tu passes.") : can ? "Joue une carte en surbrillance." : "Aucune carte jouable : pioche.")
+      : P.includes(uid) ? `Au tour de ${N(curU)}.` : "Tu regardes la partie.";
+    let acts = isMe ? (c.drew ? `<button class="btn white" id="pass">Passer</button>` : `<button class="btn white" id="draw">Piocher</button>`) : "";
+    if (!isMe && h.host && !r.players[curU]) acts = `<button class="btn white" id="skipgone">Passer son tour</button>`;
+    return view(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="progress">Uno ${c.dir > 0 ? "→" : "←"} · ${r.round} / ${r.rounds}</span><span class="on-pill">${ON.ctx.code}</span></div>
+      ${table}<p class="sub" style="text-align:center;margin:0">${sub}</p>
+      <div class="uno-hand">${hand.map((k, i) => unoCard(k, isMe ? (ok(k) ? "ok" : "no") : "", i)).join("")}</div>
+      <div class="actions">${acts}</div>`, () => {
+      bindLeave();
+      let locked = false;
+      const st = JSON.parse(JSON.stringify(c)), me = pname(r, uid);
+      const pick = () => { if (!st.pile.length) { st.pile = shuffle(st.disc); st.disc = []; } return st.pile.pop(); };
+      const step = i => { let j = i; for (let k = 0; k < P.length; k++) { j = ((j + st.dir) % P.length + P.length) % P.length; if (r.players[P[j]]) return j; } return i; };
+      const save = () => upd({ card: st });
+      const sk = $("#skipgone"); if (sk) sk.onclick = () => { st.cur = step(st.cur); st.drew = false; st.log = `${pname(r, curU)} est parti, on passe.`; save(); };
+      if (!isMe) return;
+      const d = $("#draw"); if (d) d.onclick = () => { if (locked) return; locked = true; const k = pick(); if (k) st.hands[uid].push(k); st.drew = true; buzz(10); save(); };
+      const ps = $("#pass"); if (ps) ps.onclick = () => { if (locked) return; locked = true; st.drew = false; st.log = `${me} passe.`; st.cur = step(st.cur); save(); };
+      const put = (i, col) => {
+        const code = st.hands[uid][i], k = unoDec(code);
+        st.hands[uid].splice(i, 1); st.disc.push(st.top); st.top = code; st.color = col; st.drew = false; buzz(20);
+        if (!st.hands[uid].length) { st.log = `${me} a vidé sa main !`; return roomFinish({ card: st, phase: "reveal", res: { winner: uid } }, { [uid]: 3 }); }
+        st.log = `${me} a joué ${k.v === "w" ? "un joker" : k.v === "+4" ? "un +4" : k.v === "skip" ? "un passe-tour" : k.v === "rev" ? "un changement de sens" : k.v === "+2" ? "un +2" : "un " + k.v}${k.c === "w" ? " : " + UNO_NAMES[col] : ""}.`;
+        if (st.hands[uid].length === 1) st.log += ` ${me} n'a plus qu'une carte !`;
+        const alive = P.filter(u => r.players[u]).length;
+        if (k.v === "rev") { st.dir = -st.dir; if (alive === 2) st.cur = step(st.cur); }
+        if (k.v === "skip") { st.cur = step(st.cur); st.log += ` ${pname(r, P[st.cur])} passe son tour.`; }
+        if (k.v === "+2" || k.v === "+4") { st.cur = step(st.cur); const n = k.v === "+2" ? 2 : 4, v = P[st.cur]; for (let j = 0; j < n; j++) { const x = pick(); if (x) st.hands[v].push(x); } st.log += ` ${pname(r, v)} pioche ${n} cartes et passe.`; }
+        st.cur = step(st.cur);
+        save();
+      };
+      $$(".uno-hand .uno.ok").forEach(b => b.onclick = () => {
+        if (locked) return;
+        const i = +b.dataset.i, k = hand[i];
+        if (k.c === "w") return sheet(`<span class="mast" style="font-size:28px">Quelle couleur ?</span>
+          <div class="uno-colors">${Object.keys(UNO_COLS).map(x => `<button data-c="${x}" style="background:${UNO_COLS[x]}">${UNO_NAMES[x]}</button>`).join("")}</div>`,
+          w => $$("[data-c]", w).forEach(z => z.onclick = () => { w.remove(); if (!locked) { locked = true; put(i, z.dataset.c); } }));
+        locked = true; put(i, k.c);
+      });
+    });
+  }
+
+  // Sans le dire
+  const team = u => c.t0.includes(u) ? 0 : c.t1.includes(u) ? 1 : -1, my = team(uid), giver = c.giver === uid, gName = N(c.giver);
+  const tname = i => TB_NAMES[i].replace("Équipe", "l'équipe");
+  const board = `<div class="tb-score">${TB_NAMES.map((n, i) => `<span class="${i === c.tm ? "on" : ""}" style="--tc:${TB_COLS[i]}">${n.replace("Équipe ", "")} <b>${r["tb" + i] || 0}</b></span>`).join("")}</div>`;
+  const teams = `<div class="tb-teams">${[c.t0, c.t1].map((t, i) => `<div class="tb-team" style="--tc:${TB_COLS[i]}"><b>${TB_NAMES[i]}</b><p>${t.map(N).join(" · ")}</p></div>`).join("")}</div>`;
+  if (r.phase === "ready") {
+    const txt = giver ? `<p>C'est toi qui fais deviner à ${tname(c.tm)}. Pas le mot, pas les mots interdits, pas de gestes.</p>`
+      : my === c.tm ? `<p>${gName} va te faire deviner des mots. Réponds à voix haute.</p>` : `<p>${gName} fait deviner. Tu vois les mots interdits : appuie sur « Interdit » s'il en dit un.</p>`;
+    let acts = giver ? `<button class="btn red" id="tbgo">Lancer le chrono (${c.secs} s)</button>` : `<p class="hint muted on-waiting">${gName} lance le chrono.</p>`;
+    if (!giver && h.host && !r.players[c.giver]) acts = `<button class="btn white" id="tbskip">Passer ce tour</button>`;
+    return show(`${board}<div class="secret" style="--c:${TB_COLS[c.tm]}"><span class="eyebrow" style="color:var(--paper)">${TB_NAMES[c.tm]} · fait deviner</span><span class="mast">${gName}</span>${txt}</div>${teams}`, acts, () => {
+      const go = $("#tbgo"); if (go) go.onclick = () => { go.disabled = true; const w = tbCard(); upd({ phase: "play", "card.word": w.data[1], "card.ban": w.data.slice(2), "card.wn": 1 }); };
+      const sk = $("#tbskip"); if (sk) sk.onclick = () => roomNext(ON.r);
+    });
+  }
+  if (r.phase === "play") {
+    const k = "tb" + r.round; if (!ON.ctx.tbT || ON.ctx.tbT.k !== k) ON.ctx.tbT = { k, t0: Date.now() };
+    const left = () => Math.ceil(c.secs - (Date.now() - ON.ctx.tbT.t0) / 1000);
+    const net = (c.ok || 0) - (c.no || 0), seeWord = giver || my !== c.tm;
+    const cardH = `<div class="card tb-card" style="--c:var(--taboo)"><div class="band"><span class="mast">${giver ? "Fais deviner" : "Le mot"}</span></div>
+      <p class="tb-word">${esc(c.word)}</p><div class="tb-forbid"><small>Interdit de dire</small>${(c.ban || []).map(w => `<span>${esc(w)}</span>`).join("")}</div></div>`;
+    const stage = seeWord ? cardH : `<div class="secret" style="--c:${TB_COLS[c.tm]}"><span class="eyebrow" style="color:var(--paper)">${gName} fait deviner</span><span class="mast">Devine !</span><p>Réponds à voix haute. ${c.ok || 0} trouvé${(c.ok || 0) > 1 ? "s" : ""} pour l'instant.</p></div>`;
+    const passes = c.pass || 0;
+    const acts = giver ? `<div class="tb-btns"><button class="btn white" id="tbpass" ${passes >= 3 ? "disabled" : ""}>Passer <small>${passes >= 3 ? "plus de passe" : 3 - passes + " restant" + (3 - passes > 1 ? "s" : "")}</small></button><button class="btn ink tb-no" id="tbno">Interdit !</button></div><button class="btn green" id="tbok">Trouvé ✓</button>`
+      : my >= 0 && my !== c.tm ? `<button class="btn ink tb-no" id="tbno">Interdit !</button>` : "";
+    return view(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="tb-timer" id="timer">${Math.max(0, left())}</span><span class="progress">${net >= 0 ? "+" : ""}${net}</span></div>
+      ${board}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => {
+      bindLeave();
+      let locked = false;
+      const next = (res, extra = {}) => {
+        if (locked) return; locked = true;
+        const w = tbCard();
+        upd(Object.assign({ "card.word": w.data[1], "card.ban": w.data.slice(2), "card.wn": c.wn + 1, "card.log": F.arrayUnion({ w: c.word, r: res, n: c.wn }) }, extra));
+      };
+      // un « Interdit » venu de l'autre équipe : le donneur passe au mot suivant
+      if (giver && c.hit === c.wn && ON.ctx.tbHit !== k + c.wn) { ON.ctx.tbHit = k + c.wn; buzz([80, 40, 80]); stamp("Interdit"); next("no", { "card.no": F.increment(1) }); }
+      const ok = $("#tbok"); if (ok) ok.onclick = () => { buzz(20); next("ok", { "card.ok": F.increment(1) }); };
+      const ps = $("#tbpass"); if (ps) ps.onclick = () => { if (passes < 3) next("pass", { "card.pass": F.increment(1) }); };
+      const no = $("#tbno"); if (no) no.onclick = () => { if (c.hit === c.wn || locked) return; locked = true; buzz([80, 40, 80]); upd({ "card.hit": c.wn }); };
+      const tick = setInterval(() => {
+        const el = $("#timer"), l = left(); if (!el) return clearInterval(tick);
+        el.textContent = Math.max(0, l); el.classList.toggle("hot", l <= 10);
+        if (giver && l <= 0) { clearInterval(tick); buzz([200, 80, 200]); tabooFinish(); }
+        else if (h.host && l <= -4) { clearInterval(tick); tabooFinish(); }
+      }, 250);
+      timers.push(tick);
+    });
+  }
+  const log = c.log || [], net = (r.res && r.res.net) || 0;
+  return show(`${board}<div class="card" style="--c:var(--taboo)">
+      <div class="band"><span class="mast">${net >= 0 ? "+" : ""}${net} point${Math.abs(net) > 1 ? "s" : ""}</span><span class="eyebrow">${TB_NAMES[c.tm]} · ${gName}</span></div>
+      <div class="radar-res">${log.sort((a, b) => a.n - b.n).map(x => `<div><i style="background:${x.r === "ok" ? G : x.r === "no" ? R : "rgba(255,255,255,.3)"}"></i><span>${esc(x.w)}</span><b>${x.r === "ok" ? "+1" : x.r === "no" ? "−1" : "passé"}</b></div>`).join("") || `<div><span>Aucun mot</span></div>`}</div>
+    </div>${scores}`, h.nextBtn, () => { if (ON.ctx.stamped !== r.round) { ON.ctx.stamped = r.round; stamp("Temps écoulé"); } });
+}
 function lobbyView(r, host) {
   const { F, db, uid } = ON.ctx.N, all = ids(r), n = all.length, min = ON_GAMES[r.game][1];
   view(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="title">Salle d'attente</span><span style="width:44px"></span></div>
@@ -3984,7 +4220,7 @@ function lobbyView(r, host) {
     ${host ? `<div class="section-label">Jeu</div>
       <div class="chips on-games" id="g">${Object.entries(ON_GAMES).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
       <div class="section-label">Manches</div>
-      <div class="seg" id="nr">${[4, 6, 10].map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`
+      <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`
       : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
@@ -3992,9 +4228,9 @@ function lobbyView(r, host) {
   `, async () => {
     $("#leave").onclick = () => roomLeave();
     $("#share").onclick = () => shareIt(`Viens jouer sur Platoz, code ${ON.ctx.code} :`, roomUrl(ON.ctx.code));
-    $$("#g button").forEach(b => b.onclick = () => upd({ game: b.dataset.v }));
+    $$("#g button").forEach(b => b.onclick = () => { const g = b.dataset.v, o = roundOpts(g); upd({ game: g, rounds: o.includes(ON.r.rounds) ? ON.r.rounds : o[1] }); });
     $$("#nr button").forEach(b => b.onclick = () => upd({ rounds: +b.dataset.v }));
-    const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; upd(Object.assign({ round: 0, card: null }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
+    const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; upd(Object.assign({ round: 0, card: null, tb0: 0, tb1: 0 }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
     try {
       const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => ({ id: d.id, ...d.data() }));
       const box = $("#inv"); if (!box) return;
