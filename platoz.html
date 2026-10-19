@@ -1575,7 +1575,8 @@ function settingsSheet() {
   sheet(`<span class="mast" style="font-size:28px">Réglages</span>
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
-    <button class="btn" id="close">Fermer</button>`, w => {
+    <button class="btn" id="close">Fermer</button>
+    <p class="hint muted" style="text-align:center;margin:0">Version du 19 octobre</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
