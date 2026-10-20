@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0720">
+<title>Platoz · Admin</title>
+<link rel="icon" type="image/png" href="icon-192.png?v=2">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&family=Nunito:wght@700;800;900&display=swap">
+<style>
+:root { --night: #0B0720; --panel: #160F33; --line: #2E2558; --ink: #F4EEFF; --muted: #B3A6D9; --pink: #FF3B6E; --gold: #FFC93C; --green: #2EE6A0; --violet: #A66BFF; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--night); color: var(--ink); font-family: Nunito, system-ui, sans-serif; font-weight: 700; }
+body { padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 96px); }
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1 { margin: 0; font-family: Unbounded, sans-serif; font-weight: 900; font-size: 24px; letter-spacing: -.02em; }
+h1 small { font-family: Nunito, sans-serif; font-size: 14px; color: var(--muted); font-weight: 800; margin-left: 8px; }
+h2 { margin: 6px 0 0; font-family: Unbounded, sans-serif; font-weight: 800; font-size: 17px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { width: 100%; min-height: 44px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: #0F0A26; color: var(--ink); font-weight: 800; font-size: 16px; }
+textarea { min-height: 72px; resize: vertical; line-height: 1.35; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); font-weight: 900; }
+.btn { min-height: 44px; padding: 0 16px; border-radius: 14px; border: 0; background: var(--ink); color: var(--night); font-weight: 900; font-size: 15px; cursor: pointer; }
+.btn.pink { background: var(--pink); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.btn.small { min-height: 36px; padding: 0 12px; font-size: 14px; border-radius: 11px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row > * { flex: 1 1 160px; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.tabs button { flex: none; min-height: 42px; padding: 0 16px; border-radius: 21px; border: 1.5px solid var(--line); background: transparent; color: var(--ink); font-weight: 900; font-size: 15px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--gold); border-color: var(--gold); color: var(--night); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.kpi b { font-family: Unbounded, sans-serif; font-size: 26px; font-weight: 900; }
+.kpi span { color: var(--muted); font-size: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-size: 13px; font-weight: 900; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 120px; }
+.bars div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; min-width: 0; }
+.bars i { display: block; width: 100%; max-width: 28px; border-radius: 6px 6px 2px 2px; background: var(--pink); min-height: 2px; }
+.bars small { font-size: 11px; color: var(--muted); }
+.card { display: grid; grid-template-columns: 64px 1fr auto; gap: 8px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.card .fields { display: flex; flex-direction: column; gap: 6px; }
+.card select { padding: 6px; min-height: 40px; }
+.card textarea { min-height: 52px; }
+.votes { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 13px; white-space: nowrap; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 8px; background: #241B4D; color: var(--muted); font-size: 12px; font-weight: 900; }
+.save { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px); background: rgba(11,7,32,.94); border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+.save p { flex: 1; max-width: 520px; font-size: 14px; }
+.toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: var(--night); padding: 10px 16px; border-radius: 14px; font-weight: 900; z-index: 9; max-width: calc(100% - 32px); }
+.err { color: #FF8FA8; }
+[hidden] { display: none !important; }
+@media (max-width: 520px) { .card { grid-template-columns: 1fr auto; } .card select { grid-column: 1 / -1; width: 120px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Platoz <small>Admin</small></h1>
+
+  <section class="panel" id="login" hidden>
+    <h2>Connexion</h2>
+    <p class="muted">Réservé au propriétaire de Platoz.</p>
+    <label>Adresse e-mail<input id="mail" type="email" autocomplete="username"></label>
+    <label>Mot de passe<input id="pass" type="password" autocomplete="current-password"></label>
+    <div class="row"><button class="btn pink" id="in">Se connecter</button><button class="btn ghost" id="create">Créer mon compte admin</button></div>
+    <p class="err" id="lerr"></p>
+  </section>
+
+  <div id="app" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-t="stats" aria-selected="true">Statistiques</button>
+      <button role="tab" data-t="cartes" aria-selected="false">Cartes</button>
+      <button role="tab" data-t="textes" aria-selected="false">Textes</button>
+      <button role="tab" data-t="props" aria-selected="false">Propositions</button>
+    </div>
+    <div id="view" style="display:flex;flex-direction:column;gap:14px;margin-top:14px"></div>
+  </div>
+</div>
+<div class="save" id="savebar" hidden><p id="savetxt"></p><button class="btn ghost small" id="undo">Annuler</button><button class="btn pink" id="pub">Publier</button></div>
+
+<script type="module">
+const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
+const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
+const EMU = new URLSearchParams(location.search).has("emu");
+const [{ initializeApp }, A, F] = await Promise.all(["app", "auth", "firestore"].map(m => import(FBV + m + ".js")));
+const fapp = initializeApp(FBC), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
+if (EMU) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const toast = t => { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); };
+const clone = o => JSON.parse(JSON.stringify(o));
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// ---------- contenu : ce qui est écrit dans le code, puis ce qui a été publié par-dessus ----------
+let DEF, pub = {}, work, tab = "stats";
+const NOMS_X = { verite: "Action ou vérité : vérités", action: "Action ou vérité : défis", deux: "Qui de nous deux" };
+const CHAMPS_X = { taboo: ["Mot à faire deviner", "Interdit", "Interdit", "Interdit", "Interdit", "Interdit"], deux: ["Qui de nous deux…"] };
+const gameName = k => NOMS_X[k] || (DEF.noms[k]) || k;
+const fields = k => CHAMPS_X[k] || DEF.champs[k] || ["Texte"];
+const fromPub = () => {
+  const w = { cartes: clone(DEF.cartes), deux: clone(DEF.deux), desc: clone(DEF.desc), levels: clone(DEF.levels), tuto: clone(DEF.tuto) };
+  for (const k in pub.cartes || {}) w.cartes[k] = clone(pub.cartes[k]);
+  if (pub.deux) w.deux = clone(pub.deux);
+  Object.assign(w.desc, pub.desc || {}); (pub.levels || []).forEach((x, i) => { if (x) w.levels[i] = x; }); Object.assign(w.tuto, pub.tuto || {});
+  return w;
+};
+// seulement ce qui diffère du code : un jeu jamais modifié garde les cartes ajoutées plus tard dans le code
+const toPub = w => {
+  const o = { cartes: {}, desc: {}, tuto: {} };
+  for (const k in w.cartes) if (!same(w.cartes[k], DEF.cartes[k])) o.cartes[k] = w.cartes[k].filter(c => c.slice(1).some(x => String(x).trim()));
+  if (!same(w.deux, DEF.deux)) o.deux = w.deux.filter(c => String(c[1] || "").trim());
+  for (const k in w.desc) if (w.desc[k] !== DEF.desc[k]) o.desc[k] = w.desc[k];
+  for (const k in w.tuto) if (w.tuto[k] !== DEF.tuto[k]) o.tuto[k] = w.tuto[k];
+  if (!same(w.levels, DEF.levels)) o.levels = w.levels;
+  return o;
+};
+const dirty = () => work && !same(toPub(work), toPub(fromPub()));
+const syncBar = () => { const d = dirty(); $("#savebar").hidden = !d; $("#savetxt").textContent = "Pas encore publié."; };
+addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });
+
+async function loadContenu() {
+  DEF = await (await fetch("contenu-defaut.json?" + Date.now())).json();
+  try { const s = await F.getDoc(F.doc(db, "contenu", "app")); pub = s.exists() ? JSON.parse(s.data().data || "{}") : {}; } catch (e) { pub = {}; }
+  work = fromPub();
+}
+async function publish() {
+  const btn = $("#pub"); btn.disabled = true;
+  try {
+    const o = toPub(work), at = Date.now(), body = { data: JSON.stringify(o), at, par: auth.currentUser.email || "" };
+    await F.setDoc(F.doc(db, "contenu_hist", String(at)), body);
+    await F.setDoc(F.doc(db, "contenu", "app"), body);
+    pub = o; work = fromPub(); syncBar(); render(); toast("Publié. C'est en ligne.");
+  } catch (e) { toast(String(e.code || e.message).includes("permission") ? "Refusé : la règle Firestore « contenu » n'est pas encore en place." : "Échec de la publication, réessaie."); }
+  btn.disabled = false;
+}
+
+// ---------- statistiques ----------
+let STATS = null, VOTES = null, PROPS = null, period = 7;
+async function loadStats() {
+  const s = await F.getDocs(F.collection(db, "stats"));
+  STATS = s.docs.map(d => d.data()).filter(x => x.ev && x.ev !== "probe");
+}
+async function loadVotes() {
+  VOTES = {};
+  try { (await F.getDocs(F.collection(db, "votes"))).docs.forEach(d => { const v = d.data(); if (!v.card) return; const o = VOTES[v.card] || (VOTES[v.card] = { top: 0, mew: 0 }); if (v.v === "top") o.top++; if (v.v === "mew") o.mew++; }); } catch (e) {}
+}
+const day = t => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+function viewStats() {
+  if (!STATS) { loadStats().then(render, e => { $("#view").innerHTML = `<p class="err">Impossible de lire les statistiques (${esc(e.code || e.message)}).</p>`; }); return `<p class="muted">Chargement des statistiques…</p>`; }
+  const since = period ? Date.now() - period * 864e5 : 0, L = STATS.filter(x => (x.at || 0) >= since);
+  const opens = L.filter(x => x.ev === "open"), starts = L.filter(x => x.ev === "start"), ends = L.filter(x => x.ev === "end");
+  const devs = new Set(opens.map(x => x.dev)).size, appPct = opens.length ? Math.round(100 * opens.filter(x => x.app).length / opens.length) : 0;
+  const pct = (a, b) => b ? Math.round(100 * a / b) + " %" : "–";
+  const G = {};
+  starts.forEach(x => { const o = G[x.g] || (G[x.g] = { s: 0, e: 0, n: 0, m: 0 }); o.s++; o.n += x.n || 0; if (x.mode === "multi") o.m++; });
+  ends.forEach(x => { (G[x.g] || (G[x.g] = { s: 0, e: 0, n: 0, m: 0 })).e++; });
+  const rows = Object.entries(G).sort((a, b) => b[1].s - a[1].s);
+  const nDays = period || Math.max(1, Math.ceil((Date.now() - Math.min(...STATS.map(x => x.at || Date.now()))) / 864e5)), shown = Math.min(nDays, 30);
+  const days = Array.from({ length: shown }, (_, i) => day(Date.now() - (shown - 1 - i) * 864e5));
+  const per = Object.fromEntries(days.map(d => [d, 0])); opens.forEach(x => { const d = day(x.at); if (d in per) per[d]++; });
+  const max = Math.max(1, ...Object.values(per));
+  return `
+    <div class="row"><label style="flex:0 1 220px">Période<select id="period">${[[1, "Aujourd'hui (24 h)"], [7, "7 derniers jours"], [30, "30 derniers jours"], [0, "Depuis le début"]].map(([v, l]) => `<option value="${v}"${v === period ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+      <button class="btn ghost small" id="reload" style="flex:0 0 auto;align-self:flex-end">Actualiser</button></div>
+    <div class="kpis">
+      <div class="kpi"><b>${opens.length}</b><span>ouvertures de l'appli</span></div>
+      <div class="kpi"><b>${devs}</b><span>téléphones différents</span></div>
+      <div class="kpi"><b>${starts.length}</b><span>parties lancées</span></div>
+      <div class="kpi"><b>${pct(ends.length, starts.length)}</b><span>parties terminées</span></div>
+      <div class="kpi"><b>${appPct} %</b><span>ouvertures depuis l'icône de l'appli</span></div>
+    </div>
+    <section class="panel"><h2>Ouvertures par jour</h2>
+      <div class="bars">${days.map(d => `<div title="${d} : ${per[d]}"><small>${per[d] || ""}</small><i style="height:${Math.round(100 * per[d] / max)}%"></i><small>${d.slice(8)}</small></div>`).join("")}</div></section>
+    <section class="panel"><h2>Par jeu</h2>
+      ${rows.length ? `<table><thead><tr><th>Jeu</th><th class="n">Lancées</th><th class="n">Finies</th><th class="n">Joueurs moy.</th><th class="n">Plusieurs tél.</th></tr></thead><tbody>
+      ${rows.map(([g, o]) => `<tr><td>${esc(g === "mix" ? "Mix" : gameName(g))}</td><td class="n">${o.s}</td><td class="n">${pct(o.e, o.s)}</td><td class="n">${o.s ? (o.n / o.s).toFixed(1) : "–"}</td><td class="n">${o.m}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Aucune partie sur cette période.</p>`}
+      <p class="muted" style="font-size:13px">« Finies » : parties allées jusqu'au classement final. Les tests automatiques ne sont pas comptés.</p></section>`;
+}
+
+// ---------- cartes ----------
+let game = "jamais", lvlF = 0, q = "";
+const keysCartes = () => [...Object.keys(DEF.cartes), "deux"];
+const list = k => k === "deux" ? work.deux : work.cartes[k];
+function viewCartes() {
+  if (!VOTES) { loadVotes().then(render); }
+  const L = list(game), F_ = fields(game), lq = q.trim().toLowerCase();
+  const idx = L.map((c, i) => i).filter(i => (!lvlF || L[i][0] === lvlF) && (!lq || L[i].slice(1).join(" ").toLowerCase().includes(lq)));
+  const v = c => (VOTES || {})[game + ":" + c.slice(1).join("|")] || { top: 0, mew: 0 };
+  return `
+    <div class="row">
+      <label>Jeu<select id="game">${keysCartes().map(k => `<option value="${k}"${k === game ? " selected" : ""}>${esc(gameName(k))} (${list(k).length})</option>`).join("")}</select></label>
+      <label>Intensité<select id="lvlf"><option value="0">Toutes</option>${DEF.levelNames.map((n, i) => `<option value="${i + 1}"${lvlF === i + 1 ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
+      <label>Chercher<input id="q" value="${esc(q)}" placeholder="un mot de la carte"></label>
+    </div>
+    <div class="row"><button class="btn" id="add" style="flex:0 0 auto">Ajouter une carte</button>
+      ${pub.cartes && pub.cartes[game] ? `<button class="btn ghost small" id="reset" style="flex:0 0 auto">Revenir aux cartes d'origine</button>` : ""}
+      <p class="muted" style="font-size:14px">${idx.length} carte${idx.length > 1 ? "s" : ""} affichée${idx.length > 1 ? "s" : ""}. Les votes 🔥 et 😑 viennent des joueurs.</p></div>
+    <section class="panel" style="gap:0;padding-top:6px">
+      ${idx.map(i => { const c = L[i], vv = v(c); return `<div class="card" data-i="${i}">
+        <select data-k="lvl" aria-label="Intensité">${DEF.levelNames.map((n, j) => `<option value="${j + 1}"${c[0] === j + 1 ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
+        <div class="fields">${F_.map((lab, j) => `<textarea rows="2" data-k="${j + 1}" placeholder="${esc(lab)}" aria-label="${esc(lab)}">${esc(c[j + 1] ?? "")}</textarea>`).join("")}</div>
+        <div class="votes"><span title="Dinguerie">🔥 ${vv.top}</span><span title="Mew">😑 ${vv.mew}</span><button class="btn ghost small" data-del>Supprimer</button></div>
+      </div>`; }).join("") || `<p class="muted" style="padding:12px 0">Aucune carte.</p>`}
+    </section>`;
+}
+function bindCartes() {
+  $("#game").onchange = e => { game = e.target.value; q = ""; render(); };
+  $("#lvlf").onchange = e => { lvlF = +e.target.value; render(); };
+  $("#q").oninput = e => { q = e.target.value; const p = e.target.selectionStart; render(); const i = $("#q"); i.focus(); i.setSelectionRange(p, p); };
+  $("#add").onclick = () => { list(game).unshift([lvlF || 1, ...fields(game).map(() => "")]); q = ""; render(); const i = document.querySelector('.card textarea'); i && i.focus(); syncBar(); };
+  const r = $("#reset"); if (r) r.onclick = () => { if (!confirm("Remettre les cartes d'origine pour ce jeu ? Tes modifications sur ce jeu seront perdues après publication.")) return; if (game === "deux") work.deux = clone(DEF.deux); else work.cartes[game] = clone(DEF.cartes[game]); render(); syncBar(); };
+  document.querySelectorAll(".card").forEach(el => {
+    const c = list(game)[+el.dataset.i];
+    el.querySelectorAll("[data-k]").forEach(f => f[f.tagName === "SELECT" ? "onchange" : "oninput"] = () => { if (f.dataset.k === "lvl") c[0] = +f.value; else c[+f.dataset.k] = f.value; syncBar(); });
+    el.querySelector("[data-del]").onclick = () => { list(game).splice(+el.dataset.i, 1); render(); syncBar(); };
+  });
+}
+
+// ---------- textes ----------
+const TUTO_KEYS = () => Object.keys(DEF.tuto);
+function viewTextes() {
+  return `
+    <section class="panel"><h2>Intensités</h2>${DEF.levelNames.map((n, i) => `<label>${esc(n)}<input data-lv="${i}" value="${esc(work.levels[i])}"></label>`).join("")}</section>
+    ${TUTO_KEYS().map(k => `<section class="panel"><h2>${esc(k === "mix" ? "Mix" : gameName(k))}</h2>
+      ${k in DEF.desc ? `<label>Sous-titre<input data-desc="${k}" value="${esc(work.desc[k])}"></label>` : ""}
+      <label>Règles (écran affiché avant la partie)<textarea data-tuto="${k}">${esc(work.tuto[k])}</textarea></label></section>`).join("")}`;
+}
+function bindTextes() {
+  document.querySelectorAll("[data-lv]").forEach(f => f.oninput = () => { work.levels[+f.dataset.lv] = f.value; syncBar(); });
+  document.querySelectorAll("[data-desc]").forEach(f => f.oninput = () => { work.desc[f.dataset.desc] = f.value; syncBar(); });
+  document.querySelectorAll("[data-tuto]").forEach(f => f.oninput = () => { work.tuto[f.dataset.tuto] = f.value; syncBar(); });
+}
+
+// ---------- propositions des joueurs ----------
+const hidden = new Set(JSON.parse(localStorage.getItem("admin:hidden") || "[]"));
+function viewProps() {
+  if (!PROPS) { F.getDocs(F.collection(db, "propositions")).then(s => { PROPS = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.at || 0) - (a.at || 0)); render(); }, () => { PROPS = []; render(); }); return `<p class="muted">Chargement…</p>`; }
+  const L = PROPS.filter(p => !hidden.has(p.id)), ideas = L.filter(p => p.type === "idee"), cards = L.filter(p => p.type !== "idee");
+  const when = t => t ? new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
+  return `
+    <section class="panel"><h2>Cartes proposées (${cards.length})</h2>
+      ${cards.map(p => `<div class="card" style="grid-template-columns:1fr auto"><div><span class="tag">${esc(gameName(p.type))}</span> <span class="tag">${esc(DEF.levelNames[(p.lvl || 1) - 1] || "")}</span> <span class="muted" style="font-size:13px">${when(p.at)}</span><p style="margin-top:6px">${esc(p.card)}</p></div>
+        <div class="votes">${list(p.type) ? `<button class="btn small" data-addp="${esc(p.id)}">Ajouter au jeu</button>` : ""}<button class="btn ghost small" data-hide="${esc(p.id)}">Masquer</button></div></div>`).join("") || `<p class="muted">Rien pour l'instant.</p>`}</section>
+    <section class="panel"><h2>Idées (${ideas.length})</h2>
+      ${ideas.map(p => `<div class="card" style="grid-template-columns:1fr auto"><div><span class="muted" style="font-size:13px">${when(p.at)}</span><p style="margin-top:4px">${esc(p.card)}</p></div><div class="votes"><button class="btn ghost small" data-hide="${esc(p.id)}">Masquer</button></div></div>`).join("") || `<p class="muted">Rien pour l'instant.</p>`}</section>`;
+}
+function bindProps() {
+  document.querySelectorAll("[data-hide]").forEach(b => b.onclick = () => { hidden.add(b.dataset.hide); localStorage.setItem("admin:hidden", JSON.stringify([...hidden])); render(); });
+  document.querySelectorAll("[data-addp]").forEach(b => b.onclick = () => {
+    const p = PROPS.find(x => x.id === b.dataset.addp), parts = String(p.card).split(" / "), L = list(p.type);
+    L.unshift([p.lvl || 1, ...fields(p.type).map((_, i) => parts[i] || "")]);
+    hidden.add(p.id); localStorage.setItem("admin:hidden", JSON.stringify([...hidden]));
+    syncBar(); render(); toast("Ajoutée aux cartes. Pense à publier.");
+  });
+}
+
+// ---------- affichage ----------
+function render() {
+  const V = { stats: viewStats, cartes: viewCartes, textes: viewTextes, props: viewProps }[tab];
+  $("#view").innerHTML = V();
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.t === tab)));
+  if (tab === "stats" && STATS) { $("#period").onchange = e => { period = +e.target.value; render(); }; $("#reload").onclick = () => { STATS = null; render(); }; }
+  if (tab === "cartes") bindCartes();
+  if (tab === "textes") bindTextes();
+  if (tab === "props" && PROPS) bindProps();
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; render(); scrollTo(0, 0); });
+$("#pub").onclick = publish;
+$("#undo").onclick = () => { if (!confirm("Annuler toutes les modifications pas encore publiées ?")) return; work = fromPub(); syncBar(); render(); };
+
+// ---------- connexion ----------
+const authMsg = e => ({ "auth/invalid-credential": "E-mail ou mot de passe incorrect.", "auth/wrong-password": "E-mail ou mot de passe incorrect.", "auth/user-not-found": "Aucun compte avec cet e-mail.", "auth/email-already-in-use": "Ce compte existe déjà : connecte-toi.", "auth/weak-password": "Mot de passe trop court (6 caractères minimum).", "auth/invalid-email": "Adresse e-mail invalide." })[e.code] || "Erreur : " + (e.code || e.message);
+const go = fn => async () => { $("#lerr").textContent = ""; try { await fn(auth, $("#mail").value.trim(), $("#pass").value); } catch (e) { $("#lerr").textContent = authMsg(e); } };
+$("#in").onclick = go(A.signInWithEmailAndPassword);
+$("#create").onclick = go(A.createUserWithEmailAndPassword);
+$("#pass").onkeydown = e => { if (e.key === "Enter") $("#in").click(); };
+A.onAuthStateChanged(auth, async u => {
+  if (!u || u.isAnonymous) { $("#login").hidden = false; $("#app").hidden = true; return; }
+  $("#login").hidden = true; $("#app").hidden = false; $("#view").innerHTML = `<p class="muted">Chargement…</p>`;
+  try { await loadContenu(); } catch (e) { $("#view").innerHTML = `<p class="err">Impossible de charger le contenu (${esc(e.code || e.message)}).</p>`; return; }
+  render();
+});
+</script>
+</body>
+</html>

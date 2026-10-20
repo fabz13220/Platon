@@ -35,3 +35,5 @@ cat <<'H'
 H
 cat platoz.html
 } > index.html
+# contenu de départ de la page admin (cartes, textes) tiré de platoz.html
+node outils/defaut.js

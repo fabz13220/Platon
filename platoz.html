@@ -1588,7 +1588,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 20 octobre (2)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 20 octobre (3)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -4370,6 +4370,28 @@ function roomEnd(r, host) {
   out.onclick = roomLeave;
 }
 
+/* -------- CONTENU MODIFIABLE depuis la page admin (admin.html) : document Firestore contenu/app -------- */
+// un jeu présent dans le document remplace entièrement les cartes écrites dans le code
+function applyContenu(d) {
+  try {
+    if (d.cartes) for (const k in d.cartes) if (C[k] && Array.isArray(d.cartes[k]) && d.cartes[k].length) { C[k].length = 0; C[k].push(...d.cartes[k]); }
+    if (Array.isArray(d.deux) && d.deux.length) { DEUX.length = 0; DEUX.push(...d.deux); }
+    if (d.desc) for (const k in d.desc) if (TYPES[k] && typeof d.desc[k] === "string") TYPES[k].desc = d.desc[k];
+    if (Array.isArray(d.levels)) d.levels.forEach((x, i) => { if (LEVELS[i] && x) LEVELS[i].desc = x; });
+    if (d.tuto) for (const k in d.tuto) if (d.tuto[k]) TUTO[k] = d.tuto[k];
+    store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => cardId(o.type, c) === cardId(o.type, o.card))) C[o.type].push(o.card); });
+  } catch (e) {}
+}
+applyContenu((store.get("contenu", {}) || {}).d || {});
+(async () => {
+  try {
+    const base = store.get("emu", 0) ? "http://127.0.0.1:8080/v1/projects/platoz-3abf9/databases/(default)/documents/" : FS;
+    const r = await fetch(base + "contenu/app"); if (!r.ok) return;
+    const f = (await r.json()).fields || {}, at = +((f.at || {}).integerValue || 0);
+    if (!f.data || at <= ((store.get("contenu", {}) || {}).at || 0)) return;
+    const d = JSON.parse(f.data.stringValue); store.set("contenu", { at, d }); applyContenu(d);
+  } catch (e) {}
+})();
 stat("open", "", 0);
 const salle = (() => { try { return new URLSearchParams(location.search).get("salle"); } catch (e) { return null; } })();
 const ami = (() => { try { return new URLSearchParams(location.search).get("ami"); } catch (e) { return null; } })();
