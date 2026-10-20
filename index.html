@@ -1637,7 +1637,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (Je n'ai jamais 2)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (Je n'ai jamais 3)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1988,7 +1988,7 @@ function cJamais(c) {
       <div class="actions"><button class="btn red" id="ok">Suivante</button><button class="linkbtn" id="stop">Terminer</button></div>`, () => {
       bindHeader();
       const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
-      $("#ok").onclick = () => fly(-1);
+      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1); // au bouton, la carte part au hasard à gauche ou à droite
       $("#stop").onclick = ranking;
     });
   }
