@@ -311,6 +311,7 @@ p { margin: 0; }
 .bubble small { font-size: 12px; font-weight: 800; opacity: .85; }
 .bubble span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
 .bubble { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: scale .18s, box-shadow .18s; }
+.bubble, .bubble * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .bubble.held { animation-play-state: paused; scale: 1.14; z-index: 50; box-shadow: 0 22px 44px -12px rgba(166,107,255,.95), inset 0 -6px 14px rgba(255,59,122,.25), inset 0 2px 0 rgba(255,255,255,.4); }
 .end-bubbles { flex: 1; min-height: 130px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 10px 0; transition: opacity .5s; }
 .end-bubbles.wait { opacity: 0; pointer-events: none; }
@@ -1021,6 +1022,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
 .jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; transform: translate3d(0, 14px, 0) scale(.94); filter: brightness(.62); transform-origin: 50% 100%; }
 .jstack > .card.top { z-index: 1; }
+.card.swipe, .card.swipe * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .jstack > .card.top.still { animation: none; }
 .card.swipe { touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform; cursor: grab; }
 .card .swipe-tag { position: absolute; top: 64px; z-index: 3; padding: 4px 14px; border: 4px solid; border-radius: 14px; font-family: var(--display); font-size: 34px; font-weight: 900; letter-spacing: .04em; opacity: 0; pointer-events: none; background: rgba(11,7,32,.35); }
@@ -1639,7 +1641,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles 2)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1708,32 +1710,33 @@ function groupBubbles(draw) {
   $("#mkgrp").onclick = () => groupSheet(() => groupBubbles(draw));
   $$(".bubble", box).forEach(b => { b.onclick = () => popGroup(b, groups[+b.dataset.i], draw); holdDrag(b); });
 }
-// on reste appuyé sur une bulle pour la prendre, puis on la déplace ; elle continue de flotter là où on la lâche
+// on reste appuyé sur une bulle pour la prendre, puis on la déplace ; elle continue de flotter là où on la lâche.
+// Au doigt, on bloque tout ce que fait Safari d'habitude (défilement, loupe, menu) et on refait le tap nous-mêmes.
 function holdDrag(el) {
-  let t = null, on = false, pid = null, sx = 0, sy = 0, ox = 0, oy = 0, r0 = null, o0 = [0, 0];
-  const stop = () => {
-    clearTimeout(t); t = null; pid = null;
-    if (!on) return;
-    on = false; el.classList.remove("held"); el.dataset.moved = "1"; setTimeout(() => delete el.dataset.moved, 60);
+  let t = null, on = false, slid = false, sx = 0, sy = 0, ox = 0, oy = 0, r0 = null, o0 = [0, 0];
+  const begin = (x, y) => {
+    sx = x; sy = y; slid = false; clearTimeout(t);
+    t = setTimeout(() => { t = null; on = true; r0 = el.getBoundingClientRect(); o0 = [ox, oy]; el.classList.add("held"); buzz(15); }, 200);
   };
-  el.addEventListener("pointerdown", e => {
-    pid = e.pointerId; sx = e.clientX; sy = e.clientY;
-    t = setTimeout(() => {
-      on = true; r0 = el.getBoundingClientRect(); o0 = [ox, oy];
-      el.classList.add("held"); buzz(15);
-      try { el.setPointerCapture(pid); } catch (er) {}
-    }, 220);
-  });
-  el.addEventListener("pointermove", e => {
-    if (e.pointerId !== pid) return;
-    if (!on) { if (t && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { clearTimeout(t); t = null; } return; }
+  const move = (x, y) => {
+    if (!on) { if (t && Math.hypot(x - sx, y - sy) > 10) { clearTimeout(t); t = null; slid = true; } return; }
     // la bulle reste dans l'écran
-    const dx = Math.max(-r0.left, Math.min(innerWidth - r0.right, e.clientX - sx));
-    const dy = Math.max(-r0.top, Math.min(innerHeight - r0.bottom, e.clientY - sy));
-    ox = o0[0] + dx; oy = o0[1] + dy;
+    ox = o0[0] + Math.max(-r0.left, Math.min(innerWidth - r0.right, x - sx));
+    oy = o0[1] + Math.max(-r0.top, Math.min(innerHeight - r0.bottom, y - sy));
     el.style.translate = `${ox}px ${oy}px`;
+  };
+  const end = () => { clearTimeout(t); t = null; const was = on; on = false; el.classList.remove("held"); return was; };
+  el.addEventListener("touchstart", e => { e.preventDefault(); const p = e.touches[0]; begin(p.clientX, p.clientY); }, { passive: false });
+  el.addEventListener("touchmove", e => { e.preventDefault(); const p = e.touches[0]; move(p.clientX, p.clientY); }, { passive: false });
+  el.addEventListener("touchend", e => { e.preventDefault(); if (!end() && !slid) el.click(); }, { passive: false });
+  el.addEventListener("touchcancel", end);
+  // à la souris (ordinateur)
+  el.addEventListener("mousedown", e => {
+    begin(e.clientX, e.clientY);
+    const mm = ev => move(ev.clientX, ev.clientY);
+    const mu = () => { removeEventListener("mousemove", mm); removeEventListener("mouseup", mu); if (end()) { el.dataset.moved = "1"; setTimeout(() => delete el.dataset.moved, 60); } };
+    addEventListener("mousemove", mm); addEventListener("mouseup", mu);
   });
-  el.addEventListener("pointerup", stop); el.addEventListener("pointercancel", stop);
   el.addEventListener("click", e => { if (el.dataset.moved) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
   el.addEventListener("contextmenu", e => e.preventDefault());
 }
