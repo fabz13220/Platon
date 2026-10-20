@@ -310,6 +310,10 @@ p { margin: 0; }
 }
 .bubble small { font-size: 12px; font-weight: 800; opacity: .85; }
 .bubble span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+.bubble { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: scale .18s, box-shadow .18s; }
+.bubble.held { animation-play-state: paused; scale: 1.14; z-index: 50; box-shadow: 0 22px 44px -12px rgba(166,107,255,.95), inset 0 -6px 14px rgba(255,59,122,.25), inset 0 2px 0 rgba(255,255,255,.4); }
+.end-bubbles { flex: 1; min-height: 130px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 10px 0; transition: opacity .5s; }
+.end-bubbles.wait { opacity: 0; pointer-events: none; }
 .bubble.pop { animation: bPop .26s ease-out forwards; pointer-events: none; }
 .bubble.back { animation: chipIn .5s cubic-bezier(.3,1.5,.5,1) both, bFloat calc(var(--dur) * 2.2) ease-in-out var(--dl) infinite alternate; }
 .spark { position: fixed; z-index: 90; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; left: 0; top: 0; }
@@ -1015,8 +1019,6 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
 .rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
-.fin-names { flex: 1; align-content: center; justify-content: center; gap: 12px; padding: 0 12px; }
-.fin-names .chip { font-size: 20px; padding: 12px 20px; animation: chipIn .4s cubic-bezier(.3,1.4,.5,1) both; }
 .jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; transform: translate3d(0, 14px, 0) scale(.94); filter: brightness(.62); transform-origin: 50% 100%; }
 .jstack > .card.top { z-index: 1; }
 .jstack > .card.top.still { animation: none; }
@@ -1637,7 +1639,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (Je n'ai jamais 3)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1704,8 +1706,47 @@ function groupBubbles(draw) {
   box.innerHTML = groups.map((g, i) => `<button class="bubble" data-i="${i}" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s" aria-label="Ajouter le groupe ${esc(g.name)}"><span>${esc(g.name)}</span><small>${g.names.length} joueurs</small></button>`).join("")
     + `<button class="linkbtn" id="mkgrp">+ Créer un groupe</button>`;
   $("#mkgrp").onclick = () => groupSheet(() => groupBubbles(draw));
-  $$(".bubble", box).forEach(b => b.onclick = () => popGroup(b, groups[+b.dataset.i], draw));
+  $$(".bubble", box).forEach(b => { b.onclick = () => popGroup(b, groups[+b.dataset.i], draw); holdDrag(b); });
 }
+// on reste appuyé sur une bulle pour la prendre, puis on la déplace ; elle continue de flotter là où on la lâche
+function holdDrag(el) {
+  let t = null, on = false, pid = null, sx = 0, sy = 0, ox = 0, oy = 0, r0 = null, o0 = [0, 0];
+  const stop = () => {
+    clearTimeout(t); t = null; pid = null;
+    if (!on) return;
+    on = false; el.classList.remove("held"); el.dataset.moved = "1"; setTimeout(() => delete el.dataset.moved, 60);
+  };
+  el.addEventListener("pointerdown", e => {
+    pid = e.pointerId; sx = e.clientX; sy = e.clientY;
+    t = setTimeout(() => {
+      on = true; r0 = el.getBoundingClientRect(); o0 = [ox, oy];
+      el.classList.add("held"); buzz(15);
+      try { el.setPointerCapture(pid); } catch (er) {}
+    }, 220);
+  });
+  el.addEventListener("pointermove", e => {
+    if (e.pointerId !== pid) return;
+    if (!on) { if (t && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { clearTimeout(t); t = null; } return; }
+    // la bulle reste dans l'écran
+    const dx = Math.max(-r0.left, Math.min(innerWidth - r0.right, e.clientX - sx));
+    const dy = Math.max(-r0.top, Math.min(innerHeight - r0.bottom, e.clientY - sy));
+    ox = o0[0] + dx; oy = o0[1] + dy;
+    el.style.translate = `${ox}px ${oy}px`;
+  });
+  el.addEventListener("pointerup", stop); el.addEventListener("pointercancel", stop);
+  el.addEventListener("click", e => { if (el.dataset.moved) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+}
+// fin de partie : la bulle de chaque groupe présent en entier, puis les prénoms qui restent
+function endBubbles(names, wait) {
+  const low = n => n.toLowerCase(), left = new Set(names.map(low)), out = [];
+  store.get("groups", []).forEach(g => {
+    if (g.names.length >= 2 && g.names.every(n => left.has(low(n)))) { g.names.forEach(n => left.delete(low(n))); out.push([g.name, g.names.length + " joueurs"]); }
+  });
+  names.forEach(n => { if (left.has(low(n))) { left.delete(low(n)); out.push([n, ""]); } });
+  return `<div class="end-bubbles${wait ? " wait" : ""}">${out.map(([t, sub], i) => `<div class="bubble" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s"><span>${esc(t)}</span>${sub ? `<small>${sub}</small>` : ""}</div>`).join("")}</div>`;
+}
+const bindBubbles = () => $$(".end-bubbles .bubble").forEach(holdDrag);
 function groupSheet(done) {
   const mem = S.names.slice(); // joueurs du nouveau groupe : ceux déjà ajoutés, modifiables ici
   sheet(`
@@ -2056,7 +2097,7 @@ function finJamais() {
   view(`
     <div class="rank anim" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} carte${n > 1 ? "s" : ""}</span></div>
-      <div class="chips fin-names">${S.players.map((p, i) => `<span class="chip" style="animation-delay:${.15 + i * .07}s">${esc(p.name)}</span>`).join("")}</div>
+      ${endBubbles(S.players.map(p => p.name))}
     </div>
     <div class="actions">
       <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
@@ -2064,6 +2105,7 @@ function finJamais() {
   `, () => {
     $("#again").onclick = () => { S.names = S.players.map(p => p.name); startGame(); };
     $("#home").onclick = home;
+    bindBubbles();
   });
 }
 
@@ -2885,8 +2927,9 @@ function tabooFinal() {
       <ol class="rank-list">${[0, 1].sort((x, y) => TB.score[y] - TB.score[x]).map((i, k) => `<li class="up"><span class="rk">${w < 0 ? 1 : k + 1}</span><span class="nm">${TB_NAMES[i]}<small style="display:block;font-weight:700;opacity:.75">${TB.teams[i].map(esc).join(", ")}</small></span><b>${TB.score[i]} pt${Math.abs(TB.score[i]) > 1 ? "s" : ""}</b></li>`).join("")}</ol>
       ${w >= 0 ? `<div class="tag lose" style="align-self:center">${esc(TB_NAMES[1 - w])} : ${esc(rnd(LOSE_TAGS))}</div>` : ""}
       <div class="confetti" id="confetti"></div></div>
+    ${endBubbles(S.names)}
     <div class="actions"><div class="row"><button class="btn red" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div></div>
-  `, () => { party(); $("#again").onclick = tabooSetup; $("#home").onclick = home; });
+  `, () => { party(); $("#again").onclick = tabooSetup; $("#home").onclick = home; bindBubbles(); });
 }
 
 /* -------- PUISSANCE 4 : deux joueurs sur le même écran -------- */
@@ -3027,8 +3070,9 @@ function unoStart() {
         <div class="tag win" style="align-self:center;font-size:18px">${esc(rnd(WIN_TAGS))}</div>
         <ol class="rank-list">${P.filter(x => x !== p).sort((a, b) => a.hand.length - b.hand.length).map((x, i) => `<li class="up"><span class="rk">${i + 2}</span><span class="nm">${esc(x.name)}</span><b>${x.hand.length} carte${x.hand.length > 1 ? "s" : ""}</b></li>`).join("")}</ol>
         <div class="confetti" id="confetti"></div></div>
+      ${endBubbles(P.map(x => x.name))}
       <div class="actions"><div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div></div>
-    `, () => { party(); $("#again").onclick = unoStart; $("#home").onclick = home; });
+    `, () => { party(); $("#again").onclick = unoStart; $("#home").onclick = home; bindBubbles(); });
   };
   turn();
 }
@@ -3168,6 +3212,7 @@ function ranking() {
       ${rest.length ? `<ol class="rank-list">${rest.map(r => `<li><span class="rk">${r.rank}</span><span class="nm">${esc(r.name)}</span>${tag(r)}<b>${r.pts}</b></li>`).join("")}</ol>` : ""}
       <div class="confetti" id="confetti"></div>
     </div>
+    ${endBubbles(st.map(r => r.name), true)}
     <div class="skip-rank" id="skiprow"><button class="btn white" id="skiprank">⏩ Passer l'animation</button></div>
     <div class="actions wait" id="acts">
       <button class="btn red" id="save">Enregistrer le classement <small>Une image au format story</small></button>
@@ -3177,6 +3222,7 @@ function ranking() {
     $("#again").onclick = () => { S.names = S.players.map(p => p.name); startGame(); };
     $("#home").onclick = home;
     $("#save").onclick = saveRank;
+    bindBubbles();
     // révélation : la liste du dernier vers le 4e, puis 3e, 2e et enfin le gagnant
     const say = t => { $("#say").textContent = t; };
     const steps = [];
@@ -3191,7 +3237,7 @@ function ranking() {
         if (r === 1) { const w = st.filter(x => x.rank === 1).map(x => x.name); say(w.length > 1 ? "Égalité : " + w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : "Victoire de " + w[0]); party(); }
       }]);
     });
-    steps.push([700, () => $("#acts").classList.remove("wait")]);
+    steps.push([700, () => { $("#acts").classList.remove("wait"); $(".end-bubbles").classList.remove("wait"); }]);
     let k = 0, done = false;
     const run = () => { if (done || k >= steps.length) return; later(() => { steps[k++][1](); run(); }, steps[k][0]); };
     const finish = () => { if (done) return; done = true; clearTimers(); const sr = $("#skiprow"); if (sr) sr.remove(); while (k < steps.length) steps[k++][1](); };
