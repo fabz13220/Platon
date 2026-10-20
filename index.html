@@ -1764,6 +1764,7 @@ function ambiance() {
 /* -------- DÉMARRAGE -------- */
 function startGame() {
   if (tutoGate(S.mode, startGame)) return;
+  stat("start", S.mode, S.names.length, "un");
   S.players = shuffle(S.names).map(n => ({ name: n, pts: 0 }));
   S.idx = 0; S.round = 0; S.lastGame = null; turn = 0; S.inGame = true; S.changed = false;
   keepAwake();
@@ -2486,6 +2487,15 @@ async function sendVote(c, v) {
     await db.doc("votes/" + devId + "_" + hashId(c.id)).set({ card: c.id, type: c.type, text: cardText(c), v: v || "aucun", at: Date.now() });
   } catch (e) {}
 }
+// statistiques anonymes : parties lancées et finies, par téléphone (identifiant au hasard, sans nom)
+const statMode = () => store.get("multi", false) ? "multi" : "un";
+const standalone = (() => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } })();
+function stat(ev, g, n, mode) {
+  try {
+    if (navigator.webdriver || store.get("emu", 0)) return; // pas les tests automatiques
+    fsDb.doc("stats/" + devId + "_" + Date.now().toString(36)).set({ ev, g: g || "", n: n || 0, mode: mode || statMode(), dev: devId, app: standalone, claude: !!window.claude, at: Date.now() }).catch(() => {});
+  } catch (e) {}
+}
 function vote(c, v) {
   if (votes[c.id] === v) delete votes[c.id]; else votes[c.id] = v;
   store.set("votes", votes); sendVote(c, votes[c.id]);
@@ -2716,6 +2726,7 @@ function tabooEnd(t, g, log) {
   `, () => { bindQuit(); $("#next").onclick = done ? tabooFinal : tabooTurn; });
 }
 function tabooFinal() {
+  stat("end", "taboo", S.names.length, "un");
   S.inGame = false;
   const [a, b] = TB.score, w = a === b ? -1 : a > b ? 0 : 1;
   buzz([60, 40, 140]);
@@ -2734,6 +2745,7 @@ function tabooFinal() {
 const P4 = { wins: [0, 0], first: 0 };
 function p4Start() {
   if (tutoGate("p4", p4Start)) return;
+  stat("start", "p4", 2, "un");
   const names = S.duo, R = 6, W = 7;
   const g = Array.from({ length: R }, () => Array(W).fill(-1));
   let cur = P4.first, over = false, line = null, last = null;
@@ -2765,6 +2777,7 @@ function p4Start() {
         if (r < 0) { buzz([20, 30, 20]); return; }
         g[r][c] = cur; last = [r, c]; buzz(15);
         line = win(r, c);
+        if (line || g[0].every(x => x >= 0)) stat("end", "p4", 2, "un");
         if (line) { over = true; P4.wins[cur]++; P4.first = 1 - cur; buzz([60, 40, 120]); }
         else if (g[0].every(x => x >= 0)) { over = true; P4.first = 1 - P4.first; }
         else cur = 1 - cur;
@@ -2793,6 +2806,7 @@ function unoStart() {
   if (S.names.length <= 10 && tutoGate("uno", unoStart)) return;
   if (S.names.length > 10) { toast("10 joueurs maximum au Uno."); return; }
   const P = shuffle(S.names).map(n => ({ name: n, hand: [] }));
+  stat("start", "uno", P.length, "un");
   let pile = unoDeck(), disc = [], color, dir = 1, cur = 0, log = "", locked = false;
   const pick = () => { if (!pile.length) { const top = disc.pop(); pile = shuffle(disc); disc = [top]; } return pile.pop(); };
   P.forEach(p => { for (let i = 0; i < 7; i++) p.hand.push(pick()); });
@@ -2857,6 +2871,7 @@ function unoStart() {
     later(turn, p.hand.length === 1 ? 900 : 250);
   };
   const end = p => {
+    stat("end", "uno", P.length, "un");
     buzz([60, 40, 140]);
     view(`
       <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Uno</span></div>
@@ -2991,6 +3006,7 @@ function pauseMenu() {
 let lastRank = null;
 function ranking() {
   clearTimers();
+  if (!ON.ctx) stat("end", S.mode, (S.players || []).length, "un");
   S.inGame = false;
   try { wakeLock && wakeLock.release(); } catch (e) {}
   const st = standings(); lastRank = st;
@@ -3262,6 +3278,7 @@ function miniUne(A) {
 /* ---------- QUI DE NOUS DEUX ---------- */
 function startDeux() {
   if (tutoGate("deux", startDeux)) return;
+  stat("start", "deux", 2, "un");
   const lv = S.level;
   const qs = DEUX.filter(q => q[0] <= lv && (S.hot || !isHot([q[1]]))).map(q => ({ q, k: Math.random() + (q[0] === lv ? .35 : 0) })).sort((a, b) => b.k - a.k).slice(0, 15).map(o => o.q[1]);
   const st = { i: 0, ok: 0, qs, pts: { [S.duo[0]]: 0, [S.duo[1]]: 0 } };
@@ -3308,6 +3325,7 @@ function startDeux() {
   ask();
 }
 function resultDeux(st) {
+  stat("end", "deux", 2, "un");
   const pct = Math.round(st.ok / st.qs.length * 100);
   const [a, b] = S.duo;
   const title = pct >= 80 ? "Âmes sœurs, ou complices du crime" : pct >= 60 ? "Un duo solide" : pct >= 40 ? "Ça se discute" : "Vous vous connaissez vraiment ?";
@@ -3339,6 +3357,7 @@ function reflexMenu() {
   `, () => { $("#back").onclick = home; $("#solo").onclick = reflexSolo; $("#duo").onclick = () => duoSetup(reflexDuo); });
 }
 function reflexSolo() {
+  stat("start", "reflexe", 1, "un");
   const times = []; let state = "idle", t0 = 0, to = null;
   keepAwake();
   view(`<div class="pad" id="pad"><span class="pad-big" id="big">Touche pour commencer</span><span class="pad-small" id="small">Essai 1 / 5</span></div>
@@ -3371,6 +3390,7 @@ function reflexSolo() {
   });
 }
 function reflexDuo() {
+  stat("start", "reflexe", 2, "un");
   const [a, b] = S.duo, score = [0, 0];
   let state = "wait", to = null;
   keepAwake();
@@ -3427,6 +3447,7 @@ function testIntro() {
   });
 }
 function testRun(name) {
+  stat("start", "test", 1, "un");
   const qs = shuffle(testQs()), yes = []; let i = 0;
   const ask = () => {
     if (i >= qs.length) return testResult(name, yes, qs.length);
@@ -3443,6 +3464,7 @@ function testRun(name) {
   ask();
 }
 function testResult(name, yes, total) {
+  stat("end", "test", 1, "un");
   const pct = Math.round(yes.length / total * 100);
   const title = pct <= 15 ? "Ange certifié" : pct <= 35 ? "Sage en apparence" : pct <= 55 ? "Suspect sous surveillance" : pct <= 75 ? "Scandale ambulant" : "Ennemi public n°1";
   const av = shuffle(yes).slice(0, 3);
@@ -3860,7 +3882,8 @@ function hostTick(r) {
 }
 async function roomNext(r) {
   const all = ids(r), n = all.length;
-  if (r.round >= r.rounds) return upd({ status: "end" });
+  if (r.round >= r.rounds) { stat("end", r.game, n, "multi"); return upd({ status: "end" }); }
+  if (!r.round) stat("start", r.game, n, "multi");
   const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && !LONG.includes(t) && ON_GAMES[t][1] <= n);
   const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
   const c = t === "av" || NEWG.includes(t) ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
@@ -4374,6 +4397,7 @@ function roomEnd(r, host) {
   out.onclick = roomLeave;
 }
 
+stat("open", "", 0);
 const salle = (() => { try { return new URLSearchParams(location.search).get("salle"); } catch (e) { return null; } })();
 const ami = (() => { try { return new URLSearchParams(location.search).get("ami"); } catch (e) { return null; } })();
 const cle = (() => { try { return new URLSearchParams(location.search).get("cle"); } catch (e) { return null; } })();
