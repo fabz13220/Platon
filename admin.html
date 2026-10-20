@@ -75,6 +75,14 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
     <p class="err" id="lerr"></p>
   </section>
 
+  <section class="panel" id="setup" hidden style="border-color:var(--gold)">
+    <h2>Dernier réglage, une seule fois</h2>
+    <p>Pour que <b>Publier</b> marche, la base doit savoir que ce compte est le tien. Copie ce texte :</p>
+    <pre id="rule" style="margin:0;padding:12px;border-radius:12px;background:#0F0A26;border:1.5px solid var(--line);font-size:13px;white-space:pre-wrap;word-break:break-all"></pre>
+    <div class="row"><button class="btn" id="copyrule" style="flex:0 0 auto">Copier le texte</button><a class="btn ghost" style="flex:0 0 auto;display:inline-flex;align-items:center;text-decoration:none" href="https://console.firebase.google.com/project/platoz-3abf9/firestore/rules" target="_blank" rel="noopener">Ouvrir les règles Firebase</a></div>
+    <p class="muted">Dans la page des règles, descends jusqu'au bloc qui commence par <b>match /stats/{id}</b>. Colle le texte juste en dessous de ce bloc, avant les deux accolades <b>}</b> de la toute fin. Touche <b>Publier</b>, puis recharge cette page : ce cadre disparaît quand c'est bon.</p>
+  </section>
+
   <div id="app" hidden>
     <div class="tabs" role="tablist">
       <button role="tab" data-t="stats" aria-selected="true">Statistiques</button>
@@ -140,7 +148,7 @@ async function publish() {
     await F.setDoc(F.doc(db, "contenu_hist", String(at)), body);
     await F.setDoc(F.doc(db, "contenu", "app"), body);
     pub = o; work = fromPub(); syncBar(); render(); toast("Publié. C'est en ligne.");
-  } catch (e) { toast(String(e.code || e.message).includes("permission") ? "Refusé : la règle Firestore « contenu » n'est pas encore en place." : "Échec de la publication, réessaie."); }
+  } catch (e) { toast(String(e.code || e.message).includes("permission") ? "Refusé : fais d'abord le réglage affiché en haut de la page." : "Échec de la publication, réessaie."); }
   btn.disabled = false;
 }
 
@@ -276,6 +284,7 @@ function render() {
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; render(); scrollTo(0, 0); });
 $("#pub").onclick = publish;
+$("#copyrule").onclick = async () => { try { await navigator.clipboard.writeText($("#rule").textContent); toast("Copié."); } catch (e) { const r = document.createRange(); r.selectNodeContents($("#rule")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Sélectionné : copie-le."); } };
 $("#undo").onclick = () => { if (!confirm("Annuler toutes les modifications pas encore publiées ?")) return; work = fromPub(); syncBar(); render(); };
 
 // ---------- connexion ----------
@@ -289,6 +298,12 @@ A.onAuthStateChanged(auth, async u => {
   $("#login").hidden = true; $("#app").hidden = false; $("#view").innerHTML = `<p class="muted">Chargement…</p>`;
   try { await loadContenu(); } catch (e) { $("#view").innerHTML = `<p class="err">Impossible de charger le contenu (${esc(e.code || e.message)}).</p>`; return; }
   render();
+  // ce compte peut-il publier ? sinon, on affiche la règle à coller, écrite pour lui (son identifiant, pas son e-mail)
+  try { await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
+  catch (e) {
+    $("#rule").textContent = `    match /contenu/{id} {\n      allow read: if true;\n      allow write: if request.auth != null && request.auth.uid == "${u.uid}";\n    }\n    match /contenu_hist/{id} {\n      allow read, write: if request.auth != null && request.auth.uid == "${u.uid}";\n    }`;
+    $("#setup").hidden = false;
+  }
 });
 </script>
 </body>
