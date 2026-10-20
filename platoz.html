@@ -1527,7 +1527,7 @@ function home() {
     ${multi ? `
       ${rail("Votes et devinettes", ["classement", "qui", "radar"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
-      ${rail("Questions", ["jamais", "av", "pref", "ouinon"], "", true)}
+      ${rail("Questions", ["av", "pref", "ouinon"], "", true)}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["deux", "reflexe", "test"], "", true)}
       ${multiHome()}` : `
@@ -1595,7 +1595,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (2)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (Je n'ai jamais)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1908,7 +1908,16 @@ function next() {
   if (S.idx >= S.deck.length) return endDeck();
   card();
 }
-function endDeck() { if (S.mode === "mix") return afterRound(); ranking(); }
+function endDeck() {
+  if (S.mode === "mix") return afterRound();
+  if (S.mode === "jamais") { // pas de nombre de cartes : on continue jusqu'à « Terminer »
+    // quand tout le paquet est passé, il repart sans reprendre les 20 dernières cartes
+    const recent = S.deck.slice(-20).map(d => d.id), all = deckOf("jamais", 999);
+    const more = all.filter(c => !recent.includes(c.id));
+    if (more.length || all.length) { S.deck.push(...(more.length ? more : all).slice(0, 40)); return card(); }
+  }
+  ranking();
+}
 function card() {
   const c = S.deck[S.idx];
   if (!c) return endDeck();
@@ -1919,7 +1928,19 @@ const alt = () => S.idx % 2 === 1;
 const chipsHtml = () => `<div class="chips" style="padding:0 18px">${S.players.map((p, i) => `<button class="chip pick" data-i="${i}" aria-pressed="false">${esc(p.name)}</button>`).join("")}</div>`;
 
 function cJamais(c) {
-  const text = fill(c.data[1]);
+  // en partie Je n'ai jamais seule : pas de points, on swipe de carte en carte ; dans le Mix, +1 comme avant
+  const text = fill(c.data[1]), seul = S.mode === "jamais";
+  if (seul) return view(`${header()}
+    <div class="stage">${cardShell("jamais", null, `
+      <p class="text">Je n'ai jamais <b>${esc(text)}</b>.</p>
+      <p class="sub">Swipe pour la suivante.</p>
+    `, alt())}</div>
+    <div class="actions"><button class="btn red" id="ok">Suivante</button><button class="linkbtn" id="stop">Terminer</button></div>`, () => {
+    bindHeader();
+    const fly = swipeNext($(".stage .card"), next);
+    $("#ok").onclick = () => fly(-1);
+    $("#stop").onclick = ranking;
+  });
   view(`${header()}
     <div class="stage">${cardShell("jamais", null, `
       <p class="text">Je n'ai jamais <b>${esc(text)}</b>.</p>
@@ -1935,6 +1956,47 @@ function cJamais(c) {
       picked.forEach(p => score(p, 1));
       if (picked.length) { plus(1); later(next, 700); } else next();
     };
+  });
+}
+// carte qu'on jette d'un geste, à gauche ou à droite, pour passer à la suivante ; renvoie fly(sens) pour le bouton
+function swipeNext(el, onNext) {
+  if (!el) return () => {};
+  el.classList.add("swipe");
+  let x0 = null, y0 = 0, dx = 0, done = false, pid = null;
+  const set = (d, anim) => {
+    el.style.animation = "none";
+    el.style.transition = anim ? "transform .2s ease-out" : "none";
+    el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
+  };
+  const fly = dir => {
+    if (done) return; done = true; buzz(10);
+    const d = (dir > 0 ? 1 : -1) * (innerWidth + 240);
+    el.style.animation = "none"; el.style.transition = "transform .22s ease-in"; el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
+    setTimeout(onNext, 180);
+  };
+  el.addEventListener("pointerdown", e => { if (done || e.target.closest("button")) return; x0 = e.clientX; y0 = e.clientY; dx = 0; pid = e.pointerId; });
+  el.addEventListener("pointermove", e => {
+    if (x0 === null || e.pointerId !== pid) return;
+    dx = e.clientX - x0;
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - y0)) { try { el.setPointerCapture(pid); } catch (er) {} }
+    set(dx);
+  });
+  const end = () => { if (x0 === null) return; x0 = null; if (Math.abs(dx) > 70) fly(dx); else set(0, true); };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  return fly;
+}
+function finJamais() {
+  const n = S.idx;
+  view(`
+    <div class="rank anim">
+      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} carte${n > 1 ? "s" : ""}</span></div>
+    </div>
+    <div class="actions">
+      <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
+    </div>
+  `, () => {
+    $("#again").onclick = () => { S.names = S.players.map(p => p.name); startGame(); };
+    $("#home").onclick = home;
   });
 }
 
@@ -2473,7 +2535,7 @@ function chooserTool() {
   });
 }
 
-/* -------- VOTES : Dinguerie / Mew, pour savoir quelles cartes plaisent -------- */
+/* -------- VOTES : Lourd / Bof, pour savoir quelles cartes plaisent -------- */
 const votes = store.get("votes", {}); // id de carte → "top" | "mew"
 const devId = store.get("dev", null) || (() => { const d = Math.random().toString(36).slice(2, 10); store.set("dev", d); return d; })();
 let dbP = null;
@@ -2520,7 +2582,7 @@ function vote(c, v) {
   store.set("votes", votes); sendVote(c, votes[c.id]);
   return votes[c.id];
 }
-const rateBtns = id => `<button data-v="top" aria-pressed="${votes[id] === "top"}">🔥 Dinguerie</button><button data-v="mew" aria-pressed="${votes[id] === "mew"}">😑 Mew</button>`;
+const rateBtns = id => `<button data-v="top" aria-pressed="${votes[id] === "top"}">🔥 Lourd</button><button data-v="mew" aria-pressed="${votes[id] === "mew"}">😑 Bof</button>`;
 const rateBar = () => { const c = curCard(); return c ? `<div class="ratebar">${rateBtns(c.id)}</div>` : ""; };
 function bindRate(r = document, getCard = curCard, after) {
   $$(".ratebar button", r).forEach(b => b.onclick = () => {
@@ -2538,7 +2600,7 @@ function testerMenu() {
   const n = t => C[t].filter(c => votes[cardId(t, c)]).length;
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Tester les cartes</span><span style="width:44px"></span></div>
-    <p class="hint muted" style="text-align:center;margin:0">Passe les cartes une par une : 🔥 Dinguerie si elle est bien, 😑 Mew si elle est nulle. Tes votes servent à améliorer le jeu.</p>
+    <p class="hint muted" style="text-align:center;margin:0">Passe les cartes une par une : 🔥 Lourd si elle est bien, 😑 Bof si elle est nulle. Tes votes servent à améliorer le jeu.</p>
     <div class="opts">${TEST_TYPES.map(([t, l]) => `<button class="opt" data-t="${t}"><span class="pepper">${n(t)}</span><span><span class="mast">${l}</span><p>${C[t].length} cartes · ${n(t)} notées</p></span></button>`).join("")}</div>
     <div class="actions"><button class="btn white" id="res">Voir les résultats</button></div>
   `, () => {
@@ -2575,7 +2637,7 @@ function testerRun(t) {
     `, () => {
       $("#back").onclick = testerMenu;
       $("#skip").onclick = () => { i++; draw(); };
-      bindRate(document, () => c, v => { if (v) { stamp(v === "top" ? "Dinguerie" : "Mew", v === "top" ? "green" : ""); later(() => { i++; draw(); }, 450); } });
+      bindRate(document, () => c, v => { if (v) { stamp(v === "top" ? "Lourd" : "Bof", v === "top" ? "green" : ""); later(() => { i++; draw(); }, 450); } });
     });
   };
   draw();
@@ -2925,7 +2987,7 @@ function sheet(html, bind) {
 }
 /* -------- MINI TUTO DES RÈGLES -------- */
 const TUTO = {
-  jamais: "Tu lis la carte. Ceux qui l'ont fait se balancent, tu touches leurs prénoms. Un point chacun.",
+  jamais: "Le téléphone est posé au milieu, n'importe qui lit. Ceux qui l'ont fait le disent, et on swipe pour la suivante. Pas de points, on arrête quand on veut.",
   av: "Tu choisis. Vérité : 1 point. Action : 2 points. Tu te dégonfles : 0.",
   pref: "Tu lis les deux choix, tout le monde lève la main en même temps. La majorité prend un point.",
   ouinon: "Le téléphone tourne. Chacun swipe en secret : à droite oui, à gauche non. La majorité prend un point.",
@@ -2996,13 +3058,13 @@ function pauseMenu() {
     <span class="mast" style="font-size:34px">Pause</span>
     <button class="btn" id="resume">Reprendre</button>
     <div class="tools-row" style="margin:0"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
-    <div class="section-label">Scores</div>
-    <div class="mini-rank">${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
+    ${S.mode === "jamais" ? "" : `<div class="section-label">Scores</div>`}
+    <div class="mini-rank"${S.mode === "jamais" ? ' style="display:none"' : ""}>${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
     <div class="section-label">Intensité</div>
     <div class="seg" id="lvl">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === S.level}">${l.name}</button>`).join("")}</div>
     ${curCard() ? `<button class="btn white" id="ban">Cette carte est nulle <small>Elle ne reviendra plus</small></button>` : ""}
     <button class="btn white" data-tool="propose">Proposer une carte</button>
-    <button class="btn ink" id="end">Terminer la partie <small>Voir le classement</small></button>
+    <button class="btn ink" id="end">Terminer la partie <small>${S.mode === "jamais" ? "Fin de la partie" : "Voir le classement"}</small></button>
     <button class="linkbtn" id="quit">Abandonner et revenir à l'accueil</button>
   `, w => {
     $("#resume", w).onclick = () => w.remove();
@@ -3028,6 +3090,7 @@ function ranking() {
   if (!ON.ctx) stat("end", S.mode, (S.players || []).length, "un");
   S.inGame = false;
   try { wakeLock && wakeLock.release(); } catch (e) {}
+  if (S.mode === "jamais" && !ON.ctx) return finJamais();
   const st = standings(); lastRank = st;
   const pod = st.slice(0, 3), rest = st.slice(3);
   const order = pod.length === 3 ? [pod[1], pod[0], pod[2]] : pod;
@@ -3903,7 +3966,7 @@ async function roomNext(r) {
   const all = ids(r), n = all.length;
   if (r.round >= r.rounds) { stat("end", r.game, n, "multi"); return upd({ status: "end" }); }
   if (!r.round) stat("start", r.game, n, "multi");
-  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && !LONG.includes(t) && ON_GAMES[t][1] <= n);
+  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && t !== "jamais" && !LONG.includes(t) && ON_GAMES[t][1] <= n);
   const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
   const c = t === "av" || NEWG.includes(t) ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
   S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
@@ -4382,7 +4445,7 @@ function lobbyView(r, host) {
     <div class="section-label">Joueurs (${n})</div>
     <div class="chips on-players">${all.map(u => `<span class="chip">${esc(r.players[u].name)}${u === r.host ? " ★" : ""}</span>`).join("")}</div>
     ${host ? `<div class="section-label">Jeu</div>
-      <div class="chips on-games" id="g">${Object.entries(ON_GAMES).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
+      <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => k !== "jamais").map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
       <div class="section-label">Manches</div>
       <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`
       : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.</p>`}

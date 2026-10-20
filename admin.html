@@ -224,7 +224,7 @@ function viewCartes() {
       ${idx.map(i => { const c = L[i], vv = v(c); return `<div class="card" data-i="${i}">
         <select data-k="lvl" aria-label="Intensité">${DEF.levelNames.map((n, j) => `<option value="${j + 1}"${c[0] === j + 1 ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
         <div class="fields">${F_.map((lab, j) => `<textarea rows="2" data-k="${j + 1}" placeholder="${esc(lab)}" aria-label="${esc(lab)}">${esc(c[j + 1] ?? "")}</textarea>`).join("")}</div>
-        <div class="votes"><span title="Dinguerie">🔥 ${vv.top}</span><span title="Mew">😑 ${vv.mew}</span><button class="btn ghost small" data-del>Supprimer</button></div>
+        <div class="votes"><span title="Lourd">🔥 ${vv.top}</span><span title="Bof">😑 ${vv.mew}</span><button class="btn ghost small" data-del>Supprimer</button></div>
       </div>`; }).join("") || `<p class="muted" style="padding:12px 0">Aucune carte.</p>`}
     </section>`;
 }
