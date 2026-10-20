@@ -1466,7 +1466,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
    ÉTAT
    ===================================================================== */
 const S = {
-  names: store.get("players", []),
+  names: [], // chaque partie repart sans joueurs : on les tape ou on touche un groupe
   mode: "mix",
   level: store.get("level", 2),
   hot: store.get("hot", true),
@@ -1536,7 +1536,7 @@ function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "lon
 
 /* -------- ACCUEIL -------- */
 function home() {
-  S.inGame = false; onStop(); ON.ctx = null;
+  S.inGame = false; onStop(); ON.ctx = null; S.names = []; S.duo = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
@@ -1622,7 +1622,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (2)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1652,7 +1652,7 @@ function playersScreen() {
   const min = minPlayers();
   const draw = () => {
     $("#chips").innerHTML = S.names.map((n, i) => `<span class="chip">${esc(n)}<button class="x" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span>`).join("")
-      || `<p class="hint muted">Ajoute au moins ${min} prénoms. Ils seront gardés pour la prochaine soirée.</p>`;
+      || `<p class="hint muted">Ajoute au moins ${min} prénoms, ou touche un groupe.</p>`;
     $$("#chips .x").forEach(b => b.onclick = () => { S.names.splice(+b.dataset.i, 1); store.set("players", S.names); draw(); });
     const ok = S.names.length >= min;
     $("#next").disabled = !ok;
@@ -1692,13 +1692,27 @@ function groupBubbles(draw) {
   $$(".bubble", box).forEach(b => b.onclick = () => popGroup(b, groups[+b.dataset.i], draw));
 }
 function groupSheet(done) {
+  const mem = S.names.slice(); // joueurs du nouveau groupe : ceux déjà ajoutés, modifiables ici
   sheet(`
     <span class="mast" style="font-size:30px">Groupes</span>
-    <p class="hint muted" style="text-align:center">Enregistre les ${S.names.length} joueurs actuels sous un nom.</p>
-    <div class="field"><input class="grp-in" id="grp-name" maxlength="16" placeholder="Nom du groupe" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Nom du groupe"></div>
-    <button class="btn red" id="grp-save">Enregistrer</button>
+    <div class="field"><input class="grp-in" id="grp-name" maxlength="16" placeholder="Nom du groupe" autocomplete="off" autocapitalize="words" enterkeyhint="next" aria-label="Nom du groupe"></div>
+    <div class="field"><input id="grp-p" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom d'un joueur du groupe"><button class="btn" type="button" id="grp-add">Ajouter</button></div>
+    <div class="chips" id="grp-chips"></div>
+    <button class="btn red" id="grp-save">Créer le groupe</button>
     <div id="grp-list" style="display:grid;gap:6px"></div>
     <button class="btn" id="grp-close">Fermer</button>`, w => {
+    const chips = () => {
+      $("#grp-chips", w).innerHTML = mem.map((n, i) => `<span class="chip">${esc(n)}<button class="x" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span>`).join("")
+        || `<p class="hint muted" style="margin:0">Ajoute les prénoms du groupe.</p>`;
+      $$("#grp-chips .x", w).forEach(b => b.onclick = () => { mem.splice(+b.dataset.i, 1); chips(); });
+    };
+    const addP = () => {
+      const v = $("#grp-p", w).value.trim().replace(/\s+/g, " ");
+      if (!v) return;
+      if (mem.some(n => n.toLowerCase() === v.toLowerCase())) { toast("Ce prénom est déjà dans le groupe."); return; }
+      if (mem.length >= 16) { toast("16 joueurs maximum."); return; }
+      mem.push(v); $("#grp-p", w).value = ""; $("#grp-p", w).focus(); chips();
+    };
     const list = () => {
       const g = store.get("groups", []);
       $("#grp-list", w).innerHTML = g.map((x, i) => `<div class="grp-row"><span>${esc(x.name)} · ${x.names.length}</span><button data-i="${i}" aria-label="Supprimer ${esc(x.name)}">×</button></div>`).join("");
@@ -1706,15 +1720,17 @@ function groupSheet(done) {
     };
     const save = () => {
       const name = $("#grp-name", w).value.trim().replace(/\s+/g, " ");
-      if (S.names.length < 2) { toast("Ajoute au moins 2 prénoms d'abord."); return; }
       if (!name) { toast("Donne un nom au groupe."); return; }
+      if (mem.length < 2) { toast("Ajoute au moins 2 prénoms au groupe."); return; }
       const g = store.get("groups", []).filter(x => x.name.toLowerCase() !== name.toLowerCase());
-      g.push({ name, names: S.names.slice() }); store.set("groups", g); w.remove(); done();
+      g.push({ name, names: mem.slice() }); store.set("groups", g); w.remove(); toast("Groupe créé. Touche sa bulle pour l'ajouter."); done();
     };
+    $("#grp-add", w).onclick = addP;
+    $("#grp-p", w).onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); addP(); } };
     $("#grp-save", w).onclick = save;
-    $("#grp-name", w).onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); save(); } };
+    $("#grp-name", w).onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#grp-p", w).focus(); } };
     $("#grp-close", w).onclick = () => w.remove();
-    list();
+    chips(); list();
   });
 }
 function popGroup(b, g, draw) {
@@ -3258,7 +3274,7 @@ const TEST = [
 
 /* deux prénoms pour les jeux à deux */
 function duoSetup(then) {
-  const d = S.duo || store.get("duo", ["", ""]);
+  const d = S.duo || ["", ""];
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Qui joue ?</span><span style="width:44px"></span></div>
     <div class="opts">
