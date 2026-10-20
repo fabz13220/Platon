@@ -1015,6 +1015,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
 .rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
+.card.swipe { touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform; cursor: grab; }
+.card .swipe-tag { position: absolute; top: 64px; z-index: 3; padding: 4px 14px; border: 4px solid; border-radius: 14px; font-family: var(--display); font-size: 34px; font-weight: 900; letter-spacing: .04em; opacity: 0; pointer-events: none; background: rgba(11,7,32,.35); }
+.card .swipe-tag.oui { left: 18px; color: #2EE6A0; border-color: #2EE6A0; transform: rotate(-12deg); }
+.card .swipe-tag.non { right: 18px; color: #FF5A82; border-color: #FF5A82; transform: rotate(12deg); }
+.card .swipe-hint { display: flex; justify-content: space-between; margin: 4px 0 0; padding: 0 22px; font-size: 17px; font-weight: 900; opacity: .85; }
+.actions.duo-btns { flex-direction: row; }
+.actions.duo-btns .btn { flex: 1; }
 .on-choices { display: flex; flex-direction: column; gap: 10px; margin: 6px 0; }
 .on-choices .btn { min-height: 56px; }
 .on-games .chip.pick { font-size: 15px; min-height: 44px; padding: 8px 14px; }
@@ -1412,7 +1419,7 @@ const TYPES = {
   pref:      { label: "Tu préfères", color: "var(--ink)", dark: true, desc: "Faut choisir." },
   imposteur: { label: "L'Imposteur", color: "var(--green)", dark: true, desc: "Un mytho parmi vous." },
   classement: { label: "Le Classement", color: "var(--rank)", dark: true, desc: "Il vous classe, vous devinez pourquoi." },
-  ouinon:    { label: "Oui ou non", color: "var(--yesno)", dark: true, desc: "Pouce en l'air ou en bas." },
+  ouinon:    { label: "Oui ou non", color: "var(--yesno)", dark: true, desc: "Swipe : à droite oui, à gauche non." },
   radar:     { label: "Le Radar", color: "var(--radar)", dark: true, desc: "Un indice, vise juste." },
   taboo:     { label: "Sans le dire", color: "var(--taboo)", dark: true, desc: "Fais deviner sans les mots interdits." },
   menteur:   { label: "Le Menteur", color: "var(--blue)", dark: true, desc: "Vrai ou mytho ?" },
@@ -1615,7 +1622,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 20 octobre (3)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2260,42 +2267,65 @@ function cClassement(c) {
   };
 }
 
-/* -------- OUI OU NON : tout le monde répond en même temps, sans débattre -------- */
-function cOuinon(c) {
-  const text = fill(c.data[1]);
-  view(`${header()}
-    <div class="stage">${cardShell("ouinon", null, `
-      <p class="text">${esc(text)}</p>
-      <p class="sub">À trois, pouce en l'air ou en bas.</p>
-      ${rulePts("+1 point pour chaque personne de la majorité")}
-    `, alt())}</div>
-    <div class="actions"><button class="btn red" id="go">3, 2, 1… Répondez !</button></div>`, () => {
-    bindHeader();
-    $("#go").onclick = () => {
-      let n = 3;
-      const tick = () => {
-        $(".stage").innerHTML = `<div class="big-count">${n > 0 ? n : "👍 👎"}</div>`;
-        if (n <= 0) { buzz(80); later(choose, 900); return; }
-        buzz(20); n--; later(tick, 650);
-      };
-      $(".actions").innerHTML = ""; tick();
-    };
-    const choose = () => {
-      $(".stage").innerHTML = cardShell("ouinon", null, `
-        <p class="text" style="font-size:24px">Qui a dit <b>oui</b> ?</p>
-        <p class="sub">Touchez leurs prénoms. Les autres ont dit non.</p>
-        ${chipsHtml()}`, alt());
-      $(".actions").innerHTML = `<button class="btn red" id="val">Valider</button>`;
-      $$(".chip.pick").forEach(x => x.onclick = () => x.setAttribute("aria-pressed", x.getAttribute("aria-pressed") !== "true"));
-      $("#val").onclick = () => {
-        const A = $$(".chip.pick").filter(x => x.getAttribute("aria-pressed") === "true").map(x => S.players[+x.dataset.i]);
-        const B = S.players.filter(p => !A.includes(p));
-        if (A.length === B.length) { stamp("Égalité"); return later(next, 800); }
-        (A.length > B.length ? A : B).forEach(p => score(p, 1));
-        stamp((A.length > B.length ? "Oui" : "Non") + " gagne", "green"); later(next, 900);
-      };
-    };
+/* -------- OUI OU NON : le téléphone tourne, chacun swipe en secret (droite = oui, gauche = non) -------- */
+// carte à swiper : à droite = oui, à gauche = non ; renvoie fly(v) pour les boutons
+function swipeCard(el, onPick) {
+  if (!el) return () => {};
+  el.classList.add("swipe");
+  el.insertAdjacentHTML("beforeend", `<span class="swipe-tag oui" aria-hidden="true">OUI</span><span class="swipe-tag non" aria-hidden="true">NON</span>`);
+  const tOui = el.querySelector(".swipe-tag.oui"), tNon = el.querySelector(".swipe-tag.non");
+  let x0 = null, y0 = 0, dx = 0, done = false, pid = null;
+  const set = (d, anim) => {
+    el.style.animation = "none"; // l'animation d'entrée de la carte bloquerait le déplacement
+    el.style.transition = anim ? "transform .25s ease-out" : "none";
+    el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
+    tOui.style.opacity = Math.max(0, Math.min(1, d / 90)); tNon.style.opacity = Math.max(0, Math.min(1, -d / 90));
+  };
+  const fly = v => {
+    if (done) return; done = true; buzz(15);
+    const d = (v === "oui" ? 1 : -1) * (innerWidth + 240);
+    (v === "oui" ? tOui : tNon).style.opacity = 1;
+    el.style.animation = "none"; el.style.transition = "transform .3s ease-in"; el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
+    setTimeout(() => onPick(v), 260);
+  };
+  el.addEventListener("pointerdown", e => { if (done || e.target.closest("button")) return; x0 = e.clientX; y0 = e.clientY; dx = 0; pid = e.pointerId; });
+  el.addEventListener("pointermove", e => {
+    if (x0 === null || e.pointerId !== pid) return;
+    dx = e.clientX - x0;
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - y0)) { try { el.setPointerCapture(pid); } catch (er) {} }
+    set(dx);
   });
+  const end = () => { if (x0 === null) return; x0 = null; if (Math.abs(dx) > 90) fly(dx > 0 ? "oui" : "non"); else set(0, true); };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  return fly;
+}
+function cOuinon(c) {
+  const text = fill(c.data[1]), P = S.players, votes = [];
+  const turn = i => view(`${header()}
+    <div class="stage">${cardShell("ouinon", { label: "À toi", name: P[i].name }, `
+      <p class="text">${esc(text)}</p>
+      <p class="swipe-hint"><span>← Non</span><span>Oui →</span></p>
+      ${rulePts(i === 0 ? "Le téléphone tourne, chacun répond en secret. +1 point pour la majorité" : `${i + 1} / ${P.length}`)}
+    `, alt())}</div>
+    <div class="actions duo-btns"><button class="btn white" id="no">👎 Non</button><button class="btn green" id="yes">👍 Oui</button></div>`, () => {
+    bindHeader();
+    const fly = swipeCard($(".stage .card"), v => { votes[i] = v; i + 1 < P.length ? turn(i + 1) : result(); });
+    $("#yes").onclick = () => fly("oui"); $("#no").onclick = () => fly("non");
+  });
+  const result = () => {
+    const A = P.filter((p, i) => votes[i] === "oui"), B = P.filter((p, i) => votes[i] === "non");
+    const win = A.length === B.length ? "" : A.length > B.length ? "Oui" : "Non";
+    (win === "Oui" ? A : win === "Non" ? B : []).forEach(p => score(p, 1));
+    const names = L => L.length ? L.map(p => esc(p.name)).join(", ") : "personne";
+    view(`${header()}
+      <div class="stage">${cardShell("ouinon", { label: "Résultat", name: win ? `${win} gagne (${Math.max(A.length, B.length)} contre ${Math.min(A.length, B.length)})` : "Égalité" }, `
+        <p class="text" style="font-size:24px">${esc(text)}</p>
+        <p class="sub"><b>👍 Oui</b> : ${names(A)}<br><b>👎 Non</b> : ${names(B)}</p>
+        ${rulePts(win ? `+1 point pour ceux qui ont dit ${win.toLowerCase()}` : "Égalité : personne ne marque")}
+      `, alt())}</div>
+      <div class="actions"><button class="btn red" id="ok">Suivante</button></div>`, () => { bindHeader(); buzz(40); $("#ok").onclick = next; });
+  };
+  turn(0);
 }
 
 /* -------- OUTILS : dé et chooser, ouverts par-dessus la partie -------- */
@@ -2909,7 +2939,7 @@ const TUTO = {
   jamais: "Tu lis la carte. Ceux qui l'ont fait se balancent, tu touches leurs prénoms. Un point chacun.",
   av: "Tu choisis. Vérité : 1 point. Action : 2 points. Tu te dégonfles : 0.",
   pref: "Tu lis les deux choix, tout le monde lève la main en même temps. La majorité prend un point.",
-  ouinon: "Tu lis la question. À trois, pouce en l'air ou en bas. La majorité prend un point.",
+  ouinon: "Le téléphone tourne. Chacun swipe en secret : à droite oui, à gauche non. La majorité prend un point.",
   classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
   qui: "Tu lis la question. À trois, tout le monde pointe quelqu'un. Le plus visé prend un point.",
   radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
@@ -3993,6 +4023,7 @@ function roomRender(r) {
     if (T === "pref") stage = cardShell(T, null, `<p class="sub" style="font-weight:700;color:var(--ink)">Tu préfères…</p>
       ${choices([["a", esc(c.a)], ["b", esc(c.b)]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
     if (T === "ouinon") stage = cardShell(T, null, `<p class="text">${esc(c.text)}</p>
+      <p class="swipe-hint"><span>← Non</span><span>Oui →</span></p>
       ${choices([["a", "👍 Oui", "green"], ["b", "👎 Non"]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
     if (T === "av") stage = cardShell(T, { label: c.kind === "v" ? "Vérité pour" : "Action pour", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
       ${isSolo ? `<p class="sub">Les autres valident sur leur téléphone si tu l'as fait.</p>${waitP}` : `<p class="sub">${soloName} l'a fait ?</p>${choices([["y", "Réussi", "green"], ["n", "Refusé"]])}${waitP}`}
@@ -4104,6 +4135,7 @@ function roomRender(r) {
       }
       upd({ [`acts.${uid}`]: x.dataset.v });
     });
+    if (T === "ouinon" && r.phase === "vote") swipeCard($(".stage .card"), v => upd({ [`acts.${uid}`]: v === "oui" ? "a" : "b" }));
     if (b("rank-ok")) {
       const order = [], all = ids(r);
       const draw = () => {
