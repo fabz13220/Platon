@@ -1004,7 +1004,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tuto-step { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always; padding: 8px 6px; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; text-align: center; }
 .tuto-ico { flex: none; width: 96px; height: 96px; border-radius: 28px; display: grid; place-items: center; font-size: 54px; background: var(--glass-2); box-shadow: inset 0 0 0 1.5px var(--hair), 0 0 24px -6px rgba(255,59,110,.7); }
 .tuto-step h3 { margin: 0 0 8px; font-family: var(--display); font-size: 24px; line-height: 1.15; color: #fff; }
-.tuto-step p { margin: 0 auto; max-width: 34ch; font-size: 18.5px; line-height: 1.38; font-weight: 700; color: var(--ink-soft); }
+.tuto-step p { margin: 0 auto; max-width: 30ch; font-size: 22px; line-height: 1.4; font-weight: 800; color: #fff; }
 .tuto-dots { display: flex; justify-content: center; gap: 7px; }
 .tuto-dots i { width: 9px; height: 9px; border-radius: 99px; background: rgba(255,255,255,.28); transition: all .2s; }
 .tuto-dots i.on { width: 26px; background: var(--red); box-shadow: 0 0 10px rgba(255,59,110,.8); }
@@ -1380,23 +1380,23 @@ const isHot = parts => HOT.test(parts.join(" "));
 const TYPES = {
   uno:       { label: "Uno", color: "var(--yellow)", dark: false, desc: "" },
   jamais:    { label: "Je n'ai jamais", color: "var(--violet)", dark: true,  desc: "Ceux qui l'ont fait se balancent." },
-  av:        { label: "Action ou vérité", color: "var(--yellow)", dark: false, desc: "Une question ou un défi. L'action rapporte plus." },
-  qui:       { label: "Qui pourrait", color: "var(--red)", dark: true, desc: "Tout le monde pointe du doigt en même temps." },
-  pref:      { label: "Tu préfères", color: "var(--ink)", dark: true, desc: "Deux choix impossibles. La majorité marque." },
-  imposteur: { label: "L'Imposteur", color: "var(--green)", dark: true, desc: "Un joueur n'a pas le mot. Démasquez-le." },
-  classement: { label: "Le Classement", color: "var(--rank)", dark: true, desc: "Un joueur classe tout le monde. Chacun retrouve la question." },
-  ouinon:    { label: "Oui ou non", color: "var(--yesno)", dark: true, desc: "Une question, tout le monde répond en même temps. Sans débat." },
-  radar:     { label: "Le Radar", color: "var(--radar)", dark: true, desc: "Un indice, une aiguille : visez la cible secrète." },
-  taboo:     { label: "Sans le dire", color: "var(--taboo)", dark: true, desc: "Fais deviner un mot à ton équipe sans dire les mots interdits." },
-  menteur:   { label: "Le Menteur", color: "var(--blue)", dark: true, desc: "L'appli dit en secret au joueur s'il doit mentir." },
+  av:        { label: "Action ou vérité", color: "var(--yellow)", dark: false, desc: "L'action rapporte plus." },
+  qui:       { label: "Qui pourrait", color: "var(--red)", dark: true, desc: "3, 2, 1, on pointe." },
+  pref:      { label: "Tu préfères", color: "var(--ink)", dark: true, desc: "Faut choisir." },
+  imposteur: { label: "L'Imposteur", color: "var(--green)", dark: true, desc: "Un mytho parmi vous." },
+  classement: { label: "Le Classement", color: "var(--rank)", dark: true, desc: "Il vous classe, vous devinez pourquoi." },
+  ouinon:    { label: "Oui ou non", color: "var(--yesno)", dark: true, desc: "Pouce en l'air ou en bas." },
+  radar:     { label: "Le Radar", color: "var(--radar)", dark: true, desc: "Un indice, vise juste." },
+  taboo:     { label: "Sans le dire", color: "var(--taboo)", dark: true, desc: "Fais deviner sans les mots interdits." },
+  menteur:   { label: "Le Menteur", color: "var(--blue)", dark: true, desc: "Vrai ou mytho ?" },
   deux:      { label: "Qui de nous deux", color: "var(--violet)", dark: true, desc: "" },
   reflexe:   { label: "Duel réflexe", color: "var(--blue)", dark: true, desc: "" },
   test:      { label: "Test de scandale", color: "var(--red)", dark: true, desc: "" }
 };
 const LEVELS = [
-  { n: 1, name: "Chill", desc: "Entre collègues, en famille, pour démarrer." },
-  { n: 2, name: "Épicé", desc: "La soirée entre potes classique." },
-  { n: 3, name: "Hors de contrôle", desc: "Fin de soirée, adultes consentants, aucune limite de bon goût." }
+  { n: 1, name: "Chill", desc: "Tranquille, même avec ta daronne." },
+  { n: 2, name: "Épicé", desc: "Entre potes." },
+  { n: 3, name: "Hors de contrôle", desc: "Fin de soirée. Plus de limite." }
 ];
 
 /* =====================================================================
@@ -1507,7 +1507,7 @@ function home() {
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ p4: 2, deux: 2, reflexe: 2, test: 1, uno: 10 })[t] || 16;
-  const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "Chacun voit ses cartes en secret"], deux: ["Qui de nous deux", "Vous connaissez-vous vraiment ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne"], test: ["Test de scandale", "Es-tu si sage ?"] };
+  const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de scandale", "T'es grave à quel point ?"] };
   const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
   const rail = (title, list, id, on) => list.length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
@@ -1588,7 +1588,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 20 octobre</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 20 octobre (2)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1599,7 +1599,7 @@ function settingsSheet() {
 // une idée de jeu ou d'amélioration, envoyée pour être lue
 function ideaSheet() {
   sheet(`<span class="mast" style="font-size:28px">Ton idée</span>
-    <p class="hint">Un nouveau jeu, une règle, un truc qui manque : écris-le, on le lit.</p>
+    <p class="hint">Une idée ? Écris-la.</p>
     <textarea class="idea-in" id="idea-in" maxlength="600" rows="5" placeholder="Ex : un jeu où…" aria-label="Ton idée"></textarea>
     <button class="btn red" id="send">Envoyer</button>
     <button class="btn" id="close">Annuler</button>`, w => {
@@ -2131,7 +2131,7 @@ function cRadar(c) {
     view(`${header()}
       <div class="stage">${cardShell("radar", { label: `Au tour de · ${i + 1} / ${guessers.length}`, name: p.name }, `
         ${dialBox(c, { needle: v })}
-        <p class="sub">Indice de ${esc(g.name)}. Place la flèche où tu penses que se trouve la cible, sans montrer aux suivants.</p>
+        <p class="sub">Indice de ${esc(g.name)}. Place ta flèche, sans montrer.</p>
         ${rulePts(rule)}
       `, i % 2 === 1)}</div>
       <div class="actions"><button class="btn red" id="lock">${i + 1 < guessers.length ? "Valider et passer à " + esc(guessers[i + 1].name) : "Valider et voir le résultat"}</button></div>`, () => {
@@ -2239,7 +2239,7 @@ function cOuinon(c) {
   view(`${header()}
     <div class="stage">${cardShell("ouinon", null, `
       <p class="text">${esc(text)}</p>
-      <p class="sub">Pas de débat. Au signal, pouce en l'air pour oui, pouce en bas pour non, tous en même temps.</p>
+      <p class="sub">À trois, pouce en l'air ou en bas.</p>
       ${rulePts("+1 point pour chaque personne de la majorité")}
     `, alt())}</div>
     <div class="actions"><button class="btn red" id="go">3, 2, 1… Répondez !</button></div>`, () => {
@@ -2879,38 +2879,38 @@ function sheet(html, bind) {
 }
 /* -------- MINI TUTO DES RÈGLES -------- */
 const TUTO = {
-  jamais: [["📖", "Tu lis la carte", "Tu lis à voix haute : « Je n'ai jamais… »."], ["🙋", "Les coupables avouent", "Ceux qui l'ont déjà fait se balancent. Pas de triche, on se regarde dans les yeux."], ["👆", "Tu touches les prénoms", "Tu touches le prénom de chaque coupable sur l'écran."], ["🏅", "Les points", "Chaque personne qui l'a fait marque +1 point."]],
-  av: [["😈", "Vérité ou action", "Chacun son tour, tu choisis : vérité ou action."], ["🎲", "L'appli te donne la carte", "Tu lis la question ou tu fais le défi, devant tout le monde."], ["🏅", "Les points", "Vérité réussie : +1 point. Action réussie : +2 points."], ["🙅", "Tu refuses ?", "Pas de gage, mais tu marques 0 sur cette carte."]],
-  pref: [["🤔", "Deux choix impossibles", "Tu lis les deux options à voix haute."], ["🙌", "Vote à main levée", "Tout le monde choisit en même temps, sans discuter."], ["👆", "Tu touches les prénoms", "Tu touches ceux qui ont pris la première option."], ["🏅", "Les points", "Chaque personne de la majorité marque +1 point. Égalité : personne."]],
-  ouinon: [["👍", "Une question, deux réponses", "Tu lis la question. Pas de débat."], ["⏱️", "Au signal", "Pouce en l'air pour oui, pouce en bas pour non, tous en même temps."], ["👆", "Tu touches les prénoms", "Tu touches ceux qui ont dit oui."], ["🏅", "Les points", "Chaque personne de la majorité marque +1 point."]],
-  classement: [["📱", "Un joueur classe", "L'appli te passe le téléphone : tu lis la question en secret."], ["🏆", "Tu classes tout le monde", "Tu touches les prénoms dans l'ordre, toi compris."], ["🕵️", "Les autres devinent", "Chacun son tour choisit en secret la bonne question parmi plusieurs."], ["🏅", "Les points", "Bonne réponse : +2 points pour toi, et +1 point pour celui qui a classé."]],
-  qui: [["👉", "Qui pourrait…", "Tu lis la question : qui pourrait faire ça ?"], ["⏱️", "3, 2, 1, pointez", "Au signal, tout le monde pointe quelqu'un du doigt en même temps."], ["👆", "Tu touches le gagnant", "Tu touches le prénom le plus désigné. Égalité : personne."], ["🏅", "Les points", "La personne la plus désignée marque +1 point."]],
-  radar: [["🎯", "Une cible secrète", "Un joueur voit la cible sur l'échelle, en secret."], ["💬", "Il donne un indice", "Un mot, un film, une situation qui tombe à cet endroit. À voix haute."], ["➡️", "Les autres visent", "Chacun son tour place sa flèche, sans montrer aux suivants."], ["🏅", "Les points", "Tout près de la cible : 3 points. Pas trop loin : 2. Dans la zone : 1. Le donneur marque la moyenne des autres."]],
-  taboo: [["🤐", "Deux équipes", "L'appli coupe le groupe en deux. Un joueur fait deviner, son équipe devine."], ["⛔", "Mots interdits", "Tu fais deviner le mot sans le dire, sans les mots interdits, sans gestes."], ["👀", "Un surveillant", "Un joueur de l'autre équipe regarde l'écran et appuie sur « Interdit » s'il t'attrape."], ["🏅", "Les points", "Trouvé : +1 point. Interdit : −1 point. Tu peux passer 3 fois par tour."]],
-  imposteur: [["🕵️", "Un seul n'a pas le mot", "L'appli donne le mot secret à tous, sauf à l'imposteur."], ["📱", "Tu regardes en secret", "Le téléphone passe de main en main. Tu caches l'écran après."], ["💬", "Un mot chacun", "À tour de rôle, tu dis un seul mot lié au mot secret. Deux tours."], ["🏅", "Les points", "Imposteur démasqué : +1 point pour chacun des autres. Raté : +3 points pour l'imposteur."]],
-  menteur: [["🤥", "Une consigne secrète", "L'appli te dit en secret si tu dois dire la vérité ou mentir."], ["🗣️", "Tu réponds", "Tu réponds à la question, face à tout le monde."], ["❓", "Le groupe enquête", "Les autres te posent 3 questions, puis votent : vérité ou mensonge ?"], ["🏅", "Les points", "Groupe trompé : +2 points pour toi. Bien vu : +1 point pour chacun des autres."]],
-  p4: [["🔴", "Chacun sa couleur", "À deux sur le même téléphone, chacun son tour."], ["⬇️", "Tu lâches un jeton", "Tu touches une colonne, le jeton tombe tout en bas."], ["🎯", "Aligne 4 jetons", "En ligne, en colonne ou en diagonale."], ["🏅", "Le gagnant", "Le premier qui aligne 4 jetons gagne la manche."]],
-  uno: [["🃏", "7 cartes chacun", "Tu reçois 7 cartes. Le téléphone passe de main en main : tu caches ta main."], ["🎨", "Même couleur ou même valeur", "Tu joues une carte en surbrillance. Joker : tu choisis la couleur."], ["⚡", "Les cartes spéciales", "+2 et +4 : le suivant pioche et passe. Passe-tour et changement de sens."], ["🏁", "Le gagnant", "Rien à jouer ? Tu pioches. Le premier à vider sa main gagne."]],
-  deux: [["💞", "Qui de nous deux ?", "Tu lis la question à voix haute."], ["⏱️", "3, 2, 1, désignez", "Au signal, vous pointez chacun l'un de vous deux, en même temps."], ["🤝", "Complices ou pas", "Vous avez désigné la même personne ? Tu l'indiques dans l'appli."], ["🏅", "Les points", "Même personne : +1 point pour elle. Sinon, 20 secondes pour défendre sa version."]],
-  reflexe: [["⚡", "Attends le rouge", "L'écran attend, puis devient rouge d'un coup."], ["👆", "Touche vite", "Tu touches l'écran dès qu'il devient rouge. Trop tôt, c'est perdu."], ["🧍", "Seul", "5 essais, tu essaies de battre ton record."], ["🏅", "À deux", "Face à face : le plus rapide marque 1 point. Premier à 3 points gagne."]],
-  test: [["😇", "Es-tu si sage ?", "Tu réponds oui ou non à chaque question, honnêtement."], ["🤫", "Personne ne voit", "Tes réponses restent secrètes, seul ton score ressort."], ["📰", "Ton indice de scandale", "À la fin, tu obtiens ton pourcentage, un titre et trois aveux."], ["📲", "Tu partages ?", "Tu envoies ta Une à tes potes, si tu assumes."]],
-  mix: [["🎡", "La roue choisit", "Tu lances la roue, elle choisit le jeu du tour."], ["🃏", "Tu joues les cartes", "Chaque jeu a ses règles, elles sont écrites sur les cartes."], ["🏅", "Les points s'accumulent", "Tous les jeux comptent pour le même classement."], ["🏆", "Le classement final", "Après le dernier tour, le plus haut score gagne."]]
+  jamais: "Tu lis la carte. Ceux qui l'ont fait se balancent, tu touches leurs prénoms. Un point chacun.",
+  av: "Tu choisis. Vérité : 1 point. Action : 2 points. Tu te dégonfles : 0.",
+  pref: "Tu lis les deux choix, tout le monde lève la main en même temps. La majorité prend un point.",
+  ouinon: "Tu lis la question. À trois, pouce en l'air ou en bas. La majorité prend un point.",
+  classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
+  qui: "Tu lis la question. À trois, tout le monde pointe quelqu'un. Le plus visé prend un point.",
+  radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
+  taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
+  imposteur: "Tout le monde a le mot, sauf un. Chacun dit un mot, deux tours, puis on pointe le mytho.",
+  menteur: "L'appli te dit en secret si tu mens. Tu réponds, on te pose 3 questions, puis on vote.",
+  p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
+  uno: "Comme le vrai. On se passe le tel et on cache sa main.",
+  deux: "Tu lis la question. À trois, vous pointez l'un de vous deux. Même réponse : un point pour lui.",
+  reflexe: "L'écran devient rouge d'un coup. Le premier qui touche gagne. Trop tôt, t'as perdu.",
+  test: "Tu réponds oui ou non, personne voit. À la fin t'as ton score.",
+  mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
 };
 const tutoSession = new Set();
 // affiche les règles d'un jeu puis appelle then ; passe directement si déjà vu (force = rouvrir à la main)
 function showTuto(key, then, force) {
-  const steps = TUTO[key], seen = store.get("tutoSeen", []);
+  const steps = TUTO[key] ? [TUTO[key]] : null, seen = store.get("tutoSeen", []);
   const done = () => { try { then && then(); } catch (e) { console.error(e); } };
   if (!steps || (!force && (seen.includes(key) || tutoSession.has(key)))) return done();
   tutoSession.add(key); clearTimers(); $$(".tuto-wrap").forEach(t => t.remove());
   const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Puissance 4", mix: "Mode Mix" })[key] || key;
   const w = document.createElement("div"); w.className = "tuto-wrap";
   w.innerHTML = `<div class="tuto" role="dialog" aria-modal="true" aria-label="Règles : ${esc(name)}">
-    <div class="tuto-head"><span>Règles · <b>${esc(name)}</b></span><span id="tuto-n">1 / ${steps.length}</span></div>
-    <div class="tuto-track" id="tuto-track">${steps.map(s => `<div class="tuto-step"><span class="tuto-ico" aria-hidden="true">${s[0]}</span><div><h3>${esc(s[1])}</h3><p>${esc(s[2])}</p></div></div>`).join("")}</div>
-    <div class="tuto-dots" id="tuto-dots">${steps.map(() => "<i></i>").join("")}</div>
+    <div class="tuto-head"><span>Règles · <b>${esc(name)}</b></span><span id="tuto-n"></span></div>
+    <div class="tuto-track" id="tuto-track">${steps.map(s => `<div class="tuto-step"><p>${esc(s)}</p></div>`).join("")}</div>
+    ${steps.length > 1 ? `<div class="tuto-dots" id="tuto-dots">${steps.map(() => "<i></i>").join("")}</div>` : ""}
     <label class="tuto-never"><input type="checkbox" id="tuto-never"${seen.includes(key) ? " checked" : ""}> Ne plus me montrer pour ce jeu</label>
-    <div class="tuto-btns"><button class="btn white" id="tuto-skip">Je connais, passer</button><button class="btn red" id="tuto-next">Suivant</button></div>
+    <div class="tuto-btns"><button class="btn white" id="tuto-skip">Je connais</button><button class="btn red" id="tuto-next">Suivant</button></div>
   </div>`;
   document.body.appendChild(w);
   const tr = $("#tuto-track", w), dots = $$("#tuto-dots i", w), nextBtn = $("#tuto-next", w);
@@ -2918,7 +2918,7 @@ function showTuto(key, then, force) {
   const sync = () => {
     cur = Math.max(0, Math.min(steps.length - 1, Math.round(tr.scrollLeft / Math.max(1, tr.clientWidth))));
     dots.forEach((d, i) => d.classList.toggle("on", i === cur));
-    $("#tuto-n", w).textContent = (cur + 1) + " / " + steps.length;
+    if (steps.length > 1) $("#tuto-n", w).textContent = (cur + 1) + " / " + steps.length;
     nextBtn.textContent = cur === steps.length - 1 ? "C'est parti" : "Suivant";
   };
   const close = () => {
@@ -3215,7 +3215,7 @@ function duoSetup(then) {
     const go = () => {
       const a = $("#duo-a").value.trim(), b = $("#duo-b").value.trim();
       if (!a || !b) { toast("Il faut deux prénoms."); return; }
-      if (a.toLowerCase() === b.toLowerCase()) { toast("Deux prénoms différents, s'il vous plaît."); return; }
+      if (a.toLowerCase() === b.toLowerCase()) { toast("Il faut deux prénoms différents."); return; }
       store.set("duo", [a, b]); S.duo = [a, b]; then();
     };
     $("#next").onclick = go;
@@ -3460,7 +3460,7 @@ async function saveStory(A, btn, file) {
   let dl = null;
   try { dl = window.claude && window.claude.use ? await Promise.race([window.claude.use("downloads"), new Promise(r => setTimeout(() => r(null), 3000))]) : null; } catch (e) { dl = null; }
   if (dl) {
-    try { await dl.save({ filename: "platoz-" + file + ".png", data: blob }); toast("Image enregistrée. À poster !"); return; }
+    try { await dl.save({ filename: "platoz-" + file + ".png", data: blob }); toast("Image enregistrée."); return; }
     catch (e) { if (e && e.code === "declined") return; }
   }
   sheet(`<span class="mast" style="font-size:30px">Ton image</span>
