@@ -1615,7 +1615,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 19 octobre (4)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 20 octobre</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -3494,7 +3494,7 @@ function net() {
     if (store.get("emu", 0)) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
     await auth.authStateReady();
     const user = auth.currentUser || (await A.signInAnonymously(auth)).user;
-    return { F, db, uid: user.uid };
+    return { F, db, A, auth, uid: user.uid };
   })().catch(e => { NETP = null; throw e; }));
 }
 const onStop = () => { ON.off.forEach(f => { try { f(); } catch (e) {} }); ON.off = []; };
@@ -3575,13 +3575,92 @@ function homeOnline(multi) {
   }).catch(() => {});
 }
 // lien d'invitation ?salle=CODE
+// clé de compte : le même compte dans l'appli de l'écran d'accueil, dans Safari ou sur un autre téléphone
+// (l'appli installée et Safari ont chacun leur propre mémoire sur iPhone)
+const keyMail = code => code.toLowerCase() + "@joueurs.platoz.app";
+const fmtKey = k => k.slice(0, 6) + "-" + k.slice(6);
+async function myKey() {
+  const N = await net(), me = store.get("me");
+  if (me.key) return me.key;
+  const user = N.auth.currentUser, secret = genCode(8);
+  await N.A.linkWithCredential(user, N.A.EmailAuthProvider.credential(keyMail(me.code), secret));
+  me.key = secret; store.set("me", me);
+  return secret;
+}
+async function keyLogin(raw, then) {
+  const k = String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (k.length !== 14) { toast("Une clé fait 14 caractères, par exemple ABC123-XY45ZW78."); return false; }
+  const code = k.slice(0, 6), secret = k.slice(6);
+  try {
+    const N = await net();
+    const cred = await N.A.signInWithEmailAndPassword(N.auth, keyMail(code), secret);
+    // même connexion, nouveau compte : on met à jour l'identifiant gardé en mémoire
+    N.uid = cred.user.uid; const { F, db, uid } = N;
+    const d = await F.getDoc(F.doc(db, "users", uid));
+    if (!d.exists()) { toast("Compte introuvable."); return false; }
+    store.set("me", { name: d.data().name, code: d.data().code, uid, key: secret });
+    toast("Te revoilà, " + d.data().name + " !");
+    (then || home)();
+    return true;
+  } catch (e) {
+    const c = e && e.code || "";
+    toast(c.includes("operation-not-allowed") ? "La connexion par clé n'est pas encore activée sur le jeu." : c.includes("too-many") ? "Trop d'essais, attends un peu." : "Clé incorrecte.");
+    return false;
+  }
+}
+function keyLoginView(then) {
+  view(`${onTop("J'ai déjà un compte")}
+    <p class="hint" style="text-align:center">Ta clé de compte se trouve dans l'appli où tu as déjà ton pseudo : <b>Amis</b>, puis <b>Utiliser mon compte ailleurs</b>.</p>
+    <div class="field"><input id="key-in" maxlength="16" placeholder="ABC123-XY45ZW78" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Clé de compte"><button class="btn red" id="key-ok">OK</button></div>
+  `, () => {
+    $("#back").onclick = () => pseudoView(then);
+    const go = async () => { $("#key-ok").disabled = true; if (!(await keyLogin($("#key-in").value, then))) $("#key-ok").disabled = false; };
+    $("#key-ok").onclick = go;
+    $("#key-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+  });
+}
+function keySheet() {
+  const me = store.get("me");
+  const w = sheet(`<span class="mast" style="font-size:28px">Mon compte ailleurs</span>
+    <p class="hint" style="margin:0">Sur iPhone, l'appli de l'écran d'accueil et Safari ne partagent pas ton compte. Avec cette clé, tu retrouves ton pseudo et tes amis partout.</p>
+    <div id="keybox" style="text-align:center"><span class="on-code" style="font-size:26px">…</span></div>
+    <a class="btn white" id="key-safari" target="_blank" rel="noopener" href="#" style="display:none;align-items:center;justify-content:center;text-decoration:none">Ouvrir mon compte dans Safari</a>
+    <button class="btn white" id="key-copy" disabled>Copier ma clé</button>
+    <p class="hint muted" style="margin:0">Sur un autre téléphone : ouvre le jeu, Chacun le sien, puis « J'ai déjà un compte » et tape la clé. Ne la donne à personne.</p>
+    <button class="btn" id="key-close">Fermer</button>`, w => { w.querySelector("#key-close").onclick = () => w.remove(); });
+  myKey().then(k => {
+    const full = fmtKey(me.code + k);
+    w.querySelector("#keybox").innerHTML = `<span class="on-code" style="font-size:clamp(18px,6vw,24px);white-space:nowrap">${full}</span>`;
+    const a = w.querySelector("#key-safari"); a.href = SITE + "?cle=" + me.code + k; a.style.display = "flex";
+    const c = w.querySelector("#key-copy"); c.disabled = false;
+    c.onclick = async () => { try { await navigator.clipboard.writeText(full); toast("Clé copiée."); } catch (e) { toast(full); } };
+  }).catch(e => {
+    const c = e && e.code || "";
+    w.querySelector("#keybox").innerHTML = `<p class="hint">${c.includes("operation-not-allowed") ? "La clé de compte n'est pas encore activée sur le jeu." : c.includes("already-in-use") ? "Une clé existe déjà pour ce compte, mais pas sur ce téléphone. Utilise-la depuis l'appareil où tu l'as créée." : "Impossible de créer la clé pour l'instant."}</p>`;
+  });
+}
+// lien de partie ouvert dans un navigateur où on n'a pas encore de compte
+function salleLanding(code) {
+  view(`${onTop("Rejoindre la partie")}
+    <div class="on-card"><div><span class="eyebrow">Code de la partie</span><span class="on-code">${esc(code)}</span></div></div>
+    <p class="hint" style="text-align:center">Tu as Platoz sur ton écran d'accueil ? Ouvre l'appli, touche <b>Chacun le sien</b> et tape ce code dans <b>Rejoindre une partie</b>.</p>
+    <div class="actions">
+      <button class="btn red" id="here">Jouer ici</button>
+      <button class="btn white" id="haskey">J'ai déjà un compte Platoz</button>
+    </div>
+  `, () => {
+    $("#back").onclick = () => { setUrl(""); home(); };
+    $("#here").onclick = () => pseudoView(() => onlineHome(code));
+    $("#haskey").onclick = () => keyLoginView(() => onlineHome(code));
+  });
+}
 async function onlineHome(join) {
   view(`${onTop("Partie en ligne")}<div class="stage"><p class="hint muted" style="text-align:center">Connexion…</p></div>`, () => { $("#back").onclick = home; });
   try { await net(); } catch (e) {
     $(".stage").innerHTML = `<div class="secret"><span class="mast" style="font-size:28px">Pas de connexion</span><p>${window.claude ? "Le jeu en ligne marche sur le site du jeu : " + SITE : "Vérifie ta connexion internet et réessaie."}</p></div>`;
     return;
   }
-  if (!hasProfile()) return pseudoView(() => onlineHome(join));
+  if (!hasProfile()) return salleLanding(String(join).toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4));
   if (!(await roomJoin(join))) { setUrl(""); home(); }
 }
 function pseudoView(then) {
@@ -3589,8 +3668,10 @@ function pseudoView(then) {
   view(`${onTop("Ton pseudo")}
     <p class="hint" style="text-align:center">C'est le nom que tes amis verront.</p>
     <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(me.name || S.names[0] || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Pseudo"><button class="btn red" id="ok">OK</button></div>
+    ${hasProfile() ? "" : `<p style="text-align:center;margin:0"><button class="linkbtn" id="haskey">J'ai déjà un compte Platoz</button></p>`}
   `, () => {
     $("#back").onclick = home;
+    if ($("#haskey")) $("#haskey").onclick = () => keyLoginView(then);
     const go = async () => {
       const v = $("#pseudo").value.trim().replace(/\s+/g, " ");
       if (!v) return;
@@ -3641,6 +3722,7 @@ function friendsView() {
       <div><span class="eyebrow">Ton code ami</span><span class="on-code">${me.code}</span></div>
       <button class="btn white" id="sharecode">Envoyer mon code à un pote</button>
       <button class="btn white" id="qrbtn">Afficher mon QR code</button>
+      <button class="btn white" id="keybtn">Utiliser mon compte ailleurs</button>
     </div>
     <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami d'un pote" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
     <div id="friends"><p class="hint muted">Chargement…</p></div>
@@ -3649,6 +3731,7 @@ function friendsView() {
     $("#rename").onclick = () => pseudoView(friendsView);
     $("#sharecode").onclick = () => shareIt(`Ajoute-moi sur Platoz, mon code ami : ${me.code}`, SITE);
     $("#qrbtn").onclick = () => qrSheet(me);
+    $("#keybtn").onclick = keySheet;
     const add = async () => { if (await addFriend($("#friend-in").value)) $("#friend-in").value = ""; };
     $("#addf").onclick = add;
     $("#friend-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
@@ -4293,7 +4376,9 @@ function roomEnd(r, host) {
 
 const salle = (() => { try { return new URLSearchParams(location.search).get("salle"); } catch (e) { return null; } })();
 const ami = (() => { try { return new URLSearchParams(location.search).get("ami"); } catch (e) { return null; } })();
-if (salle) onlineHome(salle);
+const cle = (() => { try { return new URLSearchParams(location.search).get("cle"); } catch (e) { return null; } })();
+if (cle) { setUrl(""); home(); keyLogin(cle, () => { store.set("multi", true); home(); }); }
+else if (salle) onlineHome(salle);
 else {
   home();
   // lien « ?ami=CODE » : on ajoute l'ami, puis on ouvre l'écran Amis
