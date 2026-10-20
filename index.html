@@ -102,7 +102,7 @@
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-html { background: var(--night); }
+html { background: var(--night); overflow: hidden; overscroll-behavior: none; }
 body {
   margin: 0;
   background: var(--night);
@@ -112,6 +112,7 @@ body {
   font-weight: 600;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; /* la page ne rebondit plus : seul un contenu trop long défile */
   -webkit-font-smoothing: antialiased;
 }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--night); }
@@ -310,9 +311,9 @@ p { margin: 0; }
 }
 .bubble small { font-size: 12px; font-weight: 800; opacity: .85; }
 .bubble span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
-.bubble { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: scale .18s, box-shadow .18s; }
+.bubble { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: box-shadow .18s; }
 .bubble, .bubble * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
-.bubble.held { animation-play-state: paused; scale: 1.14; z-index: 50; box-shadow: 0 22px 44px -12px rgba(166,107,255,.95), inset 0 -6px 14px rgba(255,59,122,.25), inset 0 2px 0 rgba(255,255,255,.4); }
+.bubble.held { animation-play-state: paused; z-index: 50; box-shadow: 0 22px 44px -12px rgba(166,107,255,.95), inset 0 -6px 14px rgba(255,59,122,.25), inset 0 2px 0 rgba(255,255,255,.4); }
 .end-bubbles { flex: 1; min-height: 130px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 10px 0; transition: opacity .5s; }
 .end-bubbles.wait { opacity: 0; pointer-events: none; }
 .bubble.pop { animation: bPop .26s ease-out forwards; pointer-events: none; }
@@ -409,7 +410,7 @@ p { margin: 0; }
   box-shadow: 0 28px 70px -22px var(--glow), 0 0 46px -10px var(--glow), inset 0 2px 0 rgba(255,255,255,.4), inset 0 0 0 1px rgba(255,255,255,.14);
   animation: cardIn .42s cubic-bezier(.25,.9,.35,1) both;
 }
-.stage > .card { flex: 1 0 auto; min-height: min(520px, 62vh); }
+.stage > .card { flex: 1 0 auto; min-height: min(520px, 52vh); }
 .stage > .card > :nth-child(2) { margin-top: auto; }
 .stage > .card > :last-child { margin-bottom: auto; }
 /* SIGNATURE: the game's symbol as a neon tube sign */
@@ -462,6 +463,12 @@ p { margin: 0; }
 }
 .card .who { font-family: var(--display); font-weight: 800; font-size: clamp(56px, 17vw, 76px); line-height: 1; letter-spacing: -.03em; padding: 0 22px; overflow-wrap: anywhere; }
 .card .who small { display: block; font-family: var(--body); font-size: 14px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 10px; opacity: .95; line-height: 1.2; }
+/* petits écrans (Safari avec ses barres) : tout doit tenir sans faire défiler */
+@media (max-height: 760px) {
+  .card::after { flex-basis: 34px !important; }
+  .card .text { font-size: clamp(26px, 7.8vw, 34px) !important; }
+  #app { gap: 12px; padding-block: 8px 14px; }
+}
 .card .text { font-size: clamp(30px, 9.2vw, 40px); line-height: 1.16; font-weight: 900; padding: 0 22px; text-wrap: pretty; overflow-wrap: break-word; letter-spacing: -.01em; }
 .stage > .card:has(.chips) .text { font-size: clamp(28px, 8.4vw, 36px); }
 .stage > .card:has(.chip:nth-child(6)) .text { font-size: clamp(26px, 7.4vw, 32px); }
@@ -1548,7 +1555,7 @@ function nextPlayer() { const p = S.players[turn % S.players.length]; turn++; re
 const app = $("#app");
 function view(html, after) {
   clearTimers(); $$(".sheet-wrap").forEach(s => s.remove()); $$(".tool-wrap").forEach(s => s.remove());
-  app.innerHTML = html; window.scrollTo(0, 0);
+  app.innerHTML = html; window.scrollTo(0, 0); document.body.scrollTop = 0;
   if (after) after();
 }
 function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
@@ -1601,7 +1608,7 @@ function home() {
       store.set("multi", m); home();
     });
     $("#friends-btn").onclick = () => hasProfile() ? friendsView() : pseudoView(friendsView);
-    $("#tab-games").onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+    $("#tab-games").onclick = () => document.body.scrollTo({ top: 0, behavior: "smooth" });
     $("#tab-tools").onclick = toolsSheet;
     $("#tab-settings").onclick = settingsSheet;
     $("#tab-mix").onclick = () => {
@@ -1641,7 +1648,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles 2)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles 3)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1708,48 +1715,100 @@ function groupBubbles(draw) {
   box.innerHTML = groups.map((g, i) => `<button class="bubble" data-i="${i}" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s" aria-label="Ajouter le groupe ${esc(g.name)}"><span>${esc(g.name)}</span><small>${g.names.length} joueurs</small></button>`).join("")
     + `<button class="linkbtn" id="mkgrp">+ Créer un groupe</button>`;
   $("#mkgrp").onclick = () => groupSheet(() => groupBubbles(draw));
-  $$(".bubble", box).forEach(b => { b.onclick = () => popGroup(b, groups[+b.dataset.i], draw); holdDrag(b); });
+  $$(".bubble", box).forEach(b => { b.onclick = () => popGroup(b, groups[+b.dataset.i], draw); jelly(b, () => b.click()); });
 }
-// on reste appuyé sur une bulle pour la prendre, puis on la déplace ; elle continue de flotter là où on la lâche.
-// Au doigt, on bloque tout ce que fait Safari d'habitude (défilement, loupe, menu) et on refait le tap nous-mêmes.
-function holdDrag(el) {
-  let t = null, on = false, slid = false, sx = 0, sy = 0, ox = 0, oy = 0, r0 = null, o0 = [0, 0];
-  const begin = (x, y) => {
-    sx = x; sy = y; slid = false; clearTimeout(t);
-    t = setTimeout(() => { t = null; on = true; r0 = el.getBoundingClientRect(); o0 = [ox, oy]; el.classList.add("held"); buzz(15); }, 200);
+/* -------- BULLES MOLLES : on les attrape au doigt, on les lance, elles s'écrasent sur les bords et entre elles, puis rebondissent -------- */
+const JELLY = new Set();
+let jellyRaf = 0;
+function jelly(el, onTap) {
+  const B = { el, x: 0, y: 0, vx: 0, vy: 0, ax: 0, ay: 0, avx: 0, avy: 0, h: 0, held: false, tx: 0, ty: 0, cx: 0, cy: 0, R: 40 };
+  const measure = () => { // centre de la bulle sans le déplacement qu'on lui a donné
+    for (const o of JELLY) if (o.el.parentNode === el.parentNode) { const r = o.el.getBoundingClientRect(); o.cx = r.left + r.width / 2 - o.x; o.cy = r.top + r.height / 2 - o.y; o.R = Math.min(r.width, r.height) / 2 / (1 + o.h * .1); }
   };
-  const move = (x, y) => {
-    if (!on) { if (t && Math.hypot(x - sx, y - sy) > 10) { clearTimeout(t); t = null; slid = true; } return; }
-    // la bulle reste dans l'écran
-    ox = o0[0] + Math.max(-r0.left, Math.min(innerWidth - r0.right, x - sx));
-    oy = o0[1] + Math.max(-r0.top, Math.min(innerHeight - r0.bottom, y - sy));
-    el.style.translate = `${ox}px ${oy}px`;
+  JELLY.add(B); measure();
+  let gx = 0, gy = 0, sx = 0, sy = 0, dragged = false;
+  const grab = (x, y) => {
+    measure(); B.held = true; dragged = false; sx = x; sy = y; gx = x - B.x; gy = y - B.y; B.tx = B.x; B.ty = B.y;
+    B.avx -= .05; B.avy += .05; el.classList.add("held"); buzz(8); wake();
   };
-  const end = () => { clearTimeout(t); t = null; const was = on; on = false; el.classList.remove("held"); return was; };
-  el.addEventListener("touchstart", e => { e.preventDefault(); const p = e.touches[0]; begin(p.clientX, p.clientY); }, { passive: false });
-  el.addEventListener("touchmove", e => { e.preventDefault(); const p = e.touches[0]; move(p.clientX, p.clientY); }, { passive: false });
-  el.addEventListener("touchend", e => { e.preventDefault(); if (!end() && !slid) el.click(); }, { passive: false });
-  el.addEventListener("touchcancel", end);
-  // à la souris (ordinateur)
+  const drag = (x, y) => { if (!B.held) return; if (Math.hypot(x - sx, y - sy) > 8) dragged = true; B.tx = x - gx; B.ty = y - gy; };
+  const drop = () => {
+    if (!B.held) return false; B.held = false; el.classList.remove("held"); wake();
+    if (!dragged) { B.avx += .07; B.avy -= .07; }
+    return dragged;
+  };
+  el.addEventListener("touchstart", e => { e.preventDefault(); const t = e.targetTouches[0]; grab(t.clientX, t.clientY); }, { passive: false });
+  el.addEventListener("touchmove", e => { e.preventDefault(); const t = e.targetTouches[0]; if (t) drag(t.clientX, t.clientY); }, { passive: false });
+  el.addEventListener("touchend", e => { e.preventDefault(); if (!e.targetTouches.length && !drop() && onTap) onTap(); }, { passive: false });
+  el.addEventListener("touchcancel", drop);
   el.addEventListener("mousedown", e => {
-    begin(e.clientX, e.clientY);
-    const mm = ev => move(ev.clientX, ev.clientY);
-    const mu = () => { removeEventListener("mousemove", mm); removeEventListener("mouseup", mu); if (end()) { el.dataset.moved = "1"; setTimeout(() => delete el.dataset.moved, 60); } };
+    grab(e.clientX, e.clientY);
+    const mm = ev => drag(ev.clientX, ev.clientY);
+    const mu = () => { removeEventListener("mousemove", mm); removeEventListener("mouseup", mu); if (!drop() && onTap) onTap(); };
     addEventListener("mousemove", mm); addEventListener("mouseup", mu);
   });
-  el.addEventListener("click", e => { if (el.dataset.moved) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
   el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("click", e => { if (e.isTrusted) { e.preventDefault(); e.stopImmediatePropagation(); } }, true); // le tap passe par onTap
 }
-// fin de partie : la bulle de chaque groupe présent en entier, puis les prénoms qui restent
+function wake() { if (!jellyRaf) jellyRaf = requestAnimationFrame(jellyStep); }
+function jellyStep() {
+  jellyRaf = 0;
+  let busy = false;
+  const all = [...JELLY].filter(o => o.el.isConnected);
+  JELLY.forEach(o => { if (!o.el.isConnected) JELLY.delete(o); });
+  for (const o of all) {
+    if (o.held) {
+      const px = o.x, py = o.y;
+      o.x += (o.tx - o.x) * .4; o.y += (o.ty - o.y) * .4;
+      o.vx = o.x - px; o.vy = o.y - py;
+    } else {
+      o.x += o.vx; o.y += o.vy; o.vx *= .965; o.vy *= .965;
+    }
+    // les bords de l'écran : la bulle s'écrase dessus et repart
+    const L = o.cx + o.x - o.R, Rr = o.cx + o.x + o.R, T = o.cy + o.y - o.R, Bt = o.cy + o.y + o.R;
+    const hit = (v, axis) => { const k = Math.min(.32, Math.abs(v) * .03); if (axis === "x") o.avx += k; else o.avy += k; if (Math.abs(v) > 4) buzz(6); };
+    if (L < 0) { o.x -= L; if (o.vx < 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
+    if (Rr > innerWidth) { o.x -= Rr - innerWidth; if (o.vx > 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
+    if (T < 0) { o.y -= T; if (o.vy < 0) { hit(o.vy, "y"); o.vy = -o.vy * .7; } }
+    if (Bt > innerHeight) { o.y -= Bt - innerHeight; if (o.vy > 0) { hit(o.vy, "y"); o.vy = -o.vy * .7; } }
+  }
+  // les bulles se cognent entre elles
+  for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+    const a = all[i], b = all[j];
+    if (a.el.parentNode !== b.el.parentNode) continue;
+    const dx = (b.cx + b.x) - (a.cx + a.x), dy = (b.cy + b.y) - (a.cy + a.y), d = Math.hypot(dx, dy) || 1;
+    const min = a.R + b.R - 2;
+    if (d >= min) continue;
+    const nx = dx / d, ny = dy / d, over = min - d;
+    if (a.held) { b.x += nx * over; b.y += ny * over; } else if (b.held) { a.x -= nx * over; a.y -= ny * over; }
+    else { a.x -= nx * over / 2; a.y -= ny * over / 2; b.x += nx * over / 2; b.y += ny * over / 2; }
+    const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+    if (rel < 0) {
+      const jmp = -1.8 * rel * (a.held || b.held ? 1 : .5);
+      if (!a.held) { a.vx -= jmp * nx; a.vy -= jmp * ny; }
+      if (!b.held) { b.vx += jmp * nx; b.vy += jmp * ny; }
+      const k = Math.min(.3, -rel * .035), ax = Math.abs(nx) > Math.abs(ny);
+      [a, b].forEach(o => { if (ax) o.avx += k; else o.avy += k; });
+    }
+  }
+  for (const o of all) {
+    // la forme : étirée quand elle file, écrasée au choc, et ça tremble comme de la gelée
+    const tX = -Math.min(.16, Math.abs(o.vx) * .012), tY = -Math.min(.16, Math.abs(o.vy) * .012);
+    o.avx += (tX - o.ax) * .17; o.avy += (tY - o.ay) * .17; o.avx *= .82; o.avy *= .82;
+    o.ax += o.avx; o.ay += o.avy;
+    o.h += ((o.held ? 1 : 0) - o.h) * .25;
+    const k = 1 + o.h * .1, sX = Math.max(.6, Math.min(1.5, (1 - o.ax + .6 * o.ay) * k)), sY = Math.max(.6, Math.min(1.5, (1 - o.ay + .6 * o.ax) * k));
+    o.el.style.translate = `${o.x.toFixed(1)}px ${o.y.toFixed(1)}px`;
+    o.el.style.scale = `${sX.toFixed(3)} ${sY.toFixed(3)}`;
+    if (o.held || Math.abs(o.vx) + Math.abs(o.vy) > .05 || Math.abs(o.ax) + Math.abs(o.ay) + Math.abs(o.avx) + Math.abs(o.avy) > .002 || Math.abs(o.h) > .01) busy = true;
+  }
+  if (busy) wake();
+}
+// fin de partie : chaque joueur dans sa bulle
 function endBubbles(names, wait) {
-  const low = n => n.toLowerCase(), left = new Set(names.map(low)), out = [];
-  store.get("groups", []).forEach(g => {
-    if (g.names.length >= 2 && g.names.every(n => left.has(low(n)))) { g.names.forEach(n => left.delete(low(n))); out.push([g.name, g.names.length + " joueurs"]); }
-  });
-  names.forEach(n => { if (left.has(low(n))) { left.delete(low(n)); out.push([n, ""]); } });
-  return `<div class="end-bubbles${wait ? " wait" : ""}">${out.map(([t, sub], i) => `<div class="bubble" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s"><span>${esc(t)}</span>${sub ? `<small>${sub}</small>` : ""}</div>`).join("")}</div>`;
+  return `<div class="end-bubbles${wait ? " wait" : ""}">${names.map((n, i) => `<div class="bubble" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s"><span>${esc(n)}</span></div>`).join("")}</div>`;
 }
-const bindBubbles = () => $$(".end-bubbles .bubble").forEach(holdDrag);
+const bindBubbles = () => $$(".end-bubbles .bubble").forEach(b => jelly(b));
 function groupSheet(done) {
   const mem = S.names.slice(); // joueurs du nouveau groupe : ceux déjà ajoutés, modifiables ici
   sheet(`
@@ -2029,7 +2088,7 @@ function cJamais(c) {
     `, i % 2 === 1);
     return view(`${header()}
       <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
-      <div class="actions"><button class="btn red" id="ok">Suivante</button><button class="linkbtn" id="stop">Terminer</button></div>`, () => {
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
       bindHeader();
       const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1); // au bouton, la carte part au hasard à gauche ou à droite
