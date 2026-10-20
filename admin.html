@@ -77,10 +77,17 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 
   <section class="panel" id="setup" hidden style="border-color:var(--gold)">
     <h2>Dernier réglage, une seule fois</h2>
-    <p>Pour que <b>Publier</b> marche, la base doit savoir que ce compte est le tien. Copie ce texte :</p>
-    <pre id="rule" style="margin:0;padding:12px;border-radius:12px;background:#0F0A26;border:1.5px solid var(--line);font-size:13px;white-space:pre-wrap;word-break:break-all"></pre>
-    <div class="row"><button class="btn" id="copyrule" style="flex:0 0 auto">Copier le texte</button><a class="btn ghost" style="flex:0 0 auto;display:inline-flex;align-items:center;text-decoration:none" href="https://console.firebase.google.com/project/platoz-3abf9/firestore/rules" target="_blank" rel="noopener">Ouvrir les règles Firebase</a></div>
-    <p class="muted">Dans la page des règles, descends jusqu'au bloc qui commence par <b>match /stats/{id}</b>. Colle le texte juste en dessous de ce bloc, avant les deux accolades <b>}</b> de la toute fin. Touche <b>Publier</b>, puis recharge cette page : ce cadre disparaît quand c'est bon.</p>
+    <p>Pour que <b>Publier</b> marche, la base doit savoir que ce compte est le tien. Ce texte contient tes règles actuelles, plus l'accès admin réservé à ton compte.</p>
+    <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+      <li>Touche <b>Copier les règles</b>.</li>
+      <li>Touche <b>Ouvrir les règles Firebase</b>.</li>
+      <li>Dans la zone de texte des règles, efface <b>tout</b> le texte (tout sélectionner, puis supprimer).</li>
+      <li>Colle, puis touche <b>Publier</b> en haut.</li>
+      <li>Reviens ici et recharge la page : ce cadre disparaît quand c'est bon.</li>
+    </ol>
+    <div class="row"><button class="btn" id="copyrule" style="flex:0 0 auto">Copier les règles</button><a class="btn ghost" style="flex:0 0 auto;display:inline-flex;align-items:center;text-decoration:none" href="https://console.firebase.google.com/project/platoz-3abf9/firestore/rules" target="_blank" rel="noopener">Ouvrir les règles Firebase</a></div>
+    <details><summary class="muted" style="cursor:pointer">Voir le texte</summary>
+    <pre id="rule" style="margin:8px 0 0;padding:12px;border-radius:12px;background:#0F0A26;border:1.5px solid var(--line);font-size:12px;white-space:pre-wrap;word-break:break-all"></pre></details>
   </section>
 
   <div id="app" hidden>
@@ -284,9 +291,47 @@ function render() {
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; render(); scrollTo(0, 0); });
 $("#pub").onclick = publish;
-$("#copyrule").onclick = async () => { try { await navigator.clipboard.writeText($("#rule").textContent); toast("Copié."); } catch (e) { const r = document.createRange(); r.selectNodeContents($("#rule")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Sélectionné : copie-le."); } };
+$("#copyrule").onclick = async () => { try { await navigator.clipboard.writeText($("#rule").textContent); toast("Copié."); } catch (e) { $("#setup details").open = true; const r = document.createRange(); r.selectNodeContents($("#rule")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Sélectionné : copie-le."); } };
 $("#undo").onclick = () => { if (!confirm("Annuler toutes les modifications pas encore publiées ?")) return; work = fromPub(); syncBar(); render(); };
 
+// règles Firestore complètes : celles déjà publiées par Fabio, plus l'accès admin réservé à ce compte (son identifiant)
+const RULES = uid => `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /votes/{id} { allow read, create, update: if true; }
+    match /propositions/{id} { allow read, create: if true; }
+    match /codes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+      match /friends/{fid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if request.auth != null && (request.auth.uid == uid || request.auth.uid == fid);
+      }
+      match /invites/{room} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null;
+      }
+    }
+    match /rooms/{code} {
+      allow read, create, update, delete: if request.auth != null;
+    }
+    match /stats/{id} {
+      allow read: if request.auth != null;
+      allow create: if true;
+    }
+    match /contenu/{id} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == "${uid}";
+    }
+    match /contenu_hist/{id} {
+      allow read, write: if request.auth != null && request.auth.uid == "${uid}";
+    }
+  }
+}`;
 // ---------- connexion ----------
 const authMsg = e => ({ "auth/invalid-credential": "E-mail ou mot de passe incorrect.", "auth/wrong-password": "E-mail ou mot de passe incorrect.", "auth/user-not-found": "Aucun compte avec cet e-mail.", "auth/email-already-in-use": "Ce compte existe déjà : connecte-toi.", "auth/weak-password": "Mot de passe trop court (6 caractères minimum).", "auth/invalid-email": "Adresse e-mail invalide." })[e.code] || "Erreur : " + (e.code || e.message);
 const go = fn => async () => { $("#lerr").textContent = ""; try { await fn(auth, $("#mail").value.trim(), $("#pass").value); } catch (e) { $("#lerr").textContent = authMsg(e); } };
@@ -301,7 +346,7 @@ A.onAuthStateChanged(auth, async u => {
   // ce compte peut-il publier ? sinon, on affiche la règle à coller, écrite pour lui (son identifiant, pas son e-mail)
   try { await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
   catch (e) {
-    $("#rule").textContent = `    match /contenu/{id} {\n      allow read: if true;\n      allow write: if request.auth != null && request.auth.uid == "${u.uid}";\n    }\n    match /contenu_hist/{id} {\n      allow read, write: if request.auth != null && request.auth.uid == "${u.uid}";\n    }`;
+    $("#rule").textContent = RULES(u.uid);
     $("#setup").hidden = false;
   }
 });
