@@ -3084,13 +3084,10 @@ function pauseMenu() {
   const w = sheet(`
     <span class="mast" style="font-size:34px">Pause</span>
     <button class="btn" id="resume">Reprendre</button>
-    <div class="tools-row" style="margin:0"><button class="btn white" data-tool="dice">Dé</button><button class="btn white" data-tool="chooser">Chooser</button></div>
     ${S.mode === "jamais" ? "" : `<div class="section-label">Scores</div>`}
     <div class="mini-rank"${S.mode === "jamais" ? ' style="display:none"' : ""}>${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
     <div class="section-label">Intensité</div>
     <div class="seg" id="lvl">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === S.level}">${l.name}</button>`).join("")}</div>
-    ${curCard() ? `<button class="btn white" id="ban">Cette carte est nulle <small>Elle ne reviendra plus</small></button>` : ""}
-    <button class="btn white" data-tool="propose">Proposer une carte</button>
     <button class="btn ink" id="end">Terminer la partie <small>${S.mode === "jamais" ? "Fin de la partie" : "Voir le classement"}</small></button>
     <button class="linkbtn" id="quit">Abandonner et revenir à l'accueil</button>
   `, w => {
