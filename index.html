@@ -1015,6 +1015,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
 .rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
+.fin-names { flex: 1; align-content: center; justify-content: center; gap: 12px; padding: 0 12px; }
+.fin-names .chip { font-size: 20px; padding: 12px 20px; animation: chipIn .4s cubic-bezier(.3,1.4,.5,1) both; }
+.jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; transform: translate3d(0, 14px, 0) scale(.94); filter: brightness(.62); transform-origin: 50% 100%; }
+.jstack > .card.top { z-index: 1; }
+.jstack > .card.top.still { animation: none; }
 .card.swipe { touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform; cursor: grab; }
 .card .swipe-tag { position: absolute; top: 64px; z-index: 3; padding: 4px 14px; border: 4px solid; border-radius: 14px; font-family: var(--display); font-size: 34px; font-weight: 900; letter-spacing: .04em; opacity: 0; pointer-events: none; background: rgba(11,7,32,.35); }
 .card .swipe-tag.oui { left: 18px; color: #2EE6A0; border-color: #2EE6A0; transform: rotate(-12deg); }
@@ -1104,7 +1109,14 @@ const C = {
     [3,"recouché avec un ex"],[3,"fait un plan à trois"],[3,"gonflé une capote pour faire rire tout le monde"],[3,"passé une nuit en garde à vue"],
     [3,"commandé un truc sur le darknet"],[3,"eu une relation cachée à tout le monde"],[3,"couché le premier soir"],[3,"fait l'amour chez mes parents"],
     [3,"dormi dehors après une soirée"],
-    [1, "fait semblant de connaître une chanson en soirée"],[1, "mangé des pâtes crues"],[1, "dormi plus de 14 h d'affilée"],[1, "pris le mauvais bus et continué jusqu'au terminus"],[1, "dit « toi aussi » au serveur qui m'a souhaité bon appétit"],[1, "été bloqué dans un ascenseur"],[1, "fait une sieste dans une cabine d'essayage"],[1, "reçu un colis que j'avais oublié avoir commandé"],[2, "menti pour sécher un repas de famille"],[2, "fait du charme pour éviter une amende"],[2, "été grillé en train de parler de quelqu'un dans son dos"],[2, "dragué quelqu'un juste pour avoir un verre gratuit"],[2, "dormi chez quelqu'un que j'avais rencontré le soir même"],[3, "pécho quelqu'un dans les toilettes d'une boîte"],[3, "fait un strip-tease"]
+    [1, "fait semblant de connaître une chanson en soirée"],[1, "mangé des pâtes crues"],[1, "dormi plus de 14 h d'affilée"],[1, "pris le mauvais bus et continué jusqu'au terminus"],[1, "dit « toi aussi » au serveur qui m'a souhaité bon appétit"],[1, "été bloqué dans un ascenseur"],[1, "fait une sieste dans une cabine d'essayage"],[1, "reçu un colis que j'avais oublié avoir commandé"],[2, "menti pour sécher un repas de famille"],[2, "fait du charme pour éviter une amende"],[2, "été grillé en train de parler de quelqu'un dans son dos"],[2, "dragué quelqu'un juste pour avoir un verre gratuit"],[2, "dormi chez quelqu'un que j'avais rencontré le soir même"],[3, "pécho quelqu'un dans les toilettes d'une boîte"],[3, "fait un strip-tease"],
+    [1,"piqué un vêtement à {q} sans jamais le rendre"],[1,"fait semblant de rire à une blague de {q}"],[1,"oublié l'anniversaire de {q}"],
+    [1,"mangé un truc dans le frigo de {q} sans demander"],[1,"imité {q} dans son dos"],[1,"gardé une photo moche de {q} pour le jour où"],
+    [1,"squatté le canapé de {q} plus d'une nuit"],[1,"mis {q} en vu sans répondre"],[1,"fait croire à {q} que j'étais malade pour pas sortir"],
+    [2,"dit du mal de {q} à quelqu'un d'autre"],[2,"répété un secret de {q}"],[2,"été jaloux de {q}"],[2,"emprunté de l'argent à {q} sans le rendre"],
+    [2,"fini bourré chez {q}"],[2,"pleuré devant {q}"],[2,"trouvé {q} relou sans jamais lui dire"],[2,"fait un rêve chelou avec {q} dedans"],
+    [2,"menti à {q} ce mois-ci"],[2,"kiffé l'ex de {q}"],
+    [3,"eu un crush sur {q}"],[3,"pécho {q}"],[3,"pensé à {q} d'une façon pas très amicale"]
   ],
   verite: [
     [1,"C'est quoi le pire truc que t'aies mangé ?"],[1,"C'était quoi ton premier pseudo sur internet ?"],[1,"C'est quoi la chanson la plus honteuse que tu connais par cœur ?"],
@@ -1496,7 +1508,10 @@ function others(name) { return S.players.filter(p => p.name !== name); }
 function fill(t, p) {
   const o = others(p ? p.name : "");
   const q = o.length ? rnd(o).name : "quelqu'un";
-  return t.replace(/\{p\}/g, p ? p.name : "").replace(/\{q\}/g, q);
+  // « de Inès » → « d'Inès »
+  const el = (w, n) => /^[aeiouyhâàéèêëîïôûü]/i.test(n) ? w.slice(0, -1) + "'" + n : w + " " + n;
+  return t.replace(/\b(de|que) \{p\}/g, (m, w) => el(w, p ? p.name : "")).replace(/\b(de|que) \{q\}/g, (m, w) => el(w, q))
+    .replace(/\{p\}/g, p ? p.name : "").replace(/\{q\}/g, q);
 }
 function score(p, n) { p.pts += n; }
 function plus(n) { stamp("+" + n, "green"); }
@@ -1622,7 +1637,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (Je n'ai jamais)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (Je n'ai jamais 2)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1937,13 +1952,15 @@ function next() {
 }
 function endDeck() {
   if (S.mode === "mix") return afterRound();
-  if (S.mode === "jamais") { // pas de nombre de cartes : on continue jusqu'à « Terminer »
-    // quand tout le paquet est passé, il repart sans reprendre les 20 dernières cartes
-    const recent = S.deck.slice(-20).map(d => d.id), all = deckOf("jamais", 999);
-    const more = all.filter(c => !recent.includes(c.id));
-    if (more.length || all.length) { S.deck.push(...(more.length ? more : all).slice(0, 40)); return card(); }
-  }
+  if (S.mode === "jamais" && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
   ranking();
+}
+// quand tout le paquet est passé, il repart sans reprendre les 20 dernières cartes
+function jamaisRefill() {
+  const recent = S.deck.slice(-20).map(d => d.id), all = deckOf("jamais", 999);
+  const more = all.filter(c => !recent.includes(c.id));
+  S.deck.push(...(more.length ? more : all).slice(0, 40));
+  return all.length > 0;
 }
 function card() {
   const c = S.deck[S.idx];
@@ -1956,18 +1973,26 @@ const chipsHtml = () => `<div class="chips" style="padding:0 18px">${S.players.m
 
 function cJamais(c) {
   // en partie Je n'ai jamais seule : pas de points, on swipe de carte en carte ; dans le Mix, +1 comme avant
-  const text = fill(c.data[1]), seul = S.mode === "jamais";
-  if (seul) return view(`${header()}
-    <div class="stage">${cardShell("jamais", null, `
-      <p class="text">Je n'ai jamais <b>${esc(text)}</b>.</p>
-      <p class="sub">Swipe pour la suivante.</p>
-    `, alt())}</div>
-    <div class="actions"><button class="btn red" id="ok">Suivante</button><button class="linkbtn" id="stop">Terminer</button></div>`, () => {
-    bindHeader();
-    const fly = swipeNext($(".stage .card"), next);
-    $("#ok").onclick = () => fly(-1);
-    $("#stop").onclick = ranking;
-  });
+  const seul = S.mode === "jamais";
+  if (seul) {
+    // la carte suivante est déjà posée en dessous : elle apparaît quand on jette celle du dessus
+    if (S.idx + 1 >= S.deck.length) jamaisRefill();
+    const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+    const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
+    const face = (x, i) => cardShell("jamais", null, `
+      <p class="text">Je n'ai jamais <b>${esc(txt(x))}</b>.</p>
+      <p class="sub">${i < 2 ? "Swipe pour la suivante." : "&nbsp;"}</p>
+    `, i % 2 === 1);
+    return view(`${header()}
+      <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+      <div class="actions"><button class="btn red" id="ok">Suivante</button><button class="linkbtn" id="stop">Terminer</button></div>`, () => {
+      bindHeader();
+      const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+      $("#ok").onclick = () => fly(-1);
+      $("#stop").onclick = ranking;
+    });
+  }
+  const text = fill(c.data[1]);
   view(`${header()}
     <div class="stage">${cardShell("jamais", null, `
       <p class="text">Je n'ai jamais <b>${esc(text)}</b>.</p>
@@ -1985,38 +2010,53 @@ function cJamais(c) {
     };
   });
 }
-// carte qu'on jette d'un geste, à gauche ou à droite, pour passer à la suivante ; renvoie fly(sens) pour le bouton
-function swipeNext(el, onNext) {
+// carte qu'on jette d'un geste, à gauche ou à droite, pour passer à la suivante ; un petit coup sec suffit.
+// La carte du dessous (under) grandit à mesure qu'on tire. Renvoie fly(sens) pour le bouton.
+function swipeNext(el, under, onNext) {
   if (!el) return () => {};
   el.classList.add("swipe");
-  let x0 = null, y0 = 0, dx = 0, done = false, pid = null;
+  let x0 = null, y0 = 0, dx = 0, done = false, pid = null, pts = [];
+  const lift = (k, anim) => { // k : 0 = carte du dessous en attente, 1 = à sa place
+    if (!under) return;
+    under.style.transition = anim ? "transform .24s ease-out, filter .24s ease-out" : "none";
+    under.style.transform = `translate3d(0, ${14 * (1 - k)}px, 0) scale(${.94 + .06 * k})`;
+    under.style.filter = `brightness(${.62 + .38 * k})`;
+  };
   const set = (d, anim) => {
-    el.style.animation = "none";
-    el.style.transition = anim ? "transform .2s ease-out" : "none";
-    el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
+    el.style.transition = anim ? "transform .24s cubic-bezier(.2,.9,.3,1.2)" : "none";
+    el.style.transform = `translate3d(${d}px, ${Math.abs(d) * .06}px, 0) rotate(${d / 16}deg)`;
+    lift(Math.min(1, Math.abs(d) / 180), anim);
   };
   const fly = dir => {
     if (done) return; done = true; buzz(10);
-    const d = (dir > 0 ? 1 : -1) * (innerWidth + 240);
-    el.style.animation = "none"; el.style.transition = "transform .22s ease-in"; el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
-    setTimeout(onNext, 180);
+    const d = (dir > 0 ? 1 : -1) * (innerWidth + 260);
+    el.style.transition = "transform .26s cubic-bezier(.3,.6,.5,1)";
+    el.style.transform = `translate3d(${d}px, ${Math.abs(d) * .08}px, 0) rotate(${d / 14}deg)`;
+    lift(1, true);
+    setTimeout(onNext, 240);
   };
-  el.addEventListener("pointerdown", e => { if (done || e.target.closest("button")) return; x0 = e.clientX; y0 = e.clientY; dx = 0; pid = e.pointerId; });
+  el.addEventListener("pointerdown", e => { if (done || e.target.closest("button")) return; x0 = e.clientX; y0 = e.clientY; dx = 0; pid = e.pointerId; pts = [[e.clientX, e.timeStamp]]; el.style.animation = "none"; });
   el.addEventListener("pointermove", e => {
     if (x0 === null || e.pointerId !== pid) return;
     dx = e.clientX - x0;
-    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - y0)) { try { el.setPointerCapture(pid); } catch (er) {} }
+    pts.push([e.clientX, e.timeStamp]); if (pts.length > 6) pts.shift();
+    if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(e.clientY - y0)) { try { el.setPointerCapture(pid); } catch (er) {} }
     set(dx);
   });
-  const end = () => { if (x0 === null) return; x0 = null; if (Math.abs(dx) > 70) fly(dx); else set(0, true); };
+  const end = () => {
+    if (x0 === null) return; x0 = null;
+    const [a, b] = [pts[0], pts[pts.length - 1]], v = b[1] > a[1] ? (b[0] - a[0]) / (b[1] - a[1]) : 0; // vitesse en px/ms
+    if (Math.abs(dx) > 90 || (Math.abs(v) > .35 && Math.abs(dx) > 20)) fly(Math.abs(v) > .35 ? v : dx); else set(0, true);
+  };
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
   return fly;
 }
 function finJamais() {
   const n = S.idx;
   view(`
-    <div class="rank anim">
+    <div class="rank anim" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} carte${n > 1 ? "s" : ""}</span></div>
+      <div class="chips fin-names">${S.players.map((p, i) => `<span class="chip" style="animation-delay:${.15 + i * .07}s">${esc(p.name)}</span>`).join("")}</div>
     </div>
     <div class="actions">
       <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
