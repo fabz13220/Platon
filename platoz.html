@@ -1649,7 +1649,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles 5)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (règle Je n'ai jamais)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -3183,7 +3183,7 @@ function sheet(html, bind) {
 }
 /* -------- MINI TUTO DES RÈGLES -------- */
 const TUTO = {
-  jamais: "Le téléphone est posé au milieu, n'importe qui lit. Ceux qui l'ont fait le disent, et on swipe pour la suivante. Pas de points, on arrête quand on veut.",
+  jamais: "Quelqu'un lit la carte. Ceux qui l'ont déjà fait l'avouent, et on swipe.",
   av: "Tu choisis. Vérité : 1 point. Action : 2 points. Tu te dégonfles : 0.",
   pref: "Tu lis les deux choix, tout le monde lève la main en même temps. La majorité prend un point.",
   ouinon: "Le téléphone tourne. Chacun swipe en secret : à droite oui, à gauche non. La majorité prend un point.",
