@@ -602,6 +602,8 @@ p { margin: 0; }
   background: var(--glass); border: 1px solid var(--hair); padding: 9px 16px; border-radius: 999px; text-align: center; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* petits iPhone : « Carte 12 » doit tenir à côté de « ⟳ Changer » */
+@media (max-width: 400px) { .topbar { gap: 8px; } .progress { padding: 9px 10px; letter-spacing: .03em; } .changebtn { padding: 0 12px; } }
 
 .big-count {
   position: relative; z-index: 1;
