@@ -103,6 +103,8 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 html { background: var(--night); overflow: hidden; overscroll-behavior: none; }
+/* Safari : la page ne défile plus, donc sa barre du bas ne se replie plus ; on s'arrête au-dessus d'elle (zone visible réelle) */
+@supports (height: 100dvh) { html { height: 100dvh; } }
 body {
   margin: 0;
   background: var(--night);
@@ -316,6 +318,12 @@ p { margin: 0; }
 .bubble.held { animation-play-state: paused; z-index: 50; box-shadow: 0 22px 44px -12px rgba(166,107,255,.95), inset 0 -6px 14px rgba(255,59,122,.25), inset 0 2px 0 rgba(255,255,255,.4); }
 .end-bubbles { flex: 1; min-height: 130px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 10px 0; transition: opacity .5s; }
 .end-bubbles.wait { opacity: 0; pointer-events: none; }
+/* les bulles passent au-dessus du reste de l'écran : une bulle lâchée sur les boutons reste attrapable */
+#app > *:has(.bubble) { z-index: 3; }
+.bubble.free { animation: none !important; }
+.end-bubbles, #bubbles { pointer-events: none; }
+.end-bubbles .bubble, #bubbles .bubble, #bubbles .linkbtn { pointer-events: auto; }
+.end-bubbles.wait .bubble { pointer-events: none; }
 .bubble.pop { animation: bPop .26s ease-out forwards; pointer-events: none; }
 .bubble.back { animation: chipIn .5s cubic-bezier(.3,1.5,.5,1) both, bFloat calc(var(--dur) * 2.2) ease-in-out var(--dl) infinite alternate; }
 .spark { position: fixed; z-index: 90; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; left: 0; top: 0; }
@@ -423,6 +431,13 @@ p { margin: 0; }
 }
 .card.alt::before { transform: rotate(-8deg); }
 .card::after { content: ""; order: 99; flex: 0 0 92px; pointer-events: none; }
+/* carte trop haute pour l'écran (fitStage) : on retire le vide décoratif, puis on réduit les textes */
+.stage > .card.tight { min-height: 0; gap: 12px; padding-bottom: 18px; }
+.stage > .card.tight::after { flex-basis: 0 !important; }
+.stage > .card.tighter .text { font-size: clamp(22px, 6.6vw, 28px) !important; }
+.stage > .card.tighter .who { font-size: clamp(40px, 12vw, 52px); }
+.stage > .card.tighter .sub { font-size: 16px !important; }
+.stage > .card.tighter .pts-rule { font-size: 13px; padding: 8px 12px; }
 .stage > .card:has(.vs)::after, .stage > .card:has(.timer)::after { flex-basis: 40px; }
 .stage > .card:has(.chips)::after { flex-basis: 12px; }
 .card[style*="--radar"] { --glyph: "%"; --g: linear-gradient(165deg, #22D3EE 0%, #6366F1 55%, #7C3AED 100%); --glow: rgba(70,140,255,.65); --pill-ink: #4F46E5; }
@@ -1557,7 +1572,18 @@ function view(html, after) {
   clearTimers(); $$(".sheet-wrap").forEach(s => s.remove()); $$(".tool-wrap").forEach(s => s.remove());
   app.innerHTML = html; window.scrollTo(0, 0); document.body.scrollTop = 0;
   if (after) after();
+  fitStage();
 }
+// la carte doit tenir dans l'écran avec ses boutons : sinon les boutons passent sous le bas de l'iPhone
+function fitStage() {
+  const c = $(".stage > .card"); if (!c) return;
+  c.classList.remove("tight", "tighter");
+  const over = () => document.body.scrollHeight > document.body.clientHeight + 1;
+  if (over()) c.classList.add("tight");
+  if (over()) c.classList.add("tighter");
+}
+addEventListener("resize", fitStage);
+if (document.fonts) document.fonts.ready.then(fitStage);
 function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
 
 /* -------- ACCUEIL -------- */
@@ -1648,7 +1674,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles 3)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (bulles 4)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1723,15 +1749,21 @@ let jellyRaf = 0;
 function jelly(el, onTap) {
   const B = { el, x: 0, y: 0, vx: 0, vy: 0, ax: 0, ay: 0, avx: 0, avy: 0, h: 0, held: false, tx: 0, ty: 0, cx: 0, cy: 0, R: 40 };
   const measure = () => { // centre de la bulle sans le déplacement qu'on lui a donné
-    for (const o of JELLY) if (o.el.parentNode === el.parentNode) { const r = o.el.getBoundingClientRect(); o.cx = r.left + r.width / 2 - o.x; o.cy = r.top + r.height / 2 - o.y; o.R = Math.min(r.width, r.height) / 2 / (1 + o.h * .1); }
+    for (const o of JELLY) if (o.el.parentNode === el.parentNode && !o.el.classList.contains("free")) {
+      // dès qu'on touche une bulle, le flottement s'arrête (il la décalait jusqu'à 35 px, les bords tombaient à côté) ; on garde sa place à l'écran
+      const a = o.el.getBoundingClientRect(); o.el.classList.add("free"); const b = o.el.getBoundingClientRect();
+      o.x += a.left + a.width / 2 - b.left - b.width / 2; o.y += a.top + a.height / 2 - b.top - b.height / 2;
+      o.el.style.translate = `${o.x.toFixed(1)}px ${o.y.toFixed(1)}px`;
+    }
+    for (const o of JELLY) if (o.el.parentNode === el.parentNode) { const r = o.el.getBoundingClientRect(); o.cx = r.left + r.width / 2 - o.x; o.cy = r.top + r.height / 2 - o.y; const k = 1 + o.h * .1; o.R = Math.min(r.width, r.height) / 2 / k; o.hw = r.width / 2 / k; o.hh = r.height / 2 / k; }
   };
-  JELLY.add(B); measure();
+  JELLY.add(B); // mesurée au premier contact (grab)
   let gx = 0, gy = 0, sx = 0, sy = 0, dragged = false;
   const grab = (x, y) => {
     measure(); B.held = true; dragged = false; sx = x; sy = y; gx = x - B.x; gy = y - B.y; B.tx = B.x; B.ty = B.y;
     B.avx -= .05; B.avy += .05; el.classList.add("held"); buzz(8); wake();
   };
-  const drag = (x, y) => { if (!B.held) return; if (Math.hypot(x - sx, y - sy) > 8) dragged = true; B.tx = x - gx; B.ty = y - gy; };
+  const drag = (x, y) => { if (!B.held) return; if (Math.hypot(x - sx, y - sy) > 12) dragged = true; B.tx = x - gx; B.ty = y - gy; };
   const drop = () => {
     if (!B.held) return false; B.held = false; el.classList.remove("held"); wake();
     if (!dragged) { B.avx += .07; B.avy -= .07; }
@@ -1765,12 +1797,14 @@ function jellyStep() {
       o.x += o.vx; o.y += o.vy; o.vx *= .965; o.vy *= .965;
     }
     // les bords de l'écran : la bulle s'écrase dessus et repart
-    const L = o.cx + o.x - o.R, Rr = o.cx + o.x + o.R, T = o.cy + o.y - o.R, Bt = o.cy + o.y + o.R;
+    // demi-largeur et demi-hauteur réelles (une bulle avec un long prénom est plus large que haute), un peu de marge pour le flottement
+    const W = document.documentElement.clientWidth || innerWidth, H = innerHeight, hw = (o.hw || o.R) * Math.max(1, o.sx || 1) + 4, hh = (o.hh || o.R) * Math.max(1, o.sy || 1) + 4; // étirée, elle est plus large
+    const L = o.cx + o.x - hw, Rr = o.cx + o.x + hw, T = o.cy + o.y - hh, Bt = o.cy + o.y + hh;
     const hit = (v, axis) => { const k = Math.min(.32, Math.abs(v) * .03); if (axis === "x") o.avx += k; else o.avy += k; if (Math.abs(v) > 4) buzz(6); };
     if (L < 0) { o.x -= L; if (o.vx < 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
-    if (Rr > innerWidth) { o.x -= Rr - innerWidth; if (o.vx > 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
+    if (Rr > W) { o.x -= Rr - W; if (o.vx > 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
     if (T < 0) { o.y -= T; if (o.vy < 0) { hit(o.vy, "y"); o.vy = -o.vy * .7; } }
-    if (Bt > innerHeight) { o.y -= Bt - innerHeight; if (o.vy > 0) { hit(o.vy, "y"); o.vy = -o.vy * .7; } }
+    if (Bt > H) { o.y -= Bt - H; if (o.vy > 0) { hit(o.vy, "y"); o.vy = -o.vy * .7; } }
   }
   // les bulles se cognent entre elles
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
@@ -1799,7 +1833,7 @@ function jellyStep() {
     o.h += ((o.held ? 1 : 0) - o.h) * .25;
     const k = 1 + o.h * .1, sX = Math.max(.6, Math.min(1.5, (1 - o.ax + .6 * o.ay) * k)), sY = Math.max(.6, Math.min(1.5, (1 - o.ay + .6 * o.ax) * k));
     o.el.style.translate = `${o.x.toFixed(1)}px ${o.y.toFixed(1)}px`;
-    o.el.style.scale = `${sX.toFixed(3)} ${sY.toFixed(3)}`;
+    o.el.style.scale = `${sX.toFixed(3)} ${sY.toFixed(3)}`; o.sx = sX; o.sy = sY;
     if (o.held || Math.abs(o.vx) + Math.abs(o.vy) > .05 || Math.abs(o.ax) + Math.abs(o.ay) + Math.abs(o.avx) + Math.abs(o.avy) > .002 || Math.abs(o.h) > .01) busy = true;
   }
   if (busy) wake();
