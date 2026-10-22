@@ -302,6 +302,7 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 /* les bulles passent au-dessus du reste de l'écran : une bulle lâchée sur les boutons reste attrapable */
 #app > *:has(.bubble) { z-index: 3; }
 .bubble.free { animation: none !important; }
+.bubble.free.pop { animation: bPop .26s ease-out forwards !important; }
 .end-bubbles, #bubbles { pointer-events: none; }
 .end-bubbles .bubble, #bubbles .bubble, #bubbles .linkbtn { pointer-events: auto; }
 .end-bubbles.wait .bubble { pointer-events: none; }
@@ -1657,7 +1658,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 22 octobre (fin Je n'ai jamais)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 22 octobre (bulles qui flottent)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -1738,12 +1739,14 @@ function jelly(el, onTap, home) { // home : la bulle sert de bouton et revient d
       o.x += a.left + a.width / 2 - b.left - b.width / 2; o.y += a.top + a.height / 2 - b.top - b.height / 2;
       o.el.style.translate = `${o.x.toFixed(1)}px ${o.y.toFixed(1)}px`;
     }
-    for (const o of JELLY) if (o.el.parentNode === el.parentNode) { const r = o.el.getBoundingClientRect(); o.cx = r.left + r.width / 2 - o.x; o.cy = r.top + r.height / 2 - o.y; o.hw = o.el.offsetWidth / 2; o.hh = o.el.offsetHeight / 2; o.R = Math.min(o.hw, o.hh); } // taille sans l'étirement en cours
+    for (const o of JELLY) if (o.el.parentNode === el.parentNode) { const r = o.el.getBoundingClientRect(); o.cx = r.left + r.width / 2 - o.x - o.fx; o.cy = r.top + r.height / 2 - o.y - o.fy; o.hw = o.el.offsetWidth / 2; o.hh = o.el.offsetHeight / 2; o.R = Math.min(o.hw, o.hh); } // taille sans l'étirement en cours
   };
-  JELLY.add(B); // mesurée au premier contact (grab)
+  // le flottement est calculé ici avec le reste : il continue après qu'on a touché la bulle, et les bords en tiennent compte
+  Object.assign(B, { fx: 0, fy: 0, fw: 1, fa: calm() ? 0 : 22 + Math.random() * 10, fp: [Math.random() * 6.3, Math.random() * 6.3], fs: [.8 + Math.random() * .45, .7 + Math.random() * .4] });
+  el.classList.add("free"); JELLY.add(B); measure(); wake();
   let gx = 0, gy = 0, sx = 0, sy = 0, dragged = false;
   const grab = (x, y) => {
-    measure(); B.held = true; dragged = false; sx = x; sy = y; gx = x - B.x; gy = y - B.y; B.tx = B.x; B.ty = B.y;
+    measure(); B.x += B.fx; B.y += B.fy; B.fx = B.fy = B.fw = 0; B.held = true; dragged = false; sx = x; sy = y; gx = x - B.x; gy = y - B.y; B.tx = B.x; B.ty = B.y;
     B.avx -= .05; B.avy += .05; el.classList.add("held"); buzz(8); wake();
   };
   const drag = (x, y) => { if (!B.held) return; if (Math.hypot(x - sx, y - sy) > 12) dragged = true; B.tx = x - gx; B.ty = y - gy; };
@@ -1774,7 +1777,11 @@ function wake() { if (!jellyRaf) jellyRaf = requestAnimationFrame(jellyStep); }
 function jellyStep() {
   jellyRaf = 0;
   let busy = false;
-  const all = [...JELLY].filter(o => o.el.isConnected);
+  const all = [...JELLY].filter(o => o.el.isConnected), now = performance.now() / 1000;
+  for (const o of all) { // flottement : lent, ample, il revient doucement quand on lâche la bulle
+    o.fw += ((o.held ? 0 : 1) - o.fw) * .02;
+    o.fx = o.fa * o.fw * Math.sin(now * o.fs[0] + o.fp[0]); o.fy = o.fa * .8 * o.fw * Math.sin(now * o.fs[1] + o.fp[1]);
+  }
   // zone vraiment visible : sous l'heure et la batterie, au-dessus de la barre d'accueil de l'iPhone
   const br = document.body.getBoundingClientRect(), vh = window.visualViewport ? visualViewport.height : innerHeight;
   const wall = { t: Math.max(0, br.top), b: Math.min(br.bottom, vh) - safeBottom() };
@@ -1783,7 +1790,7 @@ function jellyStep() {
     // les bords de l'écran : la bulle s'écrase dessus et repart
     // demi-largeur et demi-hauteur réelles (une bulle avec un long prénom est plus large que haute), un peu de marge pour le flottement
     const W = document.documentElement.clientWidth || innerWidth, H = wall.b, hw = (o.hw || o.R) * Math.max(1, o.sx || 1) + 4, hh = (o.hh || o.R) * Math.max(1, o.sy || 1) + 4; // étirée, elle est plus large
-    const L = o.cx + o.x - hw, Rr = o.cx + o.x + hw, T = o.cy + o.y - hh, Bt = o.cy + o.y + hh;
+    const L = o.cx + o.x + o.fx - hw, Rr = o.cx + o.x + o.fx + hw, T = o.cy + o.y + o.fy - hh, Bt = o.cy + o.y + o.fy + hh;
     const hit = (v, axis) => { const k = Math.min(.22, Math.abs(v) * .03); if (axis === "x") o.avx += k; else o.avy += k; if (Math.abs(v) > 4) buzz(6); };
     if (L < 0) { o.x -= L; if (o.vx < 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
     if (Rr > W) { o.x -= Rr - W; if (o.vx > 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
@@ -1805,7 +1812,7 @@ function jellyStep() {
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
     const a = all[i], b = all[j];
     if (a.el.parentNode !== b.el.parentNode) continue;
-    const dx = (b.cx + b.x) - (a.cx + a.x), dy = (b.cy + b.y) - (a.cy + a.y), d = Math.hypot(dx, dy) || 1;
+    const dx = (b.cx + b.x + b.fx) - (a.cx + a.x + a.fx), dy = (b.cy + b.y + b.fy) - (a.cy + a.y + a.fy), d = Math.hypot(dx, dy) || 1;
     const min = a.R + b.R - 2;
     if (d >= min) continue;
     const nx = dx / d, ny = dy / d, over = min - d;
@@ -1829,10 +1836,11 @@ function jellyStep() {
     const k = 1 + o.h * .1, sX = Math.max(.75, Math.min(1.3, (1 - o.ax + .6 * o.ay) * k)), sY = Math.max(.75, Math.min(1.3, (1 - o.ay + .6 * o.ax) * k));
     o.sx = sX; o.sy = sY;
     walls(o); // avec sa forme de cette image, et après les chocs : une bulle poussée par une autre ne sort pas non plus
-    o.el.style.translate = `${o.x.toFixed(1)}px ${o.y.toFixed(1)}px`;
+    o.el.style.translate = `${(o.x + o.fx).toFixed(1)}px ${(o.y + o.fy).toFixed(1)}px`;
+    o.el.style.rotate = `${(o.fx * .18).toFixed(2)}deg`;
     o.el.style.scale = `${sX.toFixed(3)} ${sY.toFixed(3)}`;
-    if (o.held || Math.abs(o.vx) + Math.abs(o.vy) > .05 || Math.abs(o.ax) + Math.abs(o.ay) + Math.abs(o.avx) + Math.abs(o.avy) > .002 || Math.abs(o.h) > .01 || (o.home && Math.abs(o.x) + Math.abs(o.y) > .5)) busy = true;
   }
+  busy = all.length > 0; // tant qu'il y a des bulles à l'écran, elles flottent
   if (busy) wake();
 }
 // fin de partie : chaque joueur dans sa bulle
