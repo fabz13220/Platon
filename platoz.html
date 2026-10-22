@@ -492,12 +492,10 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 /* Tu préfères : pourcentages des autres groupes */
 .vs [data-o] { position: relative; overflow: hidden; transition: opacity .3s, transform .15s; }
 .vs [data-o]:active { transform: scale(.98); }
-.vs [data-o]::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(197,31,182,.2); transition: width .7s cubic-bezier(.2,.8,.3,1); }
+.vs [data-o]::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 0; background: var(--yellow); transition: width .8s cubic-bezier(.2,.8,.3,1); }
 .vs.done [data-o]::before { width: var(--p, 0%); }
-.vs.done [data-o]:not(.won) { opacity: .6; }
-.vs .won { box-shadow: 0 0 0 4px var(--yellow), 0 10px 24px -12px rgba(40,0,60,.6); }
 .vs [data-o] > span { position: relative; }
-.vs .pct { display: block; margin-top: 4px; font-family: var(--display); font-size: 28px; color: #C51FB6; animation: pop .3s ease-out; }
+.vs .pct { display: block; margin-top: 4px; font-family: var(--display); font-size: 28px; color: var(--ink); animation: pop .3s ease-out; }
 .vs .opt-b { padding-top: 26px; }
 .vs .or {
   align-self: center; margin: -14px 0; z-index: 1; width: 58px; height: 58px; border-radius: 50%;
@@ -2305,7 +2303,7 @@ function cPref(c) {
     const txt = x => x.txt || (x.txt = fill(x.data[1] + "\n" + x.data[2]).split("\n")); // même prénom des deux côtés, et il reste le même quand la carte passe dessus
     const face = (x, i) => cardShell("pref", null, `
       <div class="vs"><div class="opt-a" data-o="a"><span>${esc(txt(x)[0])}</span></div><div class="or">ou</div><div class="opt-b" data-o="b"><span>${esc(txt(x)[1])}</span></div></div>
-      <p class="sub">${i < 2 ? "On débat, puis touchez le choix du groupe pour voir ce qu'ont pris les autres." : "&nbsp;"}</p>
+      <p class="sub">${i < 2 ? "Chacun choisit, on débat, et on swipe." : "&nbsp;"}</p>
     `, i % 2 === 1);
     return view(`${header()}
       <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
@@ -2327,8 +2325,6 @@ function cPref(c) {
           choixAdd(c, k);
           const n = { a: (d.a || 0) + (k === "a"), b: (d.b || 0) + (k === "b") }, tot = n.a + n.b;
           $$("[data-o]", top).forEach(x => { const p = Math.round(100 * n[x.dataset.o] / tot); x.style.setProperty("--p", p + "%"); x.insertAdjacentHTML("beforeend", `<span class="pct">${p} %</span>`); });
-          const same = Math.round(100 * n[k] / tot);
-          $(".sub", top).textContent = tot < 2 ? "Vous êtes le premier groupe à répondre." : same >= 50 ? `${same} % des groupes ont fait pareil.` : `Seulement ${same} % des groupes ont fait pareil.`;
           later(() => fly(k === "a" ? -1 : 1), 1800);
         };
       });
