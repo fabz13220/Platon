@@ -289,6 +289,21 @@ p { margin: 0; }
 .bubble { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: box-shadow .18s; }
 .bubble, .bubble * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .bubble.held { animation-play-state: paused; z-index: 50; box-shadow: 0 22px 44px -12px rgba(166,107,255,.95), inset 0 -6px 14px rgba(255,59,122,.25), inset 0 2px 0 rgba(255,255,255,.4); }
+/* fin de Je n'ai jamais : écran lumineux, une couleur par bulle */
+body:has(.fin-jamais) { --amb1: rgba(170,90,255,.75); --amb2: rgba(255,60,150,.55); --amb3: rgba(80,140,255,.5); }
+body:has(.fin-jamais)::before { background: #3A1A8C; }
+#app:has(.fin-jamais) { background: radial-gradient(90% 50% at 50% 38%, rgba(255,255,255,.22), transparent 70%), linear-gradient(172deg, #9A4BFF 0%, #6F30F2 38%, #A92BD6 72%, #F0438F 100%); }
+html:has(.fin-jamais), body:has(.fin-jamais) { background: #A92BD6; }
+.fin-jamais .mast { font-size: 46px; color: #fff; text-shadow: 0 0 24px rgba(255,255,255,.55), 0 4px 0 rgba(60,10,140,.6); }
+.fin-jamais .rank-date { color: rgba(255,255,255,.85); }
+.fin-jamais .bubble { --bc: #FF3B7A; color: #fff; border-color: rgba(255,255,255,.75); font-size: 18px; min-width: 100px; min-height: 100px;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.85), rgba(255,255,255,.25) 30%, var(--bc) 75%);
+  box-shadow: 0 14px 34px -8px var(--bc), 0 0 28px -6px var(--bc), inset 0 -8px 16px rgba(0,0,0,.15), inset 0 2px 0 rgba(255,255,255,.6);
+  text-shadow: 0 1px 4px rgba(0,0,0,.45); }
+.fin-jamais .bubble:nth-child(5n+2) { --bc: #FFB21F; }
+.fin-jamais .bubble:nth-child(5n+3) { --bc: #22D6A0; }
+.fin-jamais .bubble:nth-child(5n+4) { --bc: #3E8BFF; }
+.fin-jamais .bubble:nth-child(5n+5) { --bc: #C04BFF; }
 .end-bubbles { flex: 1; min-height: 130px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 10px 0; transition: opacity .5s; }
 .end-bubbles.wait { opacity: 0; pointer-events: none; }
 /* les bulles passent au-dessus du reste de l'écran : une bulle lâchée sur les boutons reste attrapable */
@@ -1649,7 +1664,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 21 octobre (règle Je n'ai jamais)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 22 octobre (fin Je n'ai jamais)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2180,9 +2195,10 @@ function swipeNext(el, under, onNext) {
 function finJamais() {
   const n = S.idx;
   view(`
-    <div class="rank anim" style="flex:1">
+    <div class="rank anim fin-jamais" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} carte${n > 1 ? "s" : ""}</span></div>
       ${endBubbles(S.players.map(p => p.name))}
+      <div class="confetti" id="confetti"></div>
     </div>
     <div class="actions">
       <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
@@ -2190,7 +2206,7 @@ function finJamais() {
   `, () => {
     $("#again").onclick = () => { S.names = S.players.map(p => p.name); startGame(); };
     $("#home").onclick = home;
-    bindBubbles();
+    bindBubbles(); party(); buzz([40, 30, 80]);
   });
 }
 
