@@ -1039,6 +1039,14 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .card .qcount.on { transform: scale(1.25); background: rgba(255,255,255,.95); color: #EE1F66; border-color: transparent; }
 .card.swipe, .card.swipe * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .jstack > .card.top.still { animation: none; }
+.card .avpick { display: flex; gap: 12px; padding: 0 22px; margin-top: auto; }
+.card .avpick button { flex: 1; padding: 20px 0; border-radius: 20px; border: 2px solid var(--chipbd); background: var(--panel); color: var(--tx); font: 900 22px var(--display), sans-serif; cursor: pointer; transition: transform .15s; }
+.card .avpick button[data-k="a"] { background: #fff; color: var(--pill-ink); border-color: transparent; }
+.card .avpick button:active, .card .avother:active { transform: scale(.96); }
+.card .avfor { margin: 0; padding: 0 22px; font-size: 16px; font-weight: 800; opacity: .95; }
+.card .avfor b { font-family: var(--display); font-size: 22px; }
+.card .avother { margin: auto auto 0; padding: 9px 20px; border-radius: 99px; border: 2px solid var(--chipbd); background: var(--chipbg); color: var(--tx); font: 800 15px Nunito, sans-serif; cursor: pointer; }
+.jstack > .card.under .avother { visibility: hidden; }
 .card.swipe { touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform; cursor: grab; }
 .card .swipe-tag { position: absolute; top: 64px; z-index: 3; padding: 4px 14px; border: 4px solid; border-radius: 14px; font-family: var(--display); font-size: 34px; font-weight: 900; letter-spacing: .04em; opacity: 0; pointer-events: none; background: rgba(11,7,32,.35); }
 .card .swipe-tag.oui { left: 18px; color: #2EE6A0; border-color: #2EE6A0; transform: rotate(-12deg); }
@@ -1464,7 +1472,7 @@ const isHot = parts => HOT.test(parts.join(" "));
 const TYPES = {
   uno:       { label: "Uno", color: "var(--yellow)", dark: false, desc: "" },
   jamais:    { label: "Je n'ai jamais", color: "var(--violet)", dark: true,  desc: "Ceux qui l'ont fait se balancent." },
-  av:        { label: "Action ou vérité", color: "var(--yellow)", dark: false, desc: "L'action rapporte plus." },
+  av:        { label: "Action ou vérité", color: "var(--yellow)", dark: false, desc: "Chacun son tour, et on swipe." },
   qui:       { label: "Qui pourrait", color: "var(--red)", dark: true, desc: "3, 2, 1, on pointe." },
   pref:      { label: "Tu préfères", color: "var(--ink)", dark: true, desc: "Faut choisir." },
   imposteur: { label: "L'Imposteur", color: "var(--green)", dark: true, desc: "Un mytho parmi vous." },
@@ -2077,7 +2085,7 @@ function afterRound() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref", "qui"];
+const FREE_SKIP = ["jamais", "pref", "qui", "av"];
 function header() {
   const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : "Carte " + (S.idx + 1);
   return `
@@ -2123,7 +2131,7 @@ function next() {
   card();
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
-const SWIPE = ["jamais", "pref", "qui"];
+const SWIPE = ["jamais", "pref", "qui", "av"];
 function endDeck() {
   if (S.mode === "mix") return afterRound();
   if (SWIPE.includes(S.mode) && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
@@ -2243,7 +2251,51 @@ function finJamais() {
   });
 }
 
-function cAv() {
+// Action ou vérité seul : un téléphone, sans points ; on choisit sur la carte puis on swipe jusqu'à « Terminer »
+// tour de rôle au hasard : tout le monde passe une fois avant que quelqu'un repasse
+function avWho(x) {
+  if (x.p) return x.p;
+  if (!S.avBag || !S.avBag.length) {
+    const b = shuffle(S.players);
+    if (b.length > 1 && b[0] === S.avLast) b.push(b.shift());
+    S.avBag = b;
+  }
+  return x.p = S.avLast = S.avBag.shift();
+}
+function cAvSwipe(c) {
+  if (S.idx === 0 && !c.p) { S.avBag = null; S.avLast = null; }
+  if (S.idx + 1 >= S.deck.length) jamaisRefill();
+  const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+  const face = (x, i) => {
+    const p = avWho(x);
+    return x.kind
+      ? cardShell("av", null, `
+        <p class="avfor">${x.kind === "v" ? "Vérité" : "Action"} pour <b>${esc(p.name)}</b></p>
+        <p class="text">${esc(x.txt)}</p>
+        <button class="avother">Autre carte</button>`, i % 2 === 1)
+      : cardShell("av", { label: "Au tour de", name: p.name }, `
+        <div class="avpick"><button data-k="v">Vérité</button><button data-k="a">Action</button></div>`, i % 2 === 1);
+  };
+  view(`${header()}
+    <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+    bindHeader();
+    const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+    $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+    $("#stop").onclick = ranking;
+    const pick = k => {
+      const src = pool(k === "v" ? "verite" : "action"), pk = src.find(z => z.id !== (S.avPick && S.avPick.id)) || src[0];
+      if (!pk) return;
+      used.add(pk.id); store.set("used", [...used]); S.avPick = pk;
+      c.kind = k; c.txt = fill(pk.data[1], c.p); S.jSlid = true; buzz(10);
+      cAvSwipe(c);
+    };
+    $$(".jstack .top .avpick button").forEach(b => b.onclick = () => pick(b.dataset.k));
+    const o = $(".jstack .top .avother"); if (o) o.onclick = () => pick(c.kind);
+  });
+}
+function cAv(c) {
+  if (S.mode === "av") return cAvSwipe(c);
   const p = nextPlayer();
   view(`${header()}
     <div class="stage">${cardShell("av", { label: "Au tour de", name: p.name }, `
@@ -3301,7 +3353,7 @@ function sheet(html, bind) {
 /* -------- MINI TUTO DES RÈGLES -------- */
 const TUTO = {
   jamais: "Quelqu'un lit la carte. Ceux qui l'ont déjà fait l'avouent, et on swipe.",
-  av: "Tu choisis. Vérité : 1 point. Action : 2 points. Tu te dégonfles : 0.",
+  av: "La carte dit à qui c'est le tour. Tu choisis action ou vérité, tu réponds ou tu le fais, et on swipe. Si tu veux pas, on swipe quand même.",
   pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
   ouinon: "Le téléphone tourne. Chacun swipe en secret : à droite oui, à gauche non. La majorité prend un point.",
   classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
