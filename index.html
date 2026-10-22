@@ -1280,7 +1280,22 @@ const C = {
     [2,"partir en vacances avec la famille de {q}","que {q} parte en vacances avec ta famille"],
     [3,"que ton crush te voie à poil par accident","voir ton crush à poil par accident"],
     [3,"un date avec ton crush mais ta mère est à la table d'à côté","pas de date du tout"],
-    [3,"coucher avec quelqu'un qui embrasse mal","coucher avec quelqu'un qui parle trop pendant"]
+    [3,"coucher avec quelqu'un qui embrasse mal","coucher avec quelqu'un qui parle trop pendant"],
+    [1,"être coincé dans un ascenseur avec {q}","être coincé tout seul dans un ascenseur"],
+    [1,"que {q} choisisse tes fringues pendant un mois","que {q} choisisse ta coupe de cheveux"],
+    [1,"manger ce que cuisine {q} pendant une semaine","manger que des pâtes au beurre pendant une semaine"],
+    [1,"avoir l'humour de {q}","avoir le style de {q}"],
+    [1,"dormir dans le même lit que {q} qui ronfle","dormir par terre"],
+    [1,"que {q} écrive ton discours de mariage","que {q} écrive ta lettre de motivation"],
+    [1,"un road trip avec {q} sans GPS","un road trip avec {q} sans musique"],
+    [2,"que {q} raconte ta pire honte à ta mère","que ta mère raconte ta pire honte à {q}"],
+    [2,"échanger ta vie avec {q} pendant une semaine","ne plus voir {q} pendant un an"],
+    [2,"que {q} soit ton boss","être le boss de {q}"],
+    [2,"perdre 500 € à un pari contre {q}","te faire un tatouage choisi par {q}"],
+    [2,"finir en garde à vue avec {q}","te perdre en forêt avec {q}"],
+    [2,"que {q} sorte avec ton ex","sortir avec l'ex de {q}"],
+    [3,"un date avec le frère ou la sœur de {q}","un date avec le père ou la mère de {q}"],
+    [3,"entendre la nuit de {q} à travers le mur","que {q} entende la tienne"]
   ],
   menteur: [
     [1,"T'as déjà fait pipi dans une piscine ?"],[1,"T'as déjà pleuré devant un Disney ?"],[1,"T'as déjà goûté des croquettes pour chien ?"],
@@ -1617,7 +1632,7 @@ function home() {
     ${multi ? `
       ${rail("Votes et devinettes", ["classement", "qui", "radar"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
-      ${rail("Questions", ["av", "pref", "ouinon"], "", true)}
+      ${rail("Questions", ["av", "ouinon"], "", true)}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["deux", "reflexe", "test"], "", true)}
       ${multiHome()}` : `
@@ -1685,7 +1700,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 22 octobre (bulles qui flottent)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Tu préfères)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2119,14 +2134,16 @@ function next() {
   if (S.idx >= S.deck.length) return endDeck();
   card();
 }
+// jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
+const SWIPE = ["jamais", "pref"];
 function endDeck() {
   if (S.mode === "mix") return afterRound();
-  if (S.mode === "jamais" && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
+  if (SWIPE.includes(S.mode) && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
   ranking();
 }
 // quand tout le paquet est passé, il repart sans reprendre les 20 dernières cartes
 function jamaisRefill() {
-  const recent = S.deck.slice(-20).map(d => d.id), all = deckOf("jamais", 999);
+  const recent = S.deck.slice(-20).map(d => d.id), all = deckOf(S.mode, 999);
   const more = all.filter(c => !recent.includes(c.id));
   S.deck.push(...(more.length ? more : all).slice(0, 40));
   return all.length > 0;
@@ -2298,6 +2315,23 @@ function cQui(c) {
 }
 
 function cPref(c) {
+  if (S.mode === "pref") {
+    if (S.idx + 1 >= S.deck.length) jamaisRefill();
+    const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+    const txt = x => x.txt || (x.txt = fill(x.data[1] + "\n" + x.data[2]).split("\n")); // même prénom des deux côtés, et il reste le même quand la carte passe dessus
+    const face = (x, i) => cardShell("pref", null, `
+      <div class="vs"><div class="opt-a">${esc(txt(x)[0])}</div><div class="or">ou</div><div class="opt-b">${esc(txt(x)[1])}</div></div>
+      <p class="sub">${i < 2 ? "Chacun choisit, on débat, et on swipe." : "&nbsp;"}</p>
+    `, i % 2 === 1);
+    return view(`${header()}
+      <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      bindHeader();
+      const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+      $("#stop").onclick = ranking;
+    });
+  }
   const q0 = S.players.length ? rnd(S.players).name : "quelqu'un", fq = t => t.replace(/\{q\}/g, q0); const a = fq(c.data[1]), b = fq(c.data[2]);
   view(`${header()}
     <div class="stage">${cardShell("pref", null, `
@@ -3229,7 +3263,7 @@ function sheet(html, bind) {
 const TUTO = {
   jamais: "Quelqu'un lit la carte. Ceux qui l'ont déjà fait l'avouent, et on swipe.",
   av: "Tu choisis. Vérité : 1 point. Action : 2 points. Tu te dégonfles : 0.",
-  pref: "Tu lis les deux choix, tout le monde lève la main en même temps. La majorité prend un point.",
+  pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
   ouinon: "Le téléphone tourne. Chacun swipe en secret : à droite oui, à gauche non. La majorité prend un point.",
   classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
   qui: "Tu lis la question. À trois, tout le monde pointe quelqu'un. Le plus visé prend un point.",
@@ -3297,11 +3331,11 @@ function pauseMenu() {
   const w = sheet(`
     <span class="mast" style="font-size:34px">Pause</span>
     <button class="btn" id="resume">Reprendre</button>
-    ${S.mode === "jamais" ? "" : `<div class="section-label">Scores</div>`}
-    <div class="mini-rank"${S.mode === "jamais" ? ' style="display:none"' : ""}>${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
+    ${SWIPE.includes(S.mode) ? "" : `<div class="section-label">Scores</div>`}
+    <div class="mini-rank"${SWIPE.includes(S.mode) ? ' style="display:none"' : ""}>${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
     <div class="section-label">Intensité</div>
     <div class="seg" id="lvl">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === S.level}">${l.name}</button>`).join("")}</div>
-    <button class="btn ink" id="end">Terminer la partie <small>${S.mode === "jamais" ? "Fin de la partie" : "Voir le classement"}</small></button>
+    <button class="btn ink" id="end">Terminer la partie <small>${SWIPE.includes(S.mode) ? "Fin de la partie" : "Voir le classement"}</small></button>
     <button class="linkbtn" id="quit">Abandonner et revenir à l'accueil</button>
   `, w => {
     $("#resume", w).onclick = () => w.remove();
@@ -3327,7 +3361,7 @@ function ranking() {
   if (!ON.ctx) stat("end", S.mode, (S.players || []).length, "un");
   S.inGame = false;
   try { wakeLock && wakeLock.release(); } catch (e) {}
-  if (S.mode === "jamais" && !ON.ctx) return finJamais();
+  if (SWIPE.includes(S.mode) && !ON.ctx) return finJamais();
   const st = standings(); lastRank = st;
   const pod = st.slice(0, 3), rest = st.slice(3);
   const order = pod.length === 3 ? [pod[1], pod[0], pod[2]] : pod;
@@ -4205,7 +4239,7 @@ async function roomNext(r) {
   const all = ids(r), n = all.length;
   if (r.round >= r.rounds) { stat("end", r.game, n, "multi"); return upd({ status: "end" }); }
   if (!r.round) stat("start", r.game, n, "multi");
-  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && t !== "jamais" && !LONG.includes(t) && ON_GAMES[t][1] <= n);
+  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && !SWIPE.includes(t) && !LONG.includes(t) && ON_GAMES[t][1] <= n);
   const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
   const c = t === "av" || NEWG.includes(t) ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
   S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
@@ -4684,7 +4718,7 @@ function lobbyView(r, host) {
     <div class="section-label">Joueurs (${n})</div>
     <div class="chips on-players">${all.map(u => `<span class="chip">${esc(r.players[u].name)}${u === r.host ? " ★" : ""}</span>`).join("")}</div>
     ${host ? `<div class="section-label">Jeu</div>
-      <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => k !== "jamais").map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
+      <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => !SWIPE.includes(k)).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
       <div class="section-label">Manches</div>
       <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`
       : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.</p>`}
