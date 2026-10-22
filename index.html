@@ -2330,7 +2330,7 @@ function cPref(c) {
     const txt = x => x.txt || (x.txt = fill(x.data[1] + "\n" + x.data[2]).split("\n")); // même prénom des deux côtés, et il reste le même quand la carte passe dessus
     const face = (x, i) => cardShell("pref", null, `
       <div class="vs"><div class="opt-a" data-o="a"><span>${esc(txt(x)[0])}</span></div><div class="or">ou</div><div class="opt-b" data-o="b"><span>${esc(txt(x)[1])}</span></div></div>
-      <p class="sub">${i < 2 ? "Chacun choisit, on débat, et on swipe." : "&nbsp;"}</p>
+      <p class="sub">${i < 1 ? "Chacun choisit, on débat, et on swipe." : "&nbsp;"}</p>
     `, i % 2 === 1);
     return view(`${header()}
       <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
