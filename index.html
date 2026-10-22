@@ -1714,7 +1714,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Tu préfères 3, Qui pourrait)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Tu préfères 4, Qui pourrait)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2376,20 +2376,19 @@ function cPref(c) {
       const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
       $("#stop").onclick = ranking;
-      // on touche le choix du groupe : la carte montre ce qu'ont pris les autres groupes, puis part toute seule
+      // on touche le choix du groupe : la carte montre ce qu'ont pris les autres groupes, et reste là jusqu'au swipe
       choixGet(c); if (nx) choixGet(nx);
       const top = $(".jstack .top"), vs = $(".vs", top);
       $$("[data-o]", top).forEach(o => {
         let x0 = 0; o.addEventListener("pointerdown", e => { x0 = e.clientX; });
         o.onclick = async e => {
           if (Math.abs(e.clientX - x0) > 10) return; // c'était un swipe
-          if (vs.classList.contains("done")) return fly(o.dataset.o === "a" ? -1 : 1);
+          if (vs.classList.contains("done")) return;
           vs.classList.add("done"); o.classList.add("won"); buzz(10);
           const k = o.dataset.o, d = await Promise.race([choixGet(c), new Promise(r => setTimeout(() => r({}), 700))]);
           choixAdd(c, k);
           const n = { a: (d.a || 0) + (k === "a"), b: (d.b || 0) + (k === "b") }, tot = n.a + n.b;
           $$("[data-o]", top).forEach(x => { const p = Math.round(100 * n[x.dataset.o] / tot); x.style.setProperty("--p", p + "%"); x.insertAdjacentHTML("beforeend", `<span class="pct">${p} %</span>`); });
-          later(() => fly(k === "a" ? -1 : 1), 1800);
         };
       });
     });
