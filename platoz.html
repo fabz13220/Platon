@@ -2063,13 +2063,15 @@ function afterRound() {
 }
 
 /* -------- CARTE -------- */
+// jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
+const FREE_SKIP = ["jamais", "pref"];
 function header() {
   const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : "Carte " + (S.idx + 1);
   return `
     <div class="topbar">
       <button class="iconbtn" id="pause" aria-label="Pause">II</button>
       <span class="progress">${label}</span>
-      <button class="changebtn" id="skip" aria-label="Changer de carte" ${S.changed ? "disabled" : ""}>⟳ Changer</button>
+      ${FREE_SKIP.includes(S.mode) ? `<span style="width:44px"></span>` : `<button class="changebtn" id="skip" aria-label="Changer de carte" ${S.changed ? "disabled" : ""}>⟳ Changer</button>`}
     </div>
     ${rateBar()}`;
 }
@@ -2084,7 +2086,7 @@ function cardShell(type, who, inner, alt) {
 const rulePts = t => `<p class="pts-rule">${t}</p>`;
 function bindHeader() {
   $("#pause").onclick = pauseMenu;
-  $("#skip").onclick = skipCard;
+  const sk = $("#skip"); if (sk) sk.onclick = skipCard;
   bindRate();
 }
 // une seule nouvelle carte par tour, et c'est le même joueur qui la joue
