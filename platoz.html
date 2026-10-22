@@ -3059,9 +3059,7 @@ function tabooFinal() {
   view(`
     <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Sans le dire</span></div>
       <p class="rank-say">${w < 0 ? "Égalité parfaite" : "Victoire de l'" + TB_NAMES[w].replace("Équipe", "équipe")}</p>
-      ${w >= 0 ? `<div class="tag win" style="align-self:center;font-size:18px">${esc(rnd(WIN_TAGS))}</div>` : ""}
       <ol class="rank-list">${[0, 1].sort((x, y) => TB.score[y] - TB.score[x]).map((i, k) => `<li class="up"><span class="rk">${w < 0 ? 1 : k + 1}</span><span class="nm">${TB_NAMES[i]}<small style="display:block;font-weight:700;opacity:.75">${TB.teams[i].map(esc).join(", ")}</small></span><b>${TB.score[i]} pt${Math.abs(TB.score[i]) > 1 ? "s" : ""}</b></li>`).join("")}</ol>
-      ${w >= 0 ? `<div class="tag lose" style="align-self:center">${esc(TB_NAMES[1 - w])} : ${esc(rnd(LOSE_TAGS))}</div>` : ""}
       <div class="confetti" id="confetti"></div></div>
     ${endBubbles(S.names)}
     <div class="actions"><div class="row"><button class="btn red" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div></div>
@@ -3203,7 +3201,6 @@ function unoStart() {
     view(`
       <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Uno</span></div>
         <p class="rank-say">Victoire de ${esc(p.name)}</p>
-        <div class="tag win" style="align-self:center;font-size:18px">${esc(rnd(WIN_TAGS))}</div>
         <ol class="rank-list">${P.filter(x => x !== p).sort((a, b) => a.hand.length - b.hand.length).map((x, i) => `<li class="up"><span class="rk">${i + 2}</span><span class="nm">${esc(x.name)}</span><b>${x.hand.length} carte${x.hand.length > 1 ? "s" : ""}</b></li>`).join("")}</ol>
         <div class="confetti" id="confetti"></div></div>
       ${endBubbles(P.map(x => x.name))}
@@ -3338,8 +3335,7 @@ function ranking() {
   const st = standings(); lastRank = st;
   const pod = st.slice(0, 3), rest = st.slice(3);
   const order = pod.length === 3 ? [pod[1], pod[0], pod[2]] : pod;
-  const bottom = st.length > 1 ? st[st.length - 1].rank : 0;
-  const tag = r => r.rank === 1 ? `<span class="tag win">${esc(rnd(WIN_TAGS))}</span>` : r.rank === bottom && bottom > 1 ? `<span class="tag lose">${esc(rnd(LOSE_TAGS))}</span>` : "";
+  const tag = () => ""; // plus de petite phrase pour le gagnant et le dernier (Fabio, 22 octobre)
   view(`
     <div class="rank anim" id="rank">
       <div class="rank-head"><span class="mast">Classement</span><span class="rank-date">${esc(today())}</span></div>
@@ -3382,8 +3378,6 @@ function ranking() {
     run();
   });
 }
-const WIN_TAGS = ["T'es un bon", "T'as un don", "Bouillant", "T'es un tigre"];
-const LOSE_TAGS = ["Petite keh", "Grosse keh", "Céline", "T'es mauvais", "Keh", "T'as déconné", "Décevant", "Bon…", "Peut mieux faire", "Ayaaaaa"];
 function party() {
   const box = $("#confetti"); if (!box) return;
   const cols = ["#FFE04A", "#FF3B6E", "#2EE6A0", "#4D8BFF", "#A66BFF", "#FF8A1F"];
