@@ -1503,7 +1503,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
    ÉTAT
    ===================================================================== */
 const S = {
-  names: [], // chaque partie repart sans joueurs : on les tape ou on touche un groupe
+  names: [], // vide à l'ouverture de l'appli ; ensuite les joueurs restent d'un jeu à l'autre
   mode: "mix",
   level: store.get("level", 2),
   hot: store.get("hot", true),
@@ -1587,7 +1587,7 @@ function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "lon
 
 /* -------- ACCUEIL -------- */
 function home() {
-  S.inGame = false; onStop(); ON.ctx = null; S.names = []; S.duo = null;
+  S.inGame = false; onStop(); ON.ctx = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
