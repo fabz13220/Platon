@@ -1062,6 +1062,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
 .jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; transform: translate3d(0, 14px, 0) scale(.94); filter: brightness(.62); transform-origin: 50% 100%; }
 .jstack > .card.top { z-index: 1; }
+.card .qcount { margin: 4px auto 0; min-width: 120px; padding: 10px 22px; border-radius: 99px; border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: var(--paper); font: 900 18px Nunito, sans-serif; letter-spacing: .04em; cursor: pointer; transition: transform .15s; }
+.card .qcount.on { transform: scale(1.25); background: rgba(255,255,255,.95); color: #EE1F66; border-color: transparent; }
+.jstack > .card.under .qcount { visibility: hidden; }
 .card.swipe, .card.swipe * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .jstack > .card.top.still { animation: none; }
 .card.swipe { touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform; cursor: grab; }
@@ -1220,7 +1223,11 @@ const C = {
     [3,"avoir la vie sexuelle la plus agitée"],[3,"recoucher avec son ex ce mois-ci"],[3,"avoir une double vie"],
     [3,"envoyer des nudes à la mauvaise personne"],[3,"tromper sans culpabiliser"],[3,"pécho quelqu'un ici avant la fin de la soirée"],
     [3,"finir la soirée aux urgences"],[3,"rentrer à pied à 6 h du mat"],[3,"finir en garde à vue"],
-    [1, "pleurer devant un dessin animé"],[1, "se perdre dans un IKEA"],[1, "s'endormir à son propre anniversaire"],[1, "se faire arnaquer en vacances"],[1, "parler à son chat comme à un humain"],[1, "finir prof"],[1, "manger un truc tombé par terre devant tout le monde"],[1, "devenir le chef d'une secte"],[1, "oublier l'anniversaire de sa mère"],[2, "se marier avec quelqu'un rencontré il y a un mois"],[2, "se battre pour la dernière part de pizza"],[2, "sortir avec quelqu'un juste pour sa voiture"],[2, "se faire larguer par vocal"],[3, "avoir un plan cul en cours en ce moment"],[3, "pécho quelqu'un à un mariage"]
+    [1, "pleurer devant un dessin animé"],[1, "se perdre dans un IKEA"],[1, "s'endormir à son propre anniversaire"],[1, "se faire arnaquer en vacances"],[1, "parler à son chat comme à un humain"],[1, "finir prof"],[1, "manger un truc tombé par terre devant tout le monde"],[1, "devenir le chef d'une secte"],[1, "oublier l'anniversaire de sa mère"],[2, "se marier avec quelqu'un rencontré il y a un mois"],[2, "se battre pour la dernière part de pizza"],[2, "sortir avec quelqu'un juste pour sa voiture"],[2, "se faire larguer par vocal"],[3, "avoir un plan cul en cours en ce moment"],[3, "pécho quelqu'un à un mariage"],
+    [1,"piquer la place de {q} sur le canapé"],[1,"finir les frites de {q} sans demander"],[1,"oublier l'anniversaire de {q}"],
+    [1,"se faire passer pour {q} au téléphone"],[1,"raconter la vie de {q} mieux que {q}"],[1,"partir en vacances avec la famille de {q}"],
+    [2,"pécho le cousin ou la cousine de {q}"],[2,"balancer la pire honte de {q} à un mariage"],[2,"mytho sur {q} pour se sortir d'une galère"],
+    [2,"faire semblant d'être en couple avec {q} à un mariage"],[3,"sortir avec l'ex de {q}"],[3,"finir la soirée dans le lit de {q}"]
   ],
   pref: [
     [1,"passer une nuit seul dans le désert du Sahara","passer une nuit seul au pôle Nord"],
@@ -1637,7 +1644,7 @@ function home() {
     </header>
     <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Un téléphone</button><button data-v="1" aria-pressed="${multi}"><svg width="18" height="16" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="9" height="17" rx="2.2"/><rect x="16" y="3" width="9" height="17" rx="2.2"/></svg>Chacun le sien</button></div>
     ${multi ? `
-      ${rail("Votes et devinettes", ["classement", "qui", "radar"], "", true)}
+      ${rail("Votes et devinettes", ["classement", "radar"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Questions", ["av", "ouinon"], "", true)}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
@@ -1707,7 +1714,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Tu préfères 3)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Tu préfères 3, Qui pourrait)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2098,7 +2105,7 @@ function afterRound() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref"];
+const FREE_SKIP = ["jamais", "pref", "qui"];
 function header() {
   const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : "Carte " + (S.idx + 1);
   return `
@@ -2144,7 +2151,7 @@ function next() {
   card();
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
-const SWIPE = ["jamais", "pref"];
+const SWIPE = ["jamais", "pref", "qui"];
 function endDeck() {
   if (S.mode === "mix") return afterRound();
   if (SWIPE.includes(S.mode) && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
@@ -2294,6 +2301,36 @@ function cAv() {
 }
 
 function cQui(c) {
+  if (S.mode === "qui") {
+    if (S.idx + 1 >= S.deck.length) jamaisRefill();
+    const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+    const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
+    const face = (x, i) => cardShell("qui", null, `
+      <p class="text">Qui pourrait <b>${esc(txt(x))}</b> ?</p>
+      <button class="qcount">3, 2, 1</button>
+    `, i % 2 === 1);
+    return view(`${header()}
+      <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      bindHeader();
+      const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+      $("#stop").onclick = ranking;
+      // compte à rebours facultatif : on peut swiper sans l'utiliser
+      const b = $(".jstack .top .qcount");
+      b.onclick = () => {
+        if (b.classList.contains("on")) return;
+        b.classList.add("on");
+        const tick = n => {
+          if (!b.isConnected) return;
+          b.textContent = n > 0 ? n : "Pointez !"; buzz(n > 0 ? 20 : 80);
+          if (n > 0) later(() => tick(n - 1), 750);
+          else later(() => { b.classList.remove("on"); b.textContent = "3, 2, 1"; }, 1600);
+        };
+        tick(3);
+      };
+    });
+  }
   const text = fill(c.data[1]);
   view(`${header()}
     <div class="stage">${cardShell("qui", null, `
@@ -3297,7 +3334,7 @@ const TUTO = {
   pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
   ouinon: "Le téléphone tourne. Chacun swipe en secret : à droite oui, à gauche non. La majorité prend un point.",
   classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
-  qui: "Tu lis la question. À trois, tout le monde pointe quelqu'un. Le plus visé prend un point.",
+  qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
   imposteur: "Tout le monde a le mot, sauf un. Chacun dit un mot, deux tours, puis on pointe le mytho.",
