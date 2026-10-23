@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="4f21b2f9eca3">
+<meta name="build" content="b4c5c2a672cf">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -675,6 +675,10 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .imphold .imp-face { position: absolute; inset: 0; z-index: 2; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; background: #130C34; border-radius: inherit; }
 .imphold.on .imp-face { display: flex; }
 .imphold.on > :not(.imp-face) { visibility: hidden; }
+/* même taille pour tous les mots (et « L'imposteur ») : jamais coupés au milieu */
+.imphold .imp-w { font-size: min(9.6vw, 44px); overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.imp-roles { display: flex; flex-direction: column; gap: 6px; padding: 0 22px; }
+.imp-roles div { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 17px; }
 .secret .eyebrow { font-size: 13px; opacity: .92; }
 .secret .mast { font-size: clamp(42px, 14vw, 60px); color: var(--yellow); text-shadow: 0 0 22px currentColor; overflow-wrap: anywhere; line-height: 1.04; }
 .secret p { font-size: 24px; line-height: 1.32; font-weight: 800; }
@@ -1765,7 +1769,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 2)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 3)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2043,6 +2047,7 @@ function popGroup(b, g, draw) {
 
 /* -------- AMBIANCE -------- */
 function ambiance() {
+  if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
   const draw = () => {
     $$(".opt").forEach(o => o.setAttribute("aria-pressed", +o.dataset.l === S.level));
     $$("#hot button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.v === "1") === S.hot));
@@ -2625,58 +2630,156 @@ function cMenteur(c) {
   });
 }
 
-// L'Imposteur seul : un téléphone qu'on se passe, sans points. On pointe le mytho en vrai, puis « Révéler »
+// L'Imposteur seul, façon Undercover : un téléphone qu'on se passe, sans points.
+// Rôles : civils (le mot), imposteurs (juste le thème), undercovers (un mot proche, sans le savoir). On vote pour éliminer jusqu'à la fin.
+const UNDER = {
+  "Raclette": "Fondue", "Fondue": "Raclette", "Pizza": "Lasagnes", "Kebab": "Tacos", "Tacos": "Burrito", "Sushi": "Ramen", "Crêpe": "Gaufre",
+  "Burger": "Hot-dog", "Couscous": "Tajine", "Nutella": "Confiture",
+  "Aéroport": "Gare", "Piscine": "Plage", "Plage": "Piscine", "Hôpital": "Pharmacie", "Boîte de nuit": "Bar", "Supermarché": "Marché",
+  "Salle de sport": "Piscine", "Cinéma": "Théâtre", "Zoo": "Ferme", "Prison": "Commissariat", "Stade": "Patinoire",
+  "Pompier": "Policier", "Policier": "Gendarme", "Dentiste": "Médecin", "Influenceur": "Youtubeur", "Prof": "Directeur", "Chirurgien": "Infirmier", "Coiffeur": "Barbier",
+  "Pingouin": "Phoque", "Moustique": "Mouche", "Requin": "Dauphin", "Girafe": "Zèbre", "Chat": "Chien",
+  "Brosse à dents": "Dentifrice", "Parapluie": "Imperméable", "Tire-bouchon": "Décapsuleur", "Chargeur": "Batterie", "Miroir": "Fenêtre",
+  "Titanic": "Avatar", "Harry Potter": "Narnia", "Le Roi Lion": "Madagascar", "Friends": "The Office",
+  "Pétanque": "Bowling", "Ski": "Snowboard", "Foot": "Rugby", "Boxe": "Judo",
+  "Gueule de bois": "Mal de tête", "TikTok": "Instagram", "Tinder": "Meetic", "Snapchat": "WhatsApp",
+  "Mariage": "Baptême", "Nouvel An": "Noël", "Halloween": "Carnaval", "Anniversaire": "Fête surprise",
+  "Camping": "Colo", "Croisière": "Ferry", "Métro": "Bus", "Avion": "Hélicoptère"
+};
+const underOf = x => x.data[3] || UNDER[x.data[2]];
+const IMP_SET = () => ({ imp: store.get("impN", 1), und: store.get("undN", 0) });
+function impSetup() {
+  const n = S.names.length, max = Math.max(1, n - 2); // il reste toujours au moins 2 civils
+  const draw = () => {
+    let { imp, und } = IMP_SET();
+    if (imp + und > max) { und = Math.max(0, max - imp); if (imp + und > max) imp = max; }
+    if (imp + und < 1) imp = 1;
+    store.set("impN", imp); store.set("undN", und);
+    $$("#impn button").forEach(b => { const v = +b.dataset.v; b.setAttribute("aria-pressed", v === imp); b.disabled = v + und > max || v + und < 1; });
+    $$("#undn button").forEach(b => { const v = +b.dataset.v; b.setAttribute("aria-pressed", v === und); b.disabled = v + imp > max || v + imp < 1; });
+  };
+  const seg = (id, from) => `<div class="seg" id="${id}">${[0, 1, 2, 3].filter(v => v >= from).map(v => `<button data-v="${v}">${v}</button>`).join("")}</div>`;
+  view(`
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Réglages</span><span style="width:44px"></span></div>
+    <div class="section-label">Imposteurs</div>
+    ${seg("impn", 0)}
+    <p class="hint muted">Ils n'ont pas de mot, juste le thème.</p>
+    <div class="section-label">Undercovers</div>
+    ${seg("undn", 0)}
+    <p class="hint muted">Ils ont un mot proche du vrai, et ils ne savent pas qu'ils sont undercover.</p>
+    <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
+  `, () => {
+    $("#back").onclick = playersScreen;
+    $$("#impn button").forEach(b => b.onclick = () => { store.set("impN", +b.dataset.v); draw(); });
+    $$("#undn button").forEach(b => b.onclick = () => { store.set("undN", +b.dataset.v); draw(); });
+    $("#go").onclick = startGame;
+    draw();
+  });
+}
 function cImpSolo(c) {
-  const [, cat, word] = c.data;
-  const imp = rnd(S.players), order = shuffle(S.players);
-  const top = () => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span class="progress">Manche ${S.idx + 1}</span><span style="width:44px"></span></div>`;
-  const step = i => {
-    if (i >= order.length) return discuss();
-    const p = order[i], isImp = p === imp;
-    view(`${top()}
-      <div class="stage"><div class="secret imphold" id="hold">
-        <span class="eyebrow" style="color:var(--paper)">${i ? "Passe le téléphone à" : "Au tour de"}</span><span class="mast">${esc(p.name)}</span>
-        <p class="imp-cue">Garde le doigt ici pour voir ton mot.</p>
-        <div class="imp-face"><span class="eyebrow" style="color:var(--paper)">${isImp ? "Tu es" : "Ton mot"}</span><span class="mast" style="color:${isImp ? "var(--red)" : "var(--yellow)"}">${isImp ? "L'imposteur" : esc(word)}</span><p>${isImp ? "Thème : « " + esc(cat) + " ». Bluffe." : "Ne le dis pas à voix haute."}</p></div>
-      </div></div>
-      <div class="actions"><p class="hint muted" id="imphint" style="text-align:center;margin:0">${i + 1} / ${order.length} · tu lâches, c'est caché</p>
-        <button class="btn red" id="pass" style="display:none">${i + 1 < order.length ? "C'est bon, au tour de " + esc(order[i + 1].name) : "Tout le monde a vu"}</button></div>`, () => {
+  let { imp: nImp, und: nUnd } = IMP_SET();
+  if (nImp + nUnd > S.players.length - 2) { nUnd = Math.max(0, S.players.length - 2 - nImp); nImp = Math.min(nImp, S.players.length - 2); }
+  if (nImp + nUnd < 1) nImp = 1;
+  // avec des undercovers, il faut un mot qui a un mot proche
+  if (nUnd && !underOf(c)) {
+    const alt = pool("imposteur").find(x => underOf(x) && !S.deck.includes(x));
+    if (alt) { S.deck[S.idx] = c = alt; } else nUnd = 0;
+  }
+  const [, cat, word] = c.data, uw = underOf(c);
+  const order = shuffle(S.players), role = new Map();
+  shuffle(S.players).forEach((p, i) => role.set(p, i < nImp ? "imp" : i < nImp + nUnd ? "und" : "civ"));
+  const alive = new Set(S.players);
+  const isIn = p => role.get(p) !== "civ";
+  const top = eye => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span class="progress">Manche ${S.idx + 1}</span>${eye ? `<button class="iconbtn" id="eye" aria-label="Revoir son mot">👁️</button>` : `<span style="width:44px"></span>`}</div>`;
+  const face = p => role.get(p) === "imp"
+    ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w" style="color:var(--red)">L'imposteur</span><p>Thème : « ${esc(cat)} ». Pas de mot, bluffe.</p>`
+    : `<span class="eyebrow" style="color:var(--paper)">Ton mot</span><span class="mast imp-w">${esc(role.get(p) === "und" ? uw : word)}</span><p>Ne le dis pas à voix haute.</p>`;
+  // carte qu'on garde appuyée ; le bouton du bas est toujours là, actif une fois le mot vu
+  const hold = (p, eyebrow, btn, onBtn, ready) => view(`${top(false)}
+    <div class="stage"><div class="secret imphold" id="hold">
+      <span class="eyebrow" style="color:var(--paper)">${eyebrow}</span><span class="mast">${esc(p.name)}</span>
+      <p class="imp-cue">Garde le doigt ici pour voir ton mot.</p>
+      <div class="imp-face">${face(p)}</div>
+    </div></div>
+    <div class="actions"><button class="btn red" id="pass" ${ready ? "" : "disabled"}>${btn}</button></div>`, () => {
+    $("#pause").onclick = pauseMenu;
+    const h = $("#hold"), b = $("#pass");
+    const show = e => { e.preventDefault(); h.classList.add("on"); buzz(15); };
+    const hide = () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); b.disabled = false; };
+    h.addEventListener("pointerdown", show);
+    ["pointerup", "pointercancel", "pointerleave"].forEach(t => h.addEventListener(t, hide));
+    h.addEventListener("contextmenu", e => e.preventDefault());
+    b.onclick = onBtn;
+  });
+  let here = null; // l'écran où revenir après l'œil
+  const bindEye = () => { const e = $("#eye"); if (e) e.onclick = () => view(`${top(false)}
+    <div class="stage">${cardShell("imposteur", null, `<p class="text">Qui veut revoir son mot ?</p>
+      <div class="chips" style="padding:0 18px">${S.players.filter(p => alive.has(p)).map(p => `<button class="chip pick" data-i="${S.players.indexOf(p)}">${esc(p.name)}</button>`).join("")}</div>`, alt())}</div>
+    <div class="actions"><button class="btn white" id="back">Retour à la partie</button></div>`, () => {
       $("#pause").onclick = pauseMenu;
-      const h = $("#hold"); let seen = false;
-      const show = e => { e.preventDefault(); h.classList.add("on"); seen = true; buzz(15); };
-      // on lâche : le mot se cache, et c'est le bouton qui passe au joueur suivant (on peut revoir son mot avant)
-      const hide = () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); if (seen) { $("#imphint").style.display = "none"; $("#pass").style.display = ""; } };
-      $("#pass").onclick = () => step(i + 1);
-      h.addEventListener("pointerdown", show);
-      ["pointerup", "pointercancel", "pointerleave"].forEach(t => h.addEventListener(t, hide));
-      h.addEventListener("contextmenu", e => e.preventDefault());
-    });
+      $("#back").onclick = here;
+      $$(".chip.pick").forEach(b => b.onclick = () => hold(S.players[+b.dataset.i], "Seulement pour", "Retour à la partie", here, true));
+    }); };
+  const reveal = i => {
+    if (i >= order.length) return talk();
+    hold(order[i], i ? "Passe le téléphone à" : "Au tour de", i + 1 < order.length ? "C'est bon, au tour de " + esc(order[i + 1].name) : "Tout le monde a vu", () => reveal(i + 1));
   };
-  const discuss = () => {
-    const first = rnd(S.players);
-    view(`${header()}
+  const talk = () => {
+    here = talk;
+    const live = S.players.filter(p => alive.has(p)), safe = live.filter(p => role.get(p) !== "imp");
+    const first = rnd(safe.length ? safe : live); // l'imposteur ne commence jamais
+    view(`${top(true)}
       <div class="stage">${cardShell("imposteur", { label: "Commence", name: first.name }, `
-        <p class="text">Chacun dit un mot sur le mot secret, deux tours.</p>
-        <p class="sub">Puis à trois, tout le monde pointe le mytho du doigt. Thème : ${esc(cat)}.</p>
+        <p class="text">Chacun dit un mot sur son mot secret.</p>
+        <p class="sub">Puis on vote pour éliminer quelqu'un. Encore ${live.length} en jeu.</p>
       `, alt())}</div>
-      <div class="actions"><button class="btn red" id="rev">Révéler</button></div>`, () => {
-      bindHeader();
-      $("#rev").onclick = () => {
-        buzz([30, 30, 60]);
-        view(`${header()}
-          <div class="stage">${cardShell("imposteur", { label: "L'imposteur était", name: imp.name }, `
-            <p class="text">Le mot : <b>${esc(word)}</b>.</p>
-            <p class="sub">Grillé ? ${esc(imp.name)} gagne quand même en trouvant le mot.</p>
-          `, alt())}</div>
-          <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Manche suivante</button></div></div>`, () => {
-          bindHeader();
-          $("#ok").onclick = next;
-          $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
-        });
-      };
+      <div class="actions"><button class="btn red" id="vote">Voter</button></div>`, () => { bindHeader(); bindEye(); $("#vote").onclick = vote; });
+  };
+  const vote = () => {
+    here = vote;
+    view(`${top(true)}
+      <div class="stage">${cardShell("imposteur", null, `<p class="text">Qui on élimine ?</p>
+        <div class="chips" style="padding:0 18px">${S.players.filter(p => alive.has(p)).map(p => `<button class="chip pick" data-i="${S.players.indexOf(p)}">${esc(p.name)}</button>`).join("")}</div>`, alt())}</div>
+      <div class="actions"><button class="btn white" id="back">Encore un tour avant</button></div>`, () => {
+      bindHeader(); bindEye();
+      $("#back").onclick = talk;
+      $$(".chip.pick").forEach(b => b.onclick = () => out(S.players[+b.dataset.i]));
     });
   };
-  step(0);
+  const ROLE = { civ: "Civil", und: "Undercover", imp: "L'imposteur" };
+  const out = p => {
+    alive.delete(p); buzz([30, 30, 60]);
+    const r = role.get(p), left = S.players.filter(x => alive.has(x));
+    const civ = left.filter(x => !isIn(x)).length, inf = left.filter(isIn).length;
+    const after = () => inf === 0 ? end("civ") : civ <= 1 ? end("inf") : talk();
+    here = null;
+    view(`${top(false)}
+      <div class="stage">${cardShell("imposteur", { label: "Éliminé", name: p.name }, `
+        <p class="text">${r === "civ" ? `C'était un <b>civil</b>. Raté.` : r === "und" ? `C'était un <b>undercover</b>. Bien vu.` : `C'était <b>l'imposteur</b>. Bien vu.`}</p>
+        ${r === "imp" ? `<p class="sub">Dernière chance : s'il trouve le mot, les intrus gagnent.</p>` : `<p class="sub">${inf === 0 ? "Plus aucun intrus." : civ <= 1 ? "Il ne reste qu'un civil." : `Il reste ${inf} intrus${inf > 1 ? "" : ""}.`}</p>`}
+      `, alt())}</div>
+      <div class="actions">${r === "imp" ? `<div class="row"><button class="btn white" id="miss">Raté</button><button class="btn red" id="hit">Il a trouvé</button></div>` : `<button class="btn red" id="ok">${inf === 0 || civ <= 1 ? "Voir la fin" : "Tour suivant"}</button>`}</div>`, () => {
+      $("#pause").onclick = pauseMenu;
+      if (r === "imp") { $("#hit").onclick = () => end("inf"); $("#miss").onclick = after; }
+      else $("#ok").onclick = after;
+    });
+  };
+  const end = w => {
+    const ins = S.players.filter(isIn), onlyImp = ins.every(p => role.get(p) === "imp"), one = ins.length === 1;
+    const title = w === "civ" ? "Les civils gagnent" : onlyImp ? (one ? "L'imposteur gagne" : "Les imposteurs gagnent") : (one ? "L'undercover gagne" : "Les intrus gagnent");
+    stamp(w === "civ" ? "Civils" : "Intrus", w === "civ" ? "green" : "");
+    later(() => view(`${top(false)}
+      <div class="stage">${cardShell("imposteur", { label: "Fin de la manche", name: title }, `
+        <p class="text">Le mot : <b>${esc(word)}</b>.${nUnd ? ` Undercover : <b>${esc(uw)}</b>.` : ""}</p>
+        <div class="imp-roles">${ins.map(p => `<div><span>${esc(p.name)}</span><b>${ROLE[role.get(p)]}</b></div>`).join("")}</div>
+      `, alt())}</div>
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Manche suivante</button></div></div>`, () => {
+      bindHeader();
+      $("#ok").onclick = next;
+      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+    }), 900);
+  };
+  reveal(0);
 }
 function cImposteur(c) {
   if (S.mode === "imposteur") return cImpSolo(c);
@@ -3557,7 +3660,7 @@ const TUTO = {
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
-  imposteur: "Tout le monde voit le mot, sauf l'imposteur qui n'a que le thème. Chacun dit un mot, deux tours, puis on pointe le mytho du doigt. S'il est grillé, il gagne quand même s'il trouve le mot.",
+  imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "L'appli te dit en secret si tu mens. Tu réponds, on te pose 3 questions, puis on vote.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
