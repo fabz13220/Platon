@@ -1058,6 +1058,16 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .card .avpick button { flex: 1; padding: 20px 0; border-radius: 20px; border: 2px solid var(--chipbd); background: var(--panel); color: var(--tx); font: 900 22px var(--display), sans-serif; cursor: pointer; transition: transform .15s; }
 .card .avk { display: contents; }
 .card .avk > .avfor { margin-top: auto; }
+/* Action ou vérité : carte coupée en deux, bleu côté vérité (gauche), rose côté action (droite) */
+.jstack .card.avw { --tx: #fff; --tx2: #fff; --panel: rgba(28,6,58,.34); --chipbg: rgba(255,255,255,.17); --chipbd: rgba(255,255,255,.45); --hl: rgba(30,5,60,.34); --mk: #FFE04A; --pill-ink: var(--ink); --tube: rgba(255,255,255,.62); --tglow: rgba(255,255,255,.7); --tglow2: rgba(255,255,255,.32); }
+.jstack .card.avduo { --g: linear-gradient(165deg, #FF7A45 0%, #FF3577 40%, #C0105C 100%) right / 50% 100% no-repeat, var(--g-blue) left / 50% 100% no-repeat; --glow: rgba(150,70,255,.6); }
+.jstack .card.av-v, .jstack .card.avq.show-v { --g: var(--g-blue); --glow: rgba(60,110,255,.6); }
+.jstack .card.av-a, .jstack .card.avq.show-a { --g: var(--g-sunset); --glow: rgba(255,53,119,.6); }
+.jstack .card.av-t { --g: var(--g-signature); --glow: rgba(210,50,200,.55); }
+.jstack .card.avduo .who { margin: auto 22px 0; padding: 18px 20px 20px; border-radius: var(--r-l); background: #fff; color: var(--ink); text-align: center; font-size: clamp(40px, 12vw, 60px); box-shadow: 0 18px 40px -14px rgba(30,0,60,.55); }
+.jstack .card.avduo .who small { color: #6A5F90; }
+.jstack .card.avduo .avpick button { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.6); color: #fff; }
+.jstack .card.avduo .avgroupe { text-align: center; padding: 0 22px; }
 .card .avgroupe { margin: -4px 0 0; font-weight: 800; }
 .card.show-v .avk[data-k="a"], .card.show-a .avk[data-k="v"] { display: none; }
 .jstack > .card.under.avq .avother { visibility: visible; }
@@ -1715,7 +1725,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Action ou vérité 3)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Action ou vérité 4)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2325,15 +2335,16 @@ function cAvSwipe(c) {
     return cardShell("av", null, `<div class="avk">
       <p class="avfor">Surprise · Vérité pour <b>tout le monde</b></p>
       <p class="text">${esc(x.tq.txt)}</p></div>
-      <p class="sub">Chacun répond, puis on swipe.</p>`, i % 2 === 1);
+      <p class="sub">Chacun répond, puis on swipe.</p>`, i % 2 === 1).replace('class="card ', 'class="card avw av-t ');
   };
   const ask = (x, i) => avWho(x) && x.sp === "tous" ? tous(x, i) : cardShell("av", { label: "Au tour de", name: avWho(x).name }, `
     ${x.sp === "groupe" ? `<p class="sub avgroupe">Surprise : c'est le groupe qui choisit pour toi.</p>` : ""}
-    <div class="avpick"><button data-k="v">← Vérité</button><button data-k="a">Action →</button></div>`, i % 2 === 1);
+    <div class="avpick"><button data-k="v">← Vérité</button><button data-k="a">Action →</button></div>`, i % 2 === 1).replace('class="card ', 'class="card avw avduo ');
   const quest = k => `<div class="avk" data-k="${k}">
       <p class="avfor">${k === "v" ? "Vérité" : "Action"} pour <b>${esc(p.name)}</b></p>
       <p class="text">${esc(c[k] ? c[k].txt : "")}</p></div>`;
-  const qcard = ks => cardShell("av", null, `${ks.map(quest).join("")}<button class="avother">Autre carte</button>`, S.idx % 2 === 1);
+  // la carte de la question prend la couleur du côté choisi : bleu vérité, rose action
+  const qcard = ks => cardShell("av", null, `${ks.map(quest).join("")}<button class="avother">Autre carte</button>`, S.idx % 2 === 1).replace('class="card ', `class="card avw${ks.length === 1 ? " av-" + ks[0] : ""} `);
   const nx = S.deck[S.idx + 1];
   const done = c.kind || c.sp === "tous";
   if (c.sp === "tous") { tous(c, S.idx); if (c.tq.pk) { used.add(c.tq.pk.id); store.set("used", [...used]); S.avPick = c.tq.pk; } }
