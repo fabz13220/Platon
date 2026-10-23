@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="c425b0c6ca41">
+<meta name="build" content="4116104f4f12">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -340,6 +340,13 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .grp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 14px; background: rgba(0,0,0,.2); font-weight: 800; }
 .grp-row button { border: 0; background: rgba(255,255,255,.2); color: #fff; width: 32px; height: 32px; border-radius: 50%; font-weight: 900; font-size: 18px; flex: none; }
 .sheet .grp-in { width: 100%; box-sizing: border-box; }
+.gm-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,.22); }
+.gm-row > span:first-child { min-width: 0; display: grid; gap: 2px; }
+.gm-row small { color: var(--muted); font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-row.ask { box-shadow: inset 0 0 0 1.5px var(--red); }
+.gm-ask { display: flex; gap: 8px; flex: none; }
+.gm-btn { flex: none; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.1); color: #fff; font-weight: 900; font-size: 14px; padding: 8px 12px; border-radius: 999px; }
+.gm-btn.red { background: var(--red); border-color: var(--red); }
 @keyframes bFloat {
   0% { transform: translate(0, 0) rotate(0deg) scale(1); }
   25% { transform: translate(calc(var(--amp) * 2.4), calc(var(--amp) * -1.6)) rotate(4deg) scale(1.04); }
@@ -1794,8 +1801,10 @@ const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function groupBubbles(draw) {
   const box = $("#bubbles"), groups = store.get("groups", []);
   box.innerHTML = groups.map((g, i) => `<button class="bubble" data-i="${i}" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s" aria-label="Ajouter le groupe ${esc(g.name)}"><span>${esc(g.name)}</span><small>${g.names.length} joueurs</small></button>`).join("")
-    + `<button class="linkbtn" id="mkgrp">+ Créer un groupe</button>`;
+    + `<button class="linkbtn" id="mkgrp">+ Créer un groupe</button>`
+    + (groups.length ? `<button class="linkbtn" id="rmgrp">Supprimer un groupe</button>` : "");
   $("#mkgrp").onclick = () => groupSheet(() => groupBubbles(draw));
+  if (groups.length) $("#rmgrp").onclick = () => groupManage(() => groupBubbles(draw));
   $$(".bubble", box).forEach(b => { b.onclick = () => popGroup(b, groups[+b.dataset.i], draw); jelly(b, () => b.click(), true); });
 }
 /* -------- BULLES MOLLES : on les attrape au doigt, on les lance, elles s'écrasent sur les bords et entre elles, puis rebondissent -------- */
@@ -1927,7 +1936,6 @@ function groupSheet(done) {
     <div class="field"><input id="grp-p" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom d'un joueur du groupe"><button class="btn" type="button" id="grp-add">Ajouter</button></div>
     <div class="chips" id="grp-chips"></div>
     <button class="btn red" id="grp-save">Créer le groupe</button>
-    <div id="grp-list" style="display:grid;gap:6px"></div>
     <button class="btn" id="grp-close">Fermer</button>`, w => {
     const chips = () => {
       $("#grp-chips", w).innerHTML = mem.map((n, i) => `<span class="chip">${esc(n)}<button class="x" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span>`).join("")
@@ -1941,11 +1949,6 @@ function groupSheet(done) {
       if (mem.length >= 16) { toast("16 joueurs maximum."); return; }
       mem.push(v); $("#grp-p", w).value = ""; $("#grp-p", w).focus(); chips();
     };
-    const list = () => {
-      const g = store.get("groups", []);
-      $("#grp-list", w).innerHTML = g.map((x, i) => `<div class="grp-row"><span>${esc(x.name)} · ${x.names.length}</span><button data-i="${i}" aria-label="Supprimer ${esc(x.name)}">×</button></div>`).join("");
-      $$("#grp-list button", w).forEach(b => b.onclick = () => { g.splice(+b.dataset.i, 1); store.set("groups", g); list(); done(); });
-    };
     const save = () => {
       const name = $("#grp-name", w).value.trim().replace(/\s+/g, " ");
       if (!name) { toast("Donne un nom au groupe."); return; }
@@ -1958,7 +1961,29 @@ function groupSheet(done) {
     $("#grp-save", w).onclick = save;
     $("#grp-name", w).onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#grp-p", w).focus(); } };
     $("#grp-close", w).onclick = () => w.remove();
-    chips(); list();
+    chips();
+  });
+}
+// supprimer un groupe : on touche « Supprimer », puis on confirme sur la même ligne
+function groupManage(done) {
+  sheet(`
+    <span class="mast" style="font-size:30px">Tes groupes</span>
+    <div id="gm" style="display:grid;gap:8px"></div>
+    <button class="btn" id="gm-close">Fermer</button>`, w => {
+    const draw = () => {
+      const g = store.get("groups", []);
+      $("#gm", w).innerHTML = g.map((x, i) => `<div class="gm-row"><span><b>${esc(x.name)}</b><small>${esc(x.names.join(", "))}</small></span><button class="gm-btn" data-i="${i}">Supprimer</button></div>`).join("")
+        || `<p class="hint muted" style="margin:0;text-align:center">Plus aucun groupe.</p>`;
+      $$("#gm .gm-btn", w).forEach(b => b.onclick = () => {
+        const i = +b.dataset.i, row = b.closest(".gm-row");
+        row.classList.add("ask");
+        row.innerHTML = `<span><b>Supprimer « ${esc(g[i].name)} » ?</b></span><span class="gm-ask"><button class="gm-btn" data-a="no">Annuler</button><button class="gm-btn red" data-a="yes">Oui</button></span>`;
+        $("[data-a=no]", row).onclick = draw;
+        $("[data-a=yes]", row).onclick = () => { g.splice(i, 1); store.set("groups", g); toast("Groupe supprimé."); draw(); done(); };
+      });
+    };
+    $("#gm-close", w).onclick = () => w.remove();
+    draw();
   });
 }
 function popGroup(b, g, draw) {
