@@ -511,6 +511,9 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .vs [data-o] > span { position: relative; }
 .vs .pct { display: block; margin-top: 4px; font-family: var(--display); font-size: 28px; color: var(--ink); animation: pop .3s ease-out; }
 .vs .opt-b { padding-top: 26px; }
+/* Oui ou non : les deux réponses côte à côte, même remplissage caché que Tu préfères */
+.vs.ovs { flex-direction: row; gap: 12px; margin-top: 4px; }
+.vs.ovs .opt-a, .vs.ovs .opt-b { flex: 1; padding: 16px 10px; text-align: center; font-size: 22px; }
 .vs .or {
   align-self: center; margin: -14px 0; z-index: 1; width: 58px; height: 58px; border-radius: 50%;
   display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 16px; text-transform: uppercase;
@@ -691,24 +694,7 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 @keyframes impIn { from { transform: scale(.7) rotateY(70deg); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes impPop { from { transform: scale(1.9); opacity: 0; filter: blur(6px); } to { transform: none; opacity: 1; filter: none; } }
 @keyframes impBob { 50% { transform: translateY(-9px) rotate(-5deg); } }
-/* Oui ou non : les prénoms rangés côté oui et côté non */
-.impx.oui { gap: 6px; min-height: 0; padding: 18px 14px; }
-.impx.oui .big { font-size: min(15vw, 64px); }
-.impx.oui .nm { font-size: min(10vw, 44px); }
-.impx.oui .ttl { font-size: min(9vw, 40px); }
-.impx.oui .ln { font-size: 17px; }
-@media (max-height: 600px) { .impx.oui .big { font-size: 46px; } .impx.oui { padding: 14px 12px; } }
-.impx .oq { font-size: 16px; line-height: 1.28; font-weight: 800; opacity: .85; margin: 0 0 2px; max-width: 30ch; }
-.osplit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-top: 4px; }
-.osplit > div { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 6px; padding: 8px 5px 10px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(46,230,160,.45); }
-.osplit > .o-no { border-color: rgba(255,59,110,.45); }
-.osplit b { flex-basis: 100%; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
-.osplit span { --ox: -40px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); font-weight: 900; font-size: clamp(13px, 3.9vw, 15px); white-space: nowrap; animation: oIn .5s cubic-bezier(.2,1.4,.4,1) both; }
-.osplit .o-no span { --ox: 40px; }
-.osplit span.lone { background: var(--bd); border-color: var(--bd); color: #0B0720; box-shadow: 0 0 22px var(--gl); }
-.osplit i { font-style: normal; font-size: 14px; font-weight: 800; opacity: .5; }
-@keyframes oIn { from { opacity: 0; transform: translateX(var(--ox)) scale(.6); } }
-@media (prefers-reduced-motion: reduce) { .impx, .impx .big, .impx .ttl, .impx .roles span, .osplit span { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .impx, .impx .big, .impx .ttl, .impx .roles span { animation: none; } }
 .imp-guess { width: 100%; }
 .imp-guess input { flex: 1; min-width: 0; }
 .imp-roles { display: flex; flex-direction: column; gap: 6px; padding: 0 22px; }
@@ -1586,7 +1572,7 @@ const TYPES = {
   pref:      { label: "Tu préfères", color: "var(--ink)", dark: true, desc: "Faut choisir." },
   imposteur: { label: "L'Imposteur", color: "var(--green)", dark: true, desc: "Un mytho parmi vous." },
   classement: { label: "Le Classement", color: "var(--rank)", dark: true, desc: "Il vous classe, vous devinez pourquoi." },
-  ouinon:    { label: "Oui ou non", color: "var(--yesno)", dark: true, desc: "Swipe : à droite oui, à gauche non." },
+  ouinon:    { label: "Oui ou non", color: "var(--yesno)", dark: true, desc: "Une question, chacun répond oui ou non." },
   radar:     { label: "Le Radar", color: "var(--radar)", dark: true, desc: "Un indice, vise juste." },
   taboo:     { label: "Sans le dire", color: "var(--taboo)", dark: true, desc: "Fais deviner sans les mots interdits." },
   menteur:   { label: "Le Menteur", color: "var(--blue)", dark: true, desc: "Vrai ou mytho ?" },
@@ -2279,9 +2265,9 @@ function next() {
   card();
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
-const SWIPE = ["jamais", "pref", "qui", "av"];
+const SWIPE = ["jamais", "pref", "qui", "av", "ouinon"];
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
-const NOPTS = ["imposteur", "menteur", "ouinon"];
+const NOPTS = ["imposteur", "menteur"];
 const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
 function endDeck() {
   if (S.mode === "mix") return afterRound();
@@ -2390,19 +2376,12 @@ function mythoBest() {
   if (!max) return `<p class="mbest">🤥 Personne n'a réussi à vous mytho.</p>`;
   return `<p class="mbest"><span>🤥 Meilleur mytho</span><b>${w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0]}</b><small>${max} fois</small></p>`;
 }
-// Oui ou non : celui qui s'est retrouvé seul contre tous le plus souvent
-function aloneBest() {
-  if ((ON.ctx ? ON.r && ON.r.game : S.mode) !== "ouinon") return "";
-  const max = Math.max(0, ...S.players.map(p => p.alone || 0)), w = S.players.filter(p => (p.alone || 0) === max).map(p => esc(p.name));
-  if (!max) return `<p class="mbest">🤝 Personne n'a été seul contre tous.</p>`;
-  return `<p class="mbest"><span>🫵 Le plus à part</span><b>${w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0]}</b><small>${max} fois seul contre tous</small></p>`;
-}
 function finJamais(n = S.idx) {
   const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} ${u}${n > 1 ? "s" : ""}</span></div>
-      ${mythoBest()}${aloneBest()}
+      ${mythoBest()}
       ${endBubbles(S.players.map(p => p.name))}
       <div class="confetti" id="confetti"></div>
     </div>
@@ -2584,6 +2563,23 @@ function cQui(c) {
   });
 }
 
+// on touche le choix du groupe : la carte montre ce qu'ont pris les autres groupes, et reste là jusqu'au swipe
+function choixTap(c, top) {
+  choixGet(c);
+  const vs = $(".vs", top);
+  $$("[data-o]", top).forEach(o => {
+    let x0 = 0; o.addEventListener("pointerdown", e => { x0 = e.clientX; });
+    o.onclick = async e => {
+      if (Math.abs(e.clientX - x0) > 10) return; // c'était un swipe
+      if (vs.classList.contains("done")) return;
+      vs.classList.add("done"); o.classList.add("won"); buzz(10);
+      const k = o.dataset.o, d = await Promise.race([choixGet(c), new Promise(r => setTimeout(() => r({}), 700))]);
+      choixAdd(c, k);
+      const n = { a: (d.a || 0) + (k === "a"), b: (d.b || 0) + (k === "b") }, tot = n.a + n.b;
+      $$("[data-o]", top).forEach(x => { const p = Math.round(100 * n[x.dataset.o] / tot); x.style.setProperty("--p", p + "%"); x.insertAdjacentHTML("beforeend", `<span class="pct">${p} %</span>`); });
+    };
+  });
+}
 function cPref(c) {
   if (S.mode === "pref") {
     if (S.idx + 1 >= S.deck.length) jamaisRefill();
@@ -2600,21 +2596,8 @@ function cPref(c) {
       const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
       $("#stop").onclick = ranking;
-      // on touche le choix du groupe : la carte montre ce qu'ont pris les autres groupes, et reste là jusqu'au swipe
-      choixGet(c); if (nx) choixGet(nx);
-      const top = $(".jstack .top"), vs = $(".vs", top);
-      $$("[data-o]", top).forEach(o => {
-        let x0 = 0; o.addEventListener("pointerdown", e => { x0 = e.clientX; });
-        o.onclick = async e => {
-          if (Math.abs(e.clientX - x0) > 10) return; // c'était un swipe
-          if (vs.classList.contains("done")) return;
-          vs.classList.add("done"); o.classList.add("won"); buzz(10);
-          const k = o.dataset.o, d = await Promise.race([choixGet(c), new Promise(r => setTimeout(() => r({}), 700))]);
-          choixAdd(c, k);
-          const n = { a: (d.a || 0) + (k === "a"), b: (d.b || 0) + (k === "b") }, tot = n.a + n.b;
-          $$("[data-o]", top).forEach(x => { const p = Math.round(100 * n[x.dataset.o] / tot); x.style.setProperty("--p", p + "%"); x.insertAdjacentHTML("beforeend", `<span class="pct">${p} %</span>`); });
-        };
-      });
+      if (nx) choixGet(nx);
+      choixTap(c, $(".jstack .top"));
     });
   }
   const q0 = S.players.length ? rnd(S.players).name : "quelqu'un", fq = t => t.replace(/\{q\}/g, q0); const a = fq(c.data[1]), b = fq(c.data[2]);
@@ -3136,49 +3119,29 @@ function swipeCard(el, onPick) {
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
   return fly;
 }
-// Oui ou non seul : un téléphone qu'on se passe, sans points. Chacun swipe en secret,
-// puis grande révélation façon Imposteur : qui a dit oui, qui a dit non, et le seul contre tous en grand.
-const ouiLone = (A, B) => A.length + B.length >= 3 && (A.length === 1 || B.length === 1) ? (A.length === 1 ? A[0] : B[0]) : null;
-function ouiScene(text, A, B) { // A, B : prénoms qui ont dit oui / non
-  const lone = ouiLone(A, B), all = A.length + B.length, side = L => L.length ? L.map((n, k) => `<span${n === lone ? ' class="lone"' : ""} style="animation-delay:${(.35 + k * .08).toFixed(2)}s">${esc(n)}</span>`).join("") : "<i>personne</i>";
-  const head = lone ? `<span class="kick">Seul contre tous</span><span class="nm">${esc(lone)}</span><span class="big">🫵</span><span class="ttl">Justifie-toi !</span>`
-    : all && (!A.length || !B.length) ? `<span class="big">🤝</span><span class="ttl">Tout le monde d'accord</span><p class="ln">${all > 1 ? "Tout le monde a dit" : "Réponse :"} <b>${A.length ? "oui" : "non"}</b>.</p>`
-    : all ? `<span class="big">${A.length === B.length ? "⚖️" : A.length > B.length ? "👍" : "👎"}</span><span class="ttl">${A.length} oui, ${B.length} non</span>`
-    : `<span class="big">🤷</span><span class="ttl">Personne n'a répondu</span>`;
-  return impScene(`${lone ? "inf" : all && (!A.length || !B.length) ? "civ" : "vote"} oui`, `<p class="oq">${esc(text).replace(/ ([?!:€»])/g, "\u00a0$1")}</p>${head}
-    <div class="osplit"><div class="o-yes"><b>👍 Oui</b>${side(A)}</div><div class="o-no"><b>👎 Non</b>${side(B)}</div></div>`);
-}
-function cOuiSolo(c) {
-  const text = c.txt || (c.txt = fill(c.data[1])), P = S.players, n = P.length, k0 = S.idx % n, votes = [];
-  const order = P.map((p, k) => P[(k0 + k) % n]); // celui qui commence change à chaque carte
-  const turn = i => view(`${header()}
-    <div class="stage">${cardShell("ouinon", { label: "À toi", name: order[i].name }, `
-      <p class="text">${esc(text)}</p>
-      <p class="swipe-hint"><span>← Non</span><span>Oui →</span></p>
-      <p class="sub">${i ? `${i + 1} / ${n}` : "Chacun répond en secret, puis passe le téléphone."}</p>
-    `, alt())}</div>
-    <div class="actions duo-btns"><button class="btn white" id="no">👎 Non</button><button class="btn green" id="yes">👍 Oui</button></div>`, () => {
+// Oui ou non seul : un téléphone, sans points, on swipe de carte en carte comme Tu préfères ; chacun répond à voix haute
+function cOuiSwipe(c) {
+  if (S.idx + 1 >= S.deck.length) jamaisRefill();
+  const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+  const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
+  const face = (x, i) => cardShell("ouinon", null, `
+    <p class="text">${esc(txt(x))}</p>
+    <div class="vs ovs"><div class="opt-a" data-o="a"><span>👍 Oui</span></div><div class="opt-b" data-o="b"><span>👎 Non</span></div></div>
+    <p class="sub">${i < 1 ? "Chacun répond à voix haute, et on swipe." : "&nbsp;"}</p>
+  `, i % 2 === 1);
+  view(`${header()}
+    <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
     bindHeader();
-    const fly = swipeCard($(".stage .card"), v => { votes[i] = v; i + 1 < n ? turn(i + 1) : show(); });
-    $("#yes").onclick = () => fly("oui"); $("#no").onclick = () => fly("non");
+    const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+    $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+    $("#stop").onclick = ranking;
+    if (nx) choixGet(nx);
+    choixTap(c, $(".jstack .top"));
   });
-  const show = () => {
-    const A = order.filter((p, i) => votes[i] === "oui"), B = order.filter((p, i) => votes[i] === "non"), lone = ouiLone(A, B);
-    if (lone) lone.alone = (lone.alone || 0) + 1;
-    buzz(lone ? [60, 40, 60, 40, 160] : [30, 30, 60]);
-    view(`${header()}
-      <div class="stage">${ouiScene(text, A.map(p => p.name), B.map(p => p.name))}</div>${lone ? `<div class="confetti" id="confetti"></div>` : ""}
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
-      bindHeader(); if (lone) party();
-      const fly = swipeNext($(".stage .impx"), null, next);
-      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
-    });
-  };
-  turn(0);
 }
 function cOuinon(c) {
-  if (S.mode === "ouinon") return cOuiSolo(c);
+  if (S.mode === "ouinon") return cOuiSwipe(c);
   const text = fill(c.data[1]), P = S.players, votes = [];
   const turn = i => view(`${header()}
     <div class="stage">${cardShell("ouinon", { label: "À toi", name: P[i].name }, `
@@ -3826,7 +3789,7 @@ const TUTO = {
   jamais: "Quelqu'un lit la carte. Ceux qui l'ont déjà fait l'avouent, et on swipe.",
   av: "La carte dit à qui c'est le tour. Swipe à droite pour une action, à gauche pour une vérité. Tu réponds ou tu le fais, et on swipe. Si tu veux pas, on swipe quand même.",
   pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
-  ouinon: "Le téléphone tourne. Chacun swipe en secret : à droite oui, à gauche non. Après on voit qui a dit quoi, et si quelqu'un est tout seul, il s'explique.",
+  ouinon: "Lis la question à voix haute, chacun répond oui ou non, et ceux qui sont tout seuls s'expliquent. Swipe pour la suivante.",
   classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
@@ -4960,9 +4923,7 @@ function roomResolve(r) {
   } else if (c.type === "pref" || c.type === "ouinon") {
     const A = ids(r).filter(u => acts[u] === "a"), B = ids(r).filter(u => acts[u] === "b");
     const win = A.length === B.length ? "" : A.length > B.length ? "a" : "b";
-    res = { A, B, win };
-    if (r.game === "ouinon") { const lone = ouiLone(A, B); if (lone && r.players[lone]) return upd({ phase: "reveal", res, [`players.${lone}.alone`]: F.increment(1) }); } // sans points : on compte juste qui s'est retrouvé seul
-    else (win === "a" ? A : win === "b" ? B : []).forEach(u => add(u, 1));
+    (win === "a" ? A : win === "b" ? B : []).forEach(u => add(u, 1)); res = { A, B, win };
   } else if (c.type === "av") {
     const yes = needers(r).filter(u => acts[u] === "y").length, no = needers(r).filter(u => acts[u] === "n").length;
     const ok = yes >= no && yes > 0; if (ok) add(c.target, c.kind === "v" ? 1 : 2); res = { ok, yes, no };
@@ -5024,7 +4985,7 @@ function roomRender(r) {
       ${choices([["a", esc(c.a)], ["b", esc(c.b)]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
     if (T === "ouinon") stage = cardShell(T, null, `<p class="text">${esc(c.text)}</p>
       <p class="swipe-hint"><span>← Non</span><span>Oui →</span></p>
-      ${choices([["a", "👍 Oui", "green"], ["b", "👎 Non"]])}${waitP}${noPts() ? "" : rulePts("+1 point pour chaque personne de la majorité")}`);
+      ${choices([["a", "👍 Oui", "green"], ["b", "👎 Non"]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
     if (T === "av") stage = cardShell(T, { label: c.kind === "v" ? "Vérité pour" : "Action pour", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
       ${isSolo ? `<p class="sub">Les autres valident sur leur téléphone si tu l'as fait.</p>${waitP}` : `<p class="sub">${soloName} l'a fait ?</p>${choices([["y", "Réussi", "green"], ["n", "Refusé"]])}${waitP}`}
       ${rulePts(`Réussi : +${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}`)}`);
@@ -5063,8 +5024,7 @@ function roomRender(r) {
     const res = r.res || {}, G = "#2EE6A0", R = "#FF3B6E";
     if (T === "jamais") stage = cardShell(T, null, `<p class="text">Je n'ai jamais <b>${esc(c.text)}</b>.</p>
       ${(res.did || []).length ? `<p class="sub">Ceux qui l'ont fait :</p>${rows(res.did.map(u => [u, "+1"]), () => G)}` : `<p class="sub">Personne ne l'a fait. Tous des anges.</p>`}`);
-    if (T === "ouinon" && r.game === "ouinon") stage = ouiScene(c.text, (res.A || []).map(u => pname(r, u)), (res.B || []).map(u => pname(r, u))) + (ouiLone(res.A || [], res.B || []) ? `<div class="confetti" id="confetti"></div>` : "");
-    else if (T === "pref" || T === "ouinon") {
+    if (T === "pref" || T === "ouinon") {
       const la = T === "pref" ? esc(c.a) : "Oui", lb = T === "pref" ? esc(c.b) : "Non";
       stage = cardShell(T, res.win ? { label: "La majorité a choisi", name: res.win === "a" ? (T === "pref" ? c.a : "Oui") : (T === "pref" ? c.b : "Non") } : { label: "Résultat", name: "Égalité" }, `${T === "ouinon" ? `<p class="text">${esc(c.text)}</p>` : ""}
         ${rows([...(res.A || []).map(u => [u, la]), ...(res.B || []).map(u => [u, lb])], i => i < (res.A || []).length ? (res.win === "a" ? G : R) : (res.win === "b" ? G : R))}
@@ -5170,7 +5130,6 @@ function roomRender(r) {
       if (T === "imposteur" && res.free) buzz([30, 30, 60]);
       else if (T === "imposteur") stamp(res.caught ? "Démasqué" : "Raté", res.caught ? "green" : "");
       else if (T === "menteur" && r.game === "menteur") { if (res.fooled) party(); buzz(res.fooled ? [60, 40, 60, 40, 160] : [30, 30, 60]); }
-      else if (T === "ouinon" && r.game === "ouinon") { const lone = ouiLone(res.A || [], res.B || []); if (lone) party(); buzz(lone ? [60, 40, 60, 40, 160] : [30, 30, 60]); }
       else if (T === "radar") { const best = Math.max(0, ...(res.g || []).map(o => o.p)); stamp(best === 3 ? "En plein dans le mille" : best ? "Pas mal" : "Raté", best ? "green" : ""); }
     }
     if (b("send")) {
@@ -5445,7 +5404,7 @@ function lobbyView(r, host) {
   });
 }
 function roomEnd(r, host) {
-  S.players = ids(r).map(u => ({ name: r.players[u].name, pts: r.players[u].pts || 0, fool: r.players[u].fool || 0, alone: r.players[u].alone || 0 }));
+  S.players = ids(r).map(u => ({ name: r.players[u].name, pts: r.players[u].pts || 0, fool: r.players[u].fool || 0 }));
   ranking();
   const again = $("#again"), out = $("#home");
   if (host) again.onclick = () => upd({ status: "lobby", round: 0, card: null, phase: "", acts: {}, res: null });
