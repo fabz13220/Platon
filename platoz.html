@@ -651,6 +651,11 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .imphold .imp-w { font-size: min(9.6vw, 44px); overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .card.impc .who { font-size: min(11vw, 52px); overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .card.impc .text { font-size: min(8vw, 34px) !important; overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.imphold.impmini { min-height: 0; padding: 14px 16px; margin-bottom: 10px; border-radius: 20px; }
+.imphold.impmini .imp-cue { font-size: 15px; }
+.imphold.impmini .imp-face { padding: 8px 12px; gap: 2px; }
+.imphold.impmini .imp-w { font-size: 28px; }
+.imphold.impmini .imp-face p { font-size: 14px; }
 .imp-roles { display: flex; flex-direction: column; gap: 6px; padding: 0 22px; }
 .imp-roles div { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 17px; }
 .secret .eyebrow { font-size: 13px; opacity: .92; }
@@ -1743,7 +1748,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 4)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 5)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -4521,7 +4526,9 @@ async function addFriend(raw) {
 /* ---- salons ---- */
 const ids = r => Object.keys(r.players).sort((a, b) => r.players[a].t - r.players[b].t);
 const pname = (r, u) => r.players[u] ? r.players[u].name : "Un joueur parti";
-const needers = r => r.card && r.card.type === "deux" ? r.card.pair.filter(u => r.players[u]) : ids(r).filter(u => u !== solo(r.card));
+const needers = r => r.card && r.card.type === "deux" ? r.card.pair.filter(u => r.players[u])
+  : r.card && r.card.roles ? ids(r).filter(u => r.card.roles[u] && !(r.card.out || []).includes(u)) // L'Imposteur : seuls ceux encore en jeu votent
+  : ids(r).filter(u => u !== solo(r.card));
 const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
 async function roomCreate(game = "mix") {
   try {
@@ -4574,7 +4581,7 @@ async function roomOpen(code) {
     if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return home(); }
     ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
     if (r.host === uid) hostTick(r);
-    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host]) : "",
+    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und]) : "",
       r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue, c && LONG.includes(c.type) ? JSON.stringify(c) : ""].join("|");
     if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
     else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
@@ -4596,7 +4603,7 @@ function waitTxt(r) {
 }
 function hostTick(r) {
   if (r.status !== "play" || !r.card) return;
-  const k = r.round + ":" + r.phase;
+  const k = r.round + ":" + r.phase + ":" + (r.vn || 0); // vn : L'Imposteur vote plusieurs fois par manche
   if ((r.phase === "vote" || r.phase === "guess") && actedN(r) >= needers(r).length && ON.ctx.busy !== k) { ON.ctx.busy = k; roomResolve(r); }
 }
 async function roomNext(r) {
@@ -4609,7 +4616,12 @@ async function roomNext(r) {
   S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
   const turnOf = all[r.round % n], pl = u => S.players[all.indexOf(u)];
   let card, phase = "vote";
-  if (t === "imposteur") { card = { type: t, cat: c.data[1], word: c.data[2], imp: rnd(all), first: rnd(all) }; phase = "word"; }
+  if (t === "imposteur" && r.game === "imposteur") {
+    const roles = impRoles(all, r.imp == null ? 1 : r.imp, r.und || 0), und = Object.values(roles).includes("und");
+    const cc = und && !underOf(c) ? pool("imposteur").find(x => underOf(x)) || c : c;
+    card = { type: t, cat: cc.data[1], word: cc.data[2], uw: underOf(cc) || "", roles, out: [] }; card.first = impFirst(card); phase = "word";
+  }
+  else if (t === "imposteur") { card = { type: t, cat: c.data[1], word: c.data[2], imp: rnd(all), first: rnd(all) }; phase = "word"; }
   else if (t === "radar") { card = { type: t, a: c.data[1], b: c.data[2], giver: turnOf, target: 8 + Math.round(Math.random() * 84), clue: "" }; phase = "clue"; }
   else if (t === "pref") card = { type: t, a: fill(c.data[1]), b: fill(c.data[2]) };
   else if (t === "av") { card = { type: t, target: turnOf, kind: "", text: "" }; phase = "choose"; }
@@ -4638,8 +4650,96 @@ async function roomNext(r) {
   else card = { type: t, text: fill(c.data[1]) };
   return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase });
 }
+// L'Imposteur sur plusieurs téléphones, façon Undercover : chacun voit son mot chez lui, chacun vote pour éliminer, sans points
+function impRoles(all, nImp, nUnd) {
+  nImp = Math.max(0, nImp | 0); nUnd = Math.max(0, nUnd | 0);
+  if (nImp + nUnd > all.length - 2) { nUnd = Math.max(0, all.length - 2 - nImp); nImp = Math.min(nImp, all.length - 2); }
+  if (nImp + nUnd < 1) nImp = 1;
+  const roles = {};
+  shuffle(all).forEach((u, i) => { roles[u] = i < nImp ? "imp" : i < nImp + nUnd ? "und" : "civ"; });
+  return roles;
+}
+// qui gagne avec ces éliminés : "civ", "inf" ou rien
+function impWin(c) {
+  const left = Object.keys(c.roles).filter(u => !(c.out || []).includes(u));
+  const inf = left.filter(u => c.roles[u] !== "civ").length, civ = left.length - inf;
+  return inf === 0 ? "civ" : civ <= 1 ? "inf" : "";
+}
+const impFirst = c => { const left = Object.keys(c.roles).filter(u => !(c.out || []).includes(u)), safe = left.filter(u => c.roles[u] !== "imp"); return rnd(safe.length ? safe : left); };
+function roomImp(r, h) {
+  const uid = ON.ctx.N.uid, c = r.card, out = c.out || [], me = c.roles[uid], dead = out.includes(uid), res = r.res || {};
+  const alive = ids(r).filter(u => c.roles[u] && !out.includes(u));
+  const N = u => esc(pname(r, u)), host = h.host, hostName = esc(pname(r, r.host));
+  const ROLE = { civ: "Civil", und: "Undercover", imp: "L'imposteur" };
+  const face = me === "imp"
+    ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w" style="color:var(--red)">L'imposteur</span><p>Thème : « ${esc(c.cat)} ». Pas de mot, bluffe.</p>`
+    : `<span class="eyebrow" style="color:var(--paper)">Ton mot</span><span class="mast imp-w">${esc(me === "und" ? c.uw : c.word)}</span><p>Ne le dis pas à voix haute.</p>`;
+  const peek = big => me ? `<div class="secret imphold${big ? "" : " impmini"}" id="hold"><span class="eyebrow" style="color:var(--paper)">${dead ? "Éliminé" : "Ton mot"}</span><p class="imp-cue">Garde le doigt ici pour ${big ? "voir ton mot" : "le revoir"}.</p><div class="imp-face">${face}</div></div>` : "";
+  const wait = t => `<p class="hint muted on-waiting">${t}</p>`;
+  let stage = "", acts = "";
+  if (r.phase === "word") {
+    stage = (me ? peek(true) : impShell("imposteur", null, `<p class="text">Tu regardes cette manche.</p>`))
+      + `<p class="sub on-sub"><b>${N(c.first)}</b> commence. Chacun dit un mot sur son mot secret, puis vous votez.${out.length ? ` Encore ${alive.length} en jeu.` : ""}</p>`;
+    acts = host ? `<button class="btn red" id="tovote">Passer au vote</button>` : wait(`${hostName} lance le vote.`);
+  } else if (r.phase === "vote") {
+    const voter = me && !dead;
+    stage = impShell("imposteur", null, voter
+      ? `<p class="text">Qui on élimine ?</p><div class="chips on-picks">${alive.filter(u => u !== uid).map(u => `<button class="chip pick" data-u="${u}" aria-pressed="${h.mine === u}">${N(u)}</button>`).join("")}</div>${h.waitP}`
+      : `<p class="text">${dead ? "Tu es éliminé." : "Tu regardes cette manche."} Les autres votent.</p>${h.waitP}`);
+    acts = peek(false) + h.forceBtn;
+  } else if (r.phase === "out") {
+    const u = res.out, ro = u ? c.roles[u] : "";
+    stage = res.tie ? impShell("imposteur", null, `<p class="text">Égalité, personne ne sort.</p>`)
+      : impShell("imposteur", { label: "Éliminé", name: pname(r, u) }, `
+        <p class="text">${ro === "civ" ? `C'était un <b>civil</b>. Raté.` : ro === "und" ? `C'était un <b>undercover</b>. Bien vu.` : `C'était <b>l'imposteur</b>. Bien vu.`}</p>
+        ${ro === "imp" ? `<p class="sub">Dernière chance : s'il trouve le mot, les intrus gagnent.</p>` : ""}`);
+    acts = !host ? wait(`${hostName} lance la suite.`)
+      : res.tie ? `<div class="row"><button class="btn white" id="imp-next">Tour suivant</button><button class="btn red" id="imp-revote">Revoter</button></div>`
+      : ro === "imp" ? `<div class="row"><button class="btn white" id="imp-miss">Raté</button><button class="btn red" id="imp-hit">Il a trouvé</button></div>`
+      : `<button class="btn red" id="imp-next">${impWin(c) ? "Voir la fin" : "Tour suivant"}</button>`;
+  } else {
+    const ins = Object.keys(c.roles).filter(u => c.roles[u] !== "civ"), onlyImp = ins.every(u => c.roles[u] === "imp"), one = ins.length === 1;
+    const title = res.win === "civ" ? "Les civils gagnent" : onlyImp ? (one ? "L'imposteur gagne" : "Les imposteurs gagnent") : (one ? "L'undercover gagne" : "Les intrus gagnent");
+    stage = impShell("imposteur", { label: "Fin de la manche", name: title }, `
+      <p class="text">Le mot : <b>${esc(c.word)}</b>.${c.uw && ins.some(u => c.roles[u] === "und") ? ` Undercover : <b>${esc(c.uw)}</b>.` : ""}</p>
+      <div class="imp-roles">${ins.map(u => `<div><span>${N(u)}</span><b>${ROLE[c.roles[u]]}</b></div>`).join("")}</div>`);
+    acts = h.nextBtn;
+  }
+  view(`${h.top}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => {
+    $("#leave").onclick = () => {
+      if (Date.now() - ON.leaveArmed < 2500) return roomLeave();
+      ON.leaveArmed = Date.now(); toast("Touche encore × pour quitter la partie.");
+    };
+    const hd = $("#hold");
+    if (hd) {
+      const show = e => { e.preventDefault(); hd.classList.add("on"); buzz(15); };
+      const hide = () => hd.classList.remove("on");
+      hd.addEventListener("pointerdown", show);
+      ["pointerup", "pointercancel", "pointerleave"].forEach(t => hd.addEventListener(t, hide));
+      hd.addEventListener("contextmenu", e => e.preventDefault());
+    }
+    const b = id => $("#" + id);
+    const go = () => { const w = impWin(c); return w ? upd({ phase: "reveal", "res.win": w }) : upd({ phase: "word", acts: {}, res: null, "card.first": impFirst(c) }); };
+    if (b("tovote")) b("tovote").onclick = () => upd({ phase: "vote", acts: {}, res: null, vn: (ON.r.vn || 0) + 1 });
+    if (b("force")) b("force").onclick = () => roomResolve(ON.r);
+    if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
+    if (b("imp-next")) b("imp-next").onclick = go;
+    if (b("imp-miss")) b("imp-miss").onclick = go;
+    if (b("imp-hit")) b("imp-hit").onclick = () => upd({ phase: "reveal", "res.win": "inf" });
+    if (b("imp-revote")) b("imp-revote").onclick = () => upd({ phase: "vote", acts: {}, res: null, vn: (ON.r.vn || 0) + 1 });
+    $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
+    if (r.phase === "reveal" && ON.ctx.stamped !== r.round) { ON.ctx.stamped = r.round; stamp(res.win === "civ" ? "Civils" : "Intrus", res.win === "civ" ? "green" : ""); }
+  });
+}
 function roomResolve(r) {
   const { F } = ON.ctx.N, c = r.card, acts = r.acts || {}, pts = {};
+  if (c.type === "imposteur" && c.roles) { // vote d'élimination : le plus désigné sort, égalité = personne
+    const tally = {}, alive = needers(r);
+    alive.forEach(u => { const v = acts[u]; if (v && alive.includes(v)) tally[v] = (tally[v] || 0) + 1; });
+    const max = Math.max(0, ...Object.values(tally)), top = Object.keys(tally).filter(u => tally[u] === max);
+    if (top.length !== 1) return upd({ phase: "out", res: { tie: true, tally } });
+    return upd({ phase: "out", res: { out: top[0], tally }, "card.out": [...(c.out || []), top[0]] });
+  }
   const add = (u, n) => { if (n && r.players[u]) pts[u] = (pts[u] || 0) + n; };
   let res;
   if (c.type === "radar") {
@@ -4706,6 +4806,7 @@ function roomRender(r) {
   const isSolo = uid === solo(c), soloName = esc(pname(r, solo(c)));
   const waitP = `<p class="sub" id="wait">${waitTxt(r)}</p>`;
   if (NEWG.includes(T)) return roomRenderX(r, { top, nextBtn, forceBtn, rows, choices, waitP, mine, host });
+  if (T === "imposteur" && c.roles) return roomImp(r, { top, nextBtn, forceBtn, waitP, mine, host });
   if (r.phase === "vote" && ["jamais", "pref", "ouinon", "av", "menteur"].includes(T)) {
     if (T === "jamais") stage = cardShell(T, null, `<p class="text">Je n'ai jamais <b>${esc(c.text)}</b>.</p>
       ${choices([["1", "Je l'ai fait", "green"], ["0", "Jamais"]])}${waitP}${rulePts("+1 point pour chaque personne qui l'a fait")}`);
@@ -5090,8 +5191,11 @@ function lobbyView(r, host) {
     ${host ? `<div class="section-label">Jeu</div>
       <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => !SWIPE.includes(k)).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
       <div class="section-label">Manches</div>
-      <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`
-      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.</p>`}
+      <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>
+      ${r.game === "imposteur" ? `<div class="section-label">Imposteurs</div><div class="seg" id="impn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.imp == null ? 1 : r.imp)}">${v}</button>`).join("")}</div>
+      <div class="section-label">Undercovers</div><div class="seg" id="undn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.und || 0)}">${v}</button>`).join("")}</div>
+      <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Il reste toujours au moins 2 civils.</p>` : ""}`
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}.` : ""}</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
     <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
@@ -5100,6 +5204,8 @@ function lobbyView(r, host) {
     $("#share").onclick = () => shareIt(`Viens jouer sur Platoz, code ${ON.ctx.code} :`, roomUrl(ON.ctx.code));
     $$("#g button").forEach(b => b.onclick = () => { const g = b.dataset.v, o = roundOpts(g); upd({ game: g, rounds: o.includes(ON.r.rounds) ? ON.r.rounds : o[1] }); });
     $$("#nr button").forEach(b => b.onclick = () => upd({ rounds: +b.dataset.v }));
+    $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
+    $$("#undn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i < 1 ? { und: v, imp: 1 } : { und: v }); });
     const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; upd(Object.assign({ round: 0, card: null, tb0: 0, tb1: 0 }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
     try {
       const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => ({ id: d.id, ...d.data() }));
