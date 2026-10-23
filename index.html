@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="4116104f4f12">
+<meta name="build" content="3ae436bbdbf6">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1082,6 +1082,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .card .avpick button { flex: 1; padding: 20px 0; border-radius: 20px; border: 2px solid var(--chipbd); background: var(--panel); color: var(--tx); font: 900 22px var(--display), sans-serif; cursor: pointer; transition: transform .15s; }
 .card .avk { display: contents; }
 .card .avk > .avfor { margin-top: auto; }
+.card .avgroupe { margin: -4px 0 0; font-weight: 800; }
 .card.show-v .avk[data-k="a"], .card.show-a .avk[data-k="v"] { display: none; }
 .jstack > .card.under.avq .avother { visibility: visible; }
 .card .avpick button:active, .card .avother:active { transform: scale(.96); }
@@ -1189,12 +1190,12 @@ const C = {
   ],
   verite: [
     [1,"C'est quoi le pire truc que t'aies mangé ?"],[1,"C'était quoi ton premier pseudo sur internet ?"],[1,"C'est quoi la chanson la plus honteuse que tu connais par cœur ?"],
-    [1,"Qui ici tu appelles pour t'aider à cacher un corps ?"],[1,"Qui ici meurt en premier dans un film d'horreur ?"],[1,"C'est quoi ta plus grosse phobie ?"],
-    [1,"C'est quoi ta pire honte au collège ?"],[1,"C'est quoi le dernier mytho que t'as raconté ?"],[1,"Tu gagnes un million demain : tu claques quoi en premier ?"],
+    [1,"Qui ici tu appelles pour t'aider à cacher un corps ?"],[1,"Qui ici meurt en premier dans un film d'horreur ?"],
+    [1,"C'est quoi ta pire honte au collège ?"],[1,"C'est quoi le dernier mytho que t'as raconté ?"],
     [1,"C'est quoi le pire cadeau qu'on t'ait fait, et c'était de qui ?"],[1,"Qu'est-ce que tu fais quand t'es seul chez toi et que personne doit savoir ?"],
-    [1,"C'est quoi l'appli la plus honteuse sur ton téléphone ?"],[1,"Tu voulais faire quel métier quand t'étais petit ?"],
+    [1,"C'est quoi l'appli la plus honteuse sur ton téléphone ?"],
     [1,"C'est quoi le plat que tout le monde adore et que toi tu peux pas saquer ?"],[1,"Qui ici ferait le pire coloc ?"],
-    [1,"C'était quoi ta pire note, et dans quelle matière ?"],[1,"Qui ici te ressemble le plus ?"],[1,"T'as cassé quoi de plus cher dans ta vie ?"],
+    [1,"C'était quoi ta pire note, et dans quelle matière ?"],[1,"T'as cassé quoi de plus cher dans ta vie ?"],
     [2,"Raconte ton plus gros râteau."],[2,"À qui ici t'as déjà menti ?"],[2,"C'est quoi ton crush le plus inavouable ?"],
     [2,"Note le style de {q} sur 10, et justifie."],[2,"Qui ici t'énerve le plus ?"],[2,"Avec qui ici tu partirais jamais en vacances ?"],
     [2,"C'est quoi le message que tu regrettes le plus d'avoir envoyé ?"],[2,"C'est quoi le pire coup que t'as fait à un pote ?"],
@@ -1206,7 +1207,8 @@ const C = {
     [3,"C'est quoi le truc le plus illégal que t'aies fait ?"],[3,"Si tu devais couper les ponts avec quelqu'un ici, ce serait qui ?"],
     [3,"C'est quoi le plus gros mytho que t'as raconté à tes parents ?"],[3,"Raconte ta pire soirée, du début à la fin."],
     [3,"C'est quoi le pire truc que t'as pensé de quelqu'un ici ?"],[3,"C'est quoi l'endroit le plus improbable où t'as fait l'amour ?"],
-    [1, "C'est quoi le surnom le plus nul qu'on t'ait donné ?"],[1, "Qui ici ferait le pire président ?"],[1, "C'est quoi ta pire coupe de cheveux, et t'avais quel âge ?"],[1, "Tu fais quoi si t'es invisible pendant une journée ?"],[1, "C'est quoi le film qui t'a fait le plus pleurer ?"],[1, "Sur une île déserte, tu prends qui ici avec toi, et tu laisses qui ?"],[1, "C'est quoi ta pire habitude ?"],[2, "Raconte ton pire date."],[2, "Qui ici parle le plus dans ton dos, d'après toi ?"],[2, "C'est quoi la phrase que tu regrettes le plus d'avoir dite à quelqu'un ?"],[2, "Ton pire ex en trois mots ?"],[2, "Qui ici tu appelles en premier si t'es en garde à vue ?"],[2, "C'est quoi le truc que t'as jamais osé avouer à tes parents ?"],[3, "Avec qui ici tu passerais une nuit sur une île déserte ?"],[3, "C'est quoi ton plus gros tue-l'amour au lit ?"]
+    [1, "C'est quoi le surnom le plus nul qu'on t'ait donné ?"],[1, "C'est quoi ta pire coupe de cheveux, et t'avais quel âge ?"],[1, "Sur une île déserte, tu prends qui ici avec toi, et tu laisses qui ?"],[2, "Raconte ton pire date."],[2, "Qui ici parle le plus dans ton dos, d'après toi ?"],[2, "C'est quoi la phrase que tu regrettes le plus d'avoir dite à quelqu'un ?"],[2, "Ton pire ex en trois mots ?"],[2, "Qui ici tu appelles en premier si t'es en garde à vue ?"],[2, "C'est quoi le truc que t'as jamais osé avouer à tes parents ?"],[3, "Avec qui ici tu passerais une nuit sur une île déserte ?"],[3, "C'est quoi ton plus gros tue-l'amour au lit ?"],
+    [1, "C'est quoi le truc le plus cher que t'as acheté et jamais utilisé ?"],[1, "Pour 500 balles, tu manges quoi de dégueu ce soir ?"],[1, "C'est quoi la meilleure excuse que t'as inventée pour sécher ?"],[1, "Raconte la fois où t'as fait semblant d'être malade le mieux."],[1, "C'est quoi le truc le plus gênant que tes parents t'ont surpris à faire ?"],[1, "Pour combien tu te rases la tête ce soir ?"],[1, "C'est quoi ta pire gamelle en public ?"],[2, "T'as déjà fait semblant de kiffer un cadeau ? C'était quoi, et de qui ?"],[2, "C'est quoi le plus gros mytho que t'as raconté sur toi pour pécho ?"],[2, "Pour 1000 balles, tu largues ton mec ou ta meuf par vocal ?"],[3, "T'as déjà menti sur ton nombre d'ex ? Dans quel sens ?"]
   ],
   action: [
     [1,"Fais un compliment chelou mais sincère à chaque joueur."],[1,"Commente ce que fait {q} pendant 30 secondes comme dans un docu animalier."],
@@ -1226,7 +1228,8 @@ const C = {
     [3,"Fais un bisou sur la joue de {q}, très lentement."],[3,"Fais une danse sensuelle de 15 secondes à une chaise. Le groupe note sur 10."],
     [3,"Murmure un truc osé à l'oreille de {q}."],[3,"Retire un vêtement, le plus sexy possible (les chaussettes comptent)."],
     [3,"Assieds-toi sur les genoux de {q} jusqu'à ton prochain tour."],[3,"Le groupe te pose 3 questions. T'as pas le droit d'en refuser une."],
-    [1, "Imite {q} jusqu'à ce que quelqu'un devine qui c'est."],[1, "Fais le tour de la pièce en défilant comme un mannequin."],[1, "Commente tout ce qui se passe comme un match de foot jusqu'à ton prochain tour."],[1, "Fais un compliment sincère à chaque personne ici."],[1, "Mime un film. Les autres ont 30 secondes pour trouver."],[1, "Fais une pub de 20 secondes pour le dernier truc que t'as mangé."],[1, "Chante un refrain en remplaçant toutes les paroles par « miaou »."],[1, "Fais une conférence de 30 secondes sur un sujet choisi par {q}."],[2, "Imite ton prof le plus relou."],[2, "Laisse {q} te maquiller avec ce qu'il y a sous la main."],[2, "Fais le serveur pour tout le monde jusqu'à ton prochain tour."],[2, "Rejoue ta pire honte en 20 secondes."],[2, "Le groupe choisit ta pose pour la prochaine photo de groupe."],[3, "Masse les mains de {q} pendant 30 secondes, les yeux dans les yeux."],[3, "Sors ta meilleure technique de drague à {q}."]
+    [1, "Fais une pub de 20 secondes pour le dernier truc que t'as mangé."],[1, "Chante un refrain en remplaçant toutes les paroles par « miaou »."],[1, "Fais une conférence de 30 secondes sur un sujet choisi par {q}."],[2, "Laisse {q} te maquiller avec ce qu'il y a sous la main."],[2, "Fais le serveur pour tout le monde jusqu'à ton prochain tour."],[2, "Rejoue ta pire honte en 20 secondes."],[2, "Le groupe choisit ta pose pour la prochaine photo de groupe."],[3, "Masse les mains de {q} pendant 30 secondes, les yeux dans les yeux."],[3, "Sors ta meilleure technique de drague à {q}."],
+    [1, "Parle à {q} uniquement en chantant jusqu'à ton prochain tour."],[1, "Interviewe {q} comme une star qui vient de gagner la Coupe du monde."],[1, "Présente ce qui se passe ce soir comme le JT de 20 h. 30 secondes."],[1, "Raconte ta journée comme un film d'horreur. 30 secondes."],[1, "Fais rire {q} en 20 secondes sans toucher personne."],[1, "Fais une déclaration d'amour au dernier truc que t'as mangé."],[2, "Raconte ta pire honte comme si c'était un exploit."],[2, "Fais un discours de 30 secondes pour qu'on t'élise président. Le groupe vote."],[3, "Fais un câlin de 10 secondes à {q}, sans rien dire."],[3, "Dis à {q} ce que tu trouves le plus attirant chez cette personne."]
   ],
   qui: [
     [1,"sortir avec quelqu'un juste parce qu'il est connu"],[1,"prendre ce jeu trop au sérieux"],[1,"tenir un an sans acheter de fringues"],
@@ -1736,7 +1739,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Action ou vérité 2)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Action ou vérité 3)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2314,6 +2317,10 @@ function finJamais() {
 // tour de rôle au hasard : tout le monde passe une fois avant que quelqu'un repasse
 function avWho(x) {
   if (x.p) return x.p;
+  // de temps en temps une carte surprise, jamais au début ni deux de suite
+  const i = S.deck.indexOf(x), prev = S.deck[i - 1];
+  if (i >= 3 && !(prev && prev.sp) && Math.random() < .14) x.sp = Math.random() < .5 ? "tous" : "groupe";
+  if (x.sp === "tous") return x.p = { name: "tout le monde" };
   if (!S.avBag || !S.avBag.length) {
     const b = shuffle(S.players);
     if (b.length > 1 && b[0] === S.avLast) b.push(b.shift());
@@ -2331,15 +2338,26 @@ function cAvSwipe(c) {
     if (pk) c[k] = { pk, txt: fill(pk.data[1], p) };
   };
   if (!c.v) draw("v"); if (!c.a) draw("a");
-  const ask = (x, i) => cardShell("av", { label: "Au tour de", name: avWho(x).name }, `
+  // surprise « tout le monde » : une vérité à laquelle chacun répond
+  const tous = (x, i) => {
+    if (!x.tq) { const pk = pool("verite").find(z => !z.data[1].includes("{q}") && (!c.v || z.id !== c.v.pk.id)); x.tq = { pk, txt: pk ? fill(pk.data[1]) : "" }; }
+    return cardShell("av", null, `<div class="avk">
+      <p class="avfor">Surprise · Vérité pour <b>tout le monde</b></p>
+      <p class="text">${esc(x.tq.txt)}</p></div>
+      <p class="sub">Chacun répond, puis on swipe.</p>`, i % 2 === 1);
+  };
+  const ask = (x, i) => avWho(x) && x.sp === "tous" ? tous(x, i) : cardShell("av", { label: "Au tour de", name: avWho(x).name }, `
+    ${x.sp === "groupe" ? `<p class="sub avgroupe">Surprise : c'est le groupe qui choisit pour toi.</p>` : ""}
     <div class="avpick"><button data-k="v">← Vérité</button><button data-k="a">Action →</button></div>`, i % 2 === 1);
   const quest = k => `<div class="avk" data-k="${k}">
       <p class="avfor">${k === "v" ? "Vérité" : "Action"} pour <b>${esc(p.name)}</b></p>
       <p class="text">${esc(c[k] ? c[k].txt : "")}</p></div>`;
   const qcard = ks => cardShell("av", null, `${ks.map(quest).join("")}<button class="avother">Autre carte</button>`, S.idx % 2 === 1);
   const nx = S.deck[S.idx + 1];
+  const done = c.kind || c.sp === "tous";
+  if (c.sp === "tous") { tous(c, S.idx); if (c.tq.pk) { used.add(c.tq.pk.id); store.set("used", [...used]); S.avPick = c.tq.pk; } }
   const top = c.kind ? qcard([c.kind]) : ask(c, S.idx);
-  const under = c.kind ? (nx ? ask(nx, S.idx + 1).replace('class="card ', 'class="card under ') : "")
+  const under = done ? (nx ? ask(nx, S.idx + 1).replace('class="card ', 'class="card under ') : "")
     : qcard(["v", "a"]).replace('class="card ', 'class="card under avq show-a ');
   view(`${header()}
     <div class="stage jstack">${under}${top.replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
@@ -2347,10 +2365,10 @@ function cAvSwipe(c) {
     bindHeader();
     $("#stop").onclick = ranking;
     const tEl = $(".jstack .top"), uEl = $(".jstack .under");
-    if (c.kind) {
+    if (done) {
       const fly = swipeNext(tEl, uEl, () => { S.jSlid = true; next(); });
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $(".avother", tEl).onclick = () => { draw(c.kind); used.add(c[c.kind].pk.id); store.set("used", [...used]); S.avPick = c[c.kind].pk; S.jSlid = true; cAvSwipe(c); };
+      if (c.kind) $(".avother", tEl).onclick = () => { draw(c.kind); used.add(c[c.kind].pk.id); store.set("used", [...used]); S.avPick = c[c.kind].pk; S.jSlid = true; cAvSwipe(c); };
       return;
     }
     // à droite : action, à gauche : vérité
