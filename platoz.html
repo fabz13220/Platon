@@ -659,6 +659,8 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .imphold.impmini .imp-face { padding: 8px 12px; gap: 2px; }
 .imphold.impmini .imp-w { font-size: 28px; }
 .imphold.impmini .imp-face p { font-size: 14px; }
+.imp-guess { width: 100%; }
+.imp-guess input { flex: 1; min-width: 0; }
 .imp-roles { display: flex; flex-direction: column; gap: 6px; padding: 0 22px; }
 .imp-roles div { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 17px; }
 .secret .eyebrow { font-size: 13px; opacity: .92; }
@@ -1750,7 +1752,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 5)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 6)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2631,6 +2633,11 @@ const UNDER = {
   "Camping": "Colo", "Croisière": "Ferry", "Métro": "Bus", "Avion": "Hélicoptère"
 };
 const underOf = x => x.data[3] || UNDER[x.data[2]];
+// le mot tapé par l'imposteur : sans accents, majuscules, article ni pluriel
+const impNorm = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/^(les|le|la|des|une|un)\s+|^l['’]\s*/, "").replace(/[^a-z0-9]/g, "").replace(/(s|x)$/, "");
+const impSame = (a, b) => !!impNorm(a) && impNorm(a) === impNorm(b);
+const impGuessBox = () => `<div class="field imp-guess"><input id="guess" maxlength="30" placeholder="Le mot secret" autocomplete="off" autocapitalize="off" enterkeyhint="send" aria-label="Le mot secret"><button class="btn red" type="button" id="try">Valider</button></div>`;
+const bindGuess = go => { const i = $("#guess"), t = $("#try"); if (!i) return; const send = () => { const v = i.value.trim(); if (!v) return i.focus(); t.disabled = true; go(v); }; t.onclick = send; i.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); send(); } }; };
 const IMP_SET = () => ({ imp: store.get("impN", 1), und: store.get("undN", 0) });
 function impSetup() {
   const n = S.names.length, max = Math.max(1, n - 2); // il reste toujours au moins 2 civils
@@ -2742,25 +2749,31 @@ function cImpSolo(c) {
     view(`${top(false)}
       <div class="stage">${impShell("imposteur", { label: "Éliminé", name: p.name }, `
         <p class="text">${r === "civ" ? `C'était un <b>civil</b>. Raté.` : r === "und" ? `C'était un <b>undercover</b>. Bien vu.` : `C'était <b>l'imposteur</b>. Bien vu.`}</p>
-        ${r === "imp" ? `<p class="sub">Dernière chance : s'il trouve le mot, les intrus gagnent.</p>` : `<p class="sub">${inf === 0 ? "Plus aucun intrus." : civ <= 1 ? "Il ne reste qu'un civil." : `Il reste ${inf} intrus${inf > 1 ? "" : ""}.`}</p>`}
+        ${r === "imp" ? `<p class="sub">Dernière chance, ${esc(p.name)} : tape le mot. Si c'est le bon, les intrus gagnent.</p>` : `<p class="sub">${inf === 0 ? "Plus aucun intrus." : civ <= 1 ? "Il ne reste qu'un civil." : `Il reste ${inf} intrus${inf > 1 ? "" : ""}.`}</p>`}
       `, alt())}</div>
-      <div class="actions">${r === "imp" ? `<div class="row"><button class="btn white" id="miss">Raté</button><button class="btn red" id="hit">Il a trouvé</button></div>` : `<button class="btn red" id="ok">${inf === 0 || civ <= 1 ? "Voir la fin" : "Tour suivant"}</button>`}</div>`, () => {
+      <div class="actions">${r === "imp" ? impGuessBox() : `<button class="btn red" id="ok">${inf === 0 || civ <= 1 ? "Voir la fin" : "Tour suivant"}</button>`}</div>`, () => {
       $("#pause").onclick = pauseMenu;
-      if (r === "imp") { $("#hit").onclick = () => end("inf"); $("#miss").onclick = after; }
+      if (r === "imp") bindGuess(v => {
+        const g = { by: p.name, v, ok: impSame(v, word) };
+        if (g.ok) return end("inf", g);
+        stamp("Raté", ""); buzz([80, 40, 80]);
+        later(() => inf === 0 ? end("civ", g) : civ <= 1 ? end("inf") : talk(), 1100);
+      });
       else $("#ok").onclick = after;
     });
   };
-  const end = w => {
+  const end = (w, g) => {
     const ins = S.players.filter(isIn), onlyImp = ins.every(p => role.get(p) === "imp"), one = ins.length === 1;
     const title = w === "civ" ? "Les civils gagnent" : onlyImp ? (one ? "L'imposteur gagne" : "Les imposteurs gagnent") : (one ? "L'undercover gagne" : "Les intrus gagnent");
-    stamp(w === "civ" ? "Civils" : "Intrus", w === "civ" ? "green" : "");
+    if (g && g.ok) { stamp("Trouvé !", ""); buzz([60, 40, 60, 40, 160]); } else stamp(w === "civ" ? "Civils" : "Intrus", w === "civ" ? "green" : "");
     later(() => view(`${top(false)}
       <div class="stage">${impShell("imposteur", { label: "Fin de la manche", name: title }, `
         <p class="text">Le mot : <b>${esc(word)}</b>.${nUnd ? ` Undercover : <b>${esc(uw)}</b>.` : ""}</p>
+        ${g ? `<p class="sub">${esc(g.by)} a tapé « ${esc(g.v)} » : ${g.ok ? "trouvé !" : "raté."}</p>` : ""}
         <div class="imp-roles">${ins.map(p => `<div><span>${esc(p.name)}</span><b>${ROLE[role.get(p)]}</b></div>`).join("")}</div>
-      `, alt())}</div>
+      `, alt())}</div><div class="confetti" id="confetti"></div>
       <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Manche suivante</button></div></div>`, () => {
-      bindHeader();
+      bindHeader(); party();
       $("#ok").onclick = next;
       $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     }), 900);
@@ -4700,6 +4713,7 @@ function roomImp(r, h) {
   let stage = "", acts = "";
   if (r.phase === "word") {
     stage = (me ? peek(true) : impShell("imposteur", null, `<p class="text">Tu regardes cette manche.</p>`))
+      + (res.guess && !res.ok ? `<p class="sub on-sub">${N(res.out)} a tapé « ${esc(res.guess)} » : raté !</p>` : "")
       + `<p class="sub on-sub"><b>${N(c.first)}</b> commence. Chacun dit un mot sur son mot secret, puis vous votez.${out.length ? ` Encore ${alive.length} en jeu.` : ""}</p>`;
     acts = host ? `<button class="btn red" id="tovote">Passer au vote</button>` : wait(`${hostName} lance le vote.`);
   } else if (r.phase === "vote") {
@@ -4713,17 +4727,19 @@ function roomImp(r, h) {
     stage = res.tie ? impShell("imposteur", null, `<p class="text">Égalité, personne ne sort.</p>`)
       : impShell("imposteur", { label: "Éliminé", name: pname(r, u) }, `
         <p class="text">${ro === "civ" ? `C'était un <b>civil</b>. Raté.` : ro === "und" ? `C'était un <b>undercover</b>. Bien vu.` : `C'était <b>l'imposteur</b>. Bien vu.`}</p>
-        ${ro === "imp" ? `<p class="sub">Dernière chance : s'il trouve le mot, les intrus gagnent.</p>` : ""}`);
-    acts = !host ? wait(`${hostName} lance la suite.`)
+        ${ro === "imp" ? `<p class="sub">${u === uid ? "Dernière chance : tape le mot. Si c'est le bon, les intrus gagnent." : `Dernière chance : ${N(u)} tape le mot sur son téléphone…`}</p>` : ""}`);
+    acts = ro === "imp" && u === uid && !res.tie ? impGuessBox()
+      : !host ? wait(ro === "imp" ? `On attend le mot de ${N(u)}.` : `${hostName} lance la suite.`)
       : res.tie ? `<div class="row"><button class="btn white" id="imp-next">Tour suivant</button><button class="btn red" id="imp-revote">Revoter</button></div>`
-      : ro === "imp" ? `<div class="row"><button class="btn white" id="imp-miss">Raté</button><button class="btn red" id="imp-hit">Il a trouvé</button></div>`
+      : ro === "imp" ? `<button class="btn white" id="imp-miss">Passer (il ne répond pas)</button>`
       : `<button class="btn red" id="imp-next">${impWin(c) ? "Voir la fin" : "Tour suivant"}</button>`;
   } else {
     const ins = Object.keys(c.roles).filter(u => c.roles[u] !== "civ"), onlyImp = ins.every(u => c.roles[u] === "imp"), one = ins.length === 1;
     const title = res.win === "civ" ? "Les civils gagnent" : onlyImp ? (one ? "L'imposteur gagne" : "Les imposteurs gagnent") : (one ? "L'undercover gagne" : "Les intrus gagnent");
     stage = impShell("imposteur", { label: "Fin de la manche", name: title }, `
       <p class="text">Le mot : <b>${esc(c.word)}</b>.${c.uw && ins.some(u => c.roles[u] === "und") ? ` Undercover : <b>${esc(c.uw)}</b>.` : ""}</p>
-      <div class="imp-roles">${ins.map(u => `<div><span>${N(u)}</span><b>${ROLE[c.roles[u]]}</b></div>`).join("")}</div>`);
+      ${res.guess ? `<p class="sub">${N(res.out)} a tapé « ${esc(res.guess)} » : ${res.ok ? "trouvé !" : "raté."}</p>` : ""}
+      <div class="imp-roles">${ins.map(u => `<div><span>${N(u)}</span><b>${ROLE[c.roles[u]]}</b></div>`).join("")}</div>`) + `<div class="confetti" id="confetti"></div>`;
     acts = h.nextBtn;
   }
   view(`${h.top}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => {
@@ -4746,10 +4762,14 @@ function roomImp(r, h) {
     if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
     if (b("imp-next")) b("imp-next").onclick = go;
     if (b("imp-miss")) b("imp-miss").onclick = go;
-    if (b("imp-hit")) b("imp-hit").onclick = () => upd({ phase: "reveal", "res.win": "inf" });
+    // l'imposteur éliminé tape son mot : trouvé, les intrus gagnent ; raté, la partie continue (ou les civils gagnent)
+    bindGuess(v => {
+      const ok = impSame(v, c.word), w = ok ? "inf" : impWin(c), g = { "res.guess": v, "res.ok": ok };
+      upd(w ? Object.assign(g, { phase: "reveal", "res.win": w }) : Object.assign(g, { phase: "word", acts: {}, "card.first": impFirst(c) }));
+    });
     if (b("imp-revote")) b("imp-revote").onclick = () => upd({ phase: "vote", acts: {}, res: null, vn: (ON.r.vn || 0) + 1 });
     $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
-    if (r.phase === "reveal" && ON.ctx.stamped !== r.round) { ON.ctx.stamped = r.round; stamp(res.win === "civ" ? "Civils" : "Intrus", res.win === "civ" ? "green" : ""); }
+    if (r.phase === "reveal" && ON.ctx.stamped !== r.round) { ON.ctx.stamped = r.round; party(); if (res.ok) { stamp("Trouvé !", ""); buzz([60, 40, 60, 40, 160]); } else stamp(res.win === "civ" ? "Civils" : "Intrus", res.win === "civ" ? "green" : ""); }
   });
 }
 function roomResolve(r) {
