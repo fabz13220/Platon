@@ -2182,6 +2182,9 @@ function bindHeader() {
       });
     });
   }
+  // la carte du dessous porte les mêmes boutons (inactifs) : quand elle passe dessus, rien ne bouge dans la carte
+  const under = $(".stage .card.under"), nc = S.deck && S.deck[S.idx + 1];
+  if (under && card && $(".card-rate", card) && !$(".card-rate", under)) under.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate" aria-hidden="true"><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "top")}">🔥</button><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "mew")}">😑</button></div>`);
   bindRate();
 }
 // une seule nouvelle carte par tour, et c'est le même joueur qui la joue
