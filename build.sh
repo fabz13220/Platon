@@ -17,6 +17,7 @@ cat <<'H'
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
+<meta name="build" content="@BUILD@">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -34,6 +35,34 @@ cat <<'H'
 <link rel="apple-touch-startup-image" href="splash/splash-1080x2340.png" media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
 H
 cat platoz.html
+cat <<'U'
+<script>
+// GitHub Pages fait garder l'ancienne page jusqu'à 10 min dans le téléphone : à l'ouverture (et au retour dans l'appli),
+// on va chercher la dernière version sans passer par cette mémoire, et on recharge si elle a changé.
+// Jamais en pleine partie, ni quand des joueurs sont déjà ajoutés (ils seraient perdus).
+(function () {
+  if (!/github\.io$/.test(location.hostname) || !window.fetch) return;
+  var mine = document.querySelector('meta[name="build"]').content, busy = false;
+  var calme = function () {
+    try { return !S.inGame && !ON.ctx && !S.names.length; } catch (e) { return false; }
+  };
+  var check = function () {
+    if (busy || document.hidden || !calme()) return;
+    busy = true;
+    fetch(location.href, { cache: "reload" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
+      var m = t.match(/<meta name="build" content="([^"]+)"/), k = "maj-" + (m && m[1]);
+      if (!m || m[1] === mine || !calme()) return;
+      try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, "1"); } catch (e) {}
+      location.reload();
+    }).catch(function () {}).then(function () { busy = false; });
+  };
+  setTimeout(check, 300);
+  document.addEventListener("visibilitychange", check);
+})();
+</script>
+U
 } > index.html
+# empreinte de la version : l'appli la compare avec celle en ligne pour se mettre à jour
+sed -i "s/@BUILD@/$(sha1sum platoz.html | cut -c1-12)/" index.html
 # contenu de départ de la page admin (cartes, textes) tiré de platoz.html
 node outils/defaut.js
