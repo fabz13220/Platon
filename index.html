@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="eae04361c308">
+<meta name="build" content="c425b0c6ca41">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1729,7 +1729,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Action ou vérité)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Action ou vérité 2)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
