@@ -640,6 +640,13 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
   -webkit-mask: radial-gradient(closest-side, #000 30%, transparent); mask: radial-gradient(closest-side, #000 30%, transparent);
 }
 .secret > * { position: relative; z-index: 1; }
+/* L'Imposteur : le mot n'apparaît que pendant qu'on garde le doigt dessus */
+.imphold { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+.imphold * { pointer-events: none; }
+.imphold .imp-cue { font-size: 18px; opacity: .8; }
+.imphold .imp-face { position: absolute; inset: 0; z-index: 2; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; background: #130C34; border-radius: inherit; }
+.imphold.on .imp-face { display: flex; }
+.imphold.on > :not(.imp-face) { visibility: hidden; }
 .secret .eyebrow { font-size: 13px; opacity: .92; }
 .secret .mast { font-size: clamp(42px, 14vw, 60px); color: var(--yellow); text-shadow: 0 0 22px currentColor; overflow-wrap: anywhere; line-height: 1.04; }
 .secret p { font-size: 24px; line-height: 1.32; font-weight: 800; }
@@ -1729,7 +1736,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (Action ou vérité 4)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2138,9 +2145,9 @@ function afterRound() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref", "qui", "av"];
+const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur"];
 function header() {
-  const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : "Carte " + (S.idx + 1);
+  const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
   return `
     <div class="topbar">
       <button class="iconbtn" id="pause" aria-label="Pause">II</button>
@@ -2199,9 +2206,11 @@ function next() {
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
 const SWIPE = ["jamais", "pref", "qui", "av"];
+// sans points non plus, mais on garde la partie sur plusieurs téléphones
+const noPts = () => ON.ctx ? !!(ON.r && ON.r.game === "imposteur") : SWIPE.includes(S.mode) || S.mode === "imposteur";
 function endDeck() {
   if (S.mode === "mix") return afterRound();
-  if (SWIPE.includes(S.mode) && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
+  if (noPts() && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
   ranking();
 }
 // quand tout le paquet est passé, il repart sans reprendre les 20 dernières cartes
@@ -2299,11 +2308,11 @@ function swipeNext(el, under, onNext) {
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
   return fly;
 }
-function finJamais() {
-  const n = S.idx;
+function finJamais(n = S.idx) {
+  const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
-      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} carte${n > 1 ? "s" : ""}</span></div>
+      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} ${u}${n > 1 ? "s" : ""}</span></div>
       ${endBubbles(S.players.map(p => p.name))}
       <div class="confetti" id="confetti"></div>
     </div>
@@ -2579,7 +2588,58 @@ function cMenteur(c) {
   });
 }
 
+// L'Imposteur seul : un téléphone qu'on se passe, sans points. On pointe le mytho en vrai, puis « Révéler »
+function cImpSolo(c) {
+  const [, cat, word] = c.data;
+  const imp = rnd(S.players), order = shuffle(S.players);
+  const top = () => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span class="progress">Manche ${S.idx + 1}</span><span style="width:44px"></span></div>`;
+  const step = i => {
+    if (i >= order.length) return discuss();
+    const p = order[i], isImp = p === imp;
+    view(`${top()}
+      <div class="stage"><div class="secret imphold" id="hold">
+        <span class="eyebrow" style="color:var(--paper)">${i ? "Passe le téléphone à" : "Au tour de"}</span><span class="mast">${esc(p.name)}</span>
+        <p class="imp-cue">Garde le doigt ici pour voir ton mot.</p>
+        <div class="imp-face"><span class="eyebrow" style="color:var(--paper)">${isImp ? "Tu es" : "Ton mot"}</span><span class="mast" style="color:${isImp ? "var(--red)" : "var(--yellow)"}">${isImp ? "L'imposteur" : esc(word)}</span><p>${isImp ? "Thème : « " + esc(cat) + " ». Bluffe." : "Ne le dis pas à voix haute."}</p></div>
+      </div></div>
+      <div class="actions"><p class="hint muted" style="text-align:center;margin:0">${i + 1} / ${order.length} · tu lâches, c'est caché</p></div>`, () => {
+      $("#pause").onclick = pauseMenu;
+      const h = $("#hold"); let seen = false;
+      const show = e => { e.preventDefault(); h.classList.add("on"); seen = true; buzz(15); };
+      const hide = () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); if (seen) later(() => step(i + 1), 120); };
+      h.addEventListener("pointerdown", show);
+      ["pointerup", "pointercancel", "pointerleave"].forEach(t => h.addEventListener(t, hide));
+      h.addEventListener("contextmenu", e => e.preventDefault());
+    });
+  };
+  const discuss = () => {
+    const first = rnd(S.players);
+    view(`${header()}
+      <div class="stage">${cardShell("imposteur", { label: "Commence", name: first.name }, `
+        <p class="text">Chacun dit un mot sur le mot secret, deux tours.</p>
+        <p class="sub">Puis à trois, tout le monde pointe le mytho du doigt. Thème : ${esc(cat)}.</p>
+      `, alt())}</div>
+      <div class="actions"><button class="btn red" id="rev">Révéler</button></div>`, () => {
+      bindHeader();
+      $("#rev").onclick = () => {
+        buzz([30, 30, 60]);
+        view(`${header()}
+          <div class="stage">${cardShell("imposteur", { label: "L'imposteur était", name: imp.name }, `
+            <p class="text">Le mot : <b>${esc(word)}</b>.</p>
+            <p class="sub">Grillé ? ${esc(imp.name)} gagne quand même en trouvant le mot.</p>
+          `, alt())}</div>
+          <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Manche suivante</button></div></div>`, () => {
+          bindHeader();
+          $("#ok").onclick = next;
+          $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+        });
+      };
+    });
+  };
+  step(0);
+}
 function cImposteur(c) {
+  if (S.mode === "imposteur") return cImpSolo(c);
   const [, cat, word] = c.data;
   const imp = rnd(S.players);
   const order = S.players.slice();
@@ -3457,7 +3517,7 @@ const TUTO = {
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
-  imposteur: "Tout le monde a le mot, sauf un. Chacun dit un mot, deux tours, puis on pointe le mytho.",
+  imposteur: "Tout le monde voit le mot, sauf l'imposteur qui n'a que le thème. Chacun dit un mot, deux tours, puis on pointe le mytho du doigt. S'il est grillé, il gagne quand même s'il trouve le mot.",
   menteur: "L'appli te dit en secret si tu mens. Tu réponds, on te pose 3 questions, puis on vote.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
@@ -3519,11 +3579,11 @@ function pauseMenu() {
   const w = sheet(`
     <span class="mast" style="font-size:34px">Pause</span>
     <button class="btn" id="resume">Reprendre</button>
-    ${SWIPE.includes(S.mode) ? "" : `<div class="section-label">Scores</div>`}
-    <div class="mini-rank"${SWIPE.includes(S.mode) ? ' style="display:none"' : ""}>${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
+    ${noPts() ? "" : `<div class="section-label">Scores</div>`}
+    <div class="mini-rank"${noPts() ? ' style="display:none"' : ""}>${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
     <div class="section-label">Intensité</div>
     <div class="seg" id="lvl">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === S.level}">${l.name}</button>`).join("")}</div>
-    <button class="btn ink" id="end">Terminer la partie <small>${SWIPE.includes(S.mode) ? "Fin de la partie" : "Voir le classement"}</small></button>
+    <button class="btn ink" id="end">Terminer la partie <small>${noPts() ? "Fin de la partie" : "Voir le classement"}</small></button>
     <button class="linkbtn" id="quit">Abandonner et revenir à l'accueil</button>
   `, w => {
     $("#resume", w).onclick = () => w.remove();
@@ -3549,7 +3609,7 @@ function ranking() {
   if (!ON.ctx) stat("end", S.mode, (S.players || []).length, "un");
   S.inGame = false;
   try { wakeLock && wakeLock.release(); } catch (e) {}
-  if (SWIPE.includes(S.mode) && !ON.ctx) return finJamais();
+  if (noPts()) return finJamais(ON.ctx && ON.r ? ON.r.round : S.idx);
   const st = standings(); lastRank = st;
   const pod = st.slice(0, 3), rest = st.slice(3);
   const order = pod.length === 3 ? [pod[1], pod[0], pod[2]] : pod;
@@ -4040,7 +4100,7 @@ async function saveStory(A, btn, file) {
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const SITE = "https://fabz13220.github.io/Platon/";
-const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 3], imposteur: ["L'Imposteur", 3], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Puissance 4", 2], uno: ["Uno", 2] };
+const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 3], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Puissance 4", 2], uno: ["Uno", 2] };
 // jeux longs : une manche = une partie entière, jamais tirés par le Mix
 const LONG = ["p4", "uno", "taboo"], NEWG = ["deux", "reflexe", "p4", "uno", "taboo"];
 const roundOpts = g => ({ p4: [3, 5, 7], uno: [1, 2, 3], taboo: [4, 6, 8] })[g] || [4, 6, 10];
@@ -4516,7 +4576,7 @@ function roomRender(r) {
   const c = r.card, T = c.type, mine = r.acts ? r.acts[uid] : null, hostName = esc(pname(r, r.host));
   const top = `<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="progress">Manche ${r.round} / ${r.rounds}</span><span class="on-pill">${ON.ctx.code}</span></div>`;
   const last = r.round >= r.rounds;
-  const nextBtn = host ? `<button class="btn red" id="next">${last ? "Voir le classement" : "Manche suivante"}</button>` : `<p class="hint muted on-waiting">${hostName} lance la suite.</p>`;
+  const nextBtn = host ? `<button class="btn red" id="next">${last ? (noPts() ? "Terminer" : "Voir le classement") : "Manche suivante"}</button>` : `<p class="hint muted on-waiting">${hostName} lance la suite.</p>`;
   const forceBtn = host ? `<button class="btn white" id="force">Révéler sans attendre</button>` : "";
   const rows = (list, col) => `<div class="radar-res">${list.map(([u, v], i) => `<div><i style="background:${col ? col(i) : "#fff"}"></i><span>${esc(pname(r, u))}</span><b>${v}</b></div>`).join("")}</div>`;
   const tallyRows = t => rows(Object.entries(t).sort((a, b) => b[1] - a[1]).map(([u, n]) => [u, n + " vote" + (n > 1 ? "s" : "")]));
@@ -4586,8 +4646,9 @@ function roomRender(r) {
   } else if (T === "imposteur" && r.phase === "word") {
     const isImp = uid === c.imp;
     stage = `<div class="secret"><span class="eyebrow" style="color:var(--paper)">${isImp ? "Tu es" : "Ton mot"}</span><span class="mast" style="color:${isImp ? "var(--red)" : "var(--yellow)"}">${isImp ? "L'imposteur" : esc(c.word)}</span><p>${isImp ? "Thème : « " + esc(c.cat) + " ». Écoute les autres et bluffe." : "Thème : « " + esc(c.cat) + " ». Ne montre ton écran à personne."}</p></div>
-      <p class="sub on-sub"><b>${esc(pname(r, c.first))}</b> commence. Chacun dit un mot lié au mot secret, deux tours, puis vous votez sur vos téléphones.</p>`;
-    acts = host ? `<button class="btn red" id="tovote">Passer au vote</button>` : `<p class="hint muted on-waiting">${hostName} lancera le vote.</p>`;
+      <p class="sub on-sub"><b>${esc(pname(r, c.first))}</b> commence. Chacun dit un mot lié au mot secret, deux tours, puis ${noPts() ? "on pointe le mytho du doigt" : "vous votez sur vos téléphones"}.</p>`;
+    acts = noPts() ? (host ? `<button class="btn red" id="toreveal">Révéler</button>` : `<p class="hint muted on-waiting">${hostName} révèle l'imposteur.</p>`)
+      : host ? `<button class="btn red" id="tovote">Passer au vote</button>` : `<p class="hint muted on-waiting">${hostName} lancera le vote.</p>`;
   } else if (r.phase === "vote") {
     const q = T === "imposteur" ? "Qui est l'imposteur ?" : `Qui pourrait <b>${esc(c.text)}</b> ?`;
     stage = cardShell(T, null, `<p class="text">${q}</p>${voteChips(ids(r).filter(u => u !== uid))}
@@ -4612,7 +4673,10 @@ function roomRender(r) {
     }
   } else if (r.phase === "reveal") {
     const res = r.res || {};
-    if (T === "imposteur") {
+    if (T === "imposteur" && res.free) {
+      stage = cardShell("imposteur", { label: "L'imposteur était", name: pname(r, c.imp) }, `<p class="text">Le mot : <b>${esc(c.word)}</b>.</p>
+        <p class="sub">Grillé ? ${esc(pname(r, c.imp))} gagne quand même en trouvant le mot.</p>`);
+    } else if (T === "imposteur") {
       stage = cardShell("imposteur", { label: "L'imposteur était", name: pname(r, c.imp) }, `<p class="text">Le mot secret : <b>${esc(c.word)}</b>.</p>${tallyRows(res.tally || {})}
         ${rulePts(res.caught ? "Démasqué : +1 point pour chacun des autres" : `Raté : +3 points pour ${esc(pname(r, c.imp))}`)}`);
     } else if (T === "radar") {
@@ -4624,7 +4688,7 @@ function roomRender(r) {
       const tp = res.top || [];
       stage = cardShell("qui", tp.length ? { label: "Le plus désigné", name: tp.map(u => pname(r, u)).join(" et ") } : null, `<p class="text">Qui pourrait <b>${esc(c.text)}</b> ?</p>${tallyRows(res.tally || {})}${rulePts("+1 point pour la personne la plus désignée")}`);
     }
-    stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
+    if (!res.free) stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
     acts = nextBtn;
   }
   view(`${top}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => {
@@ -4634,6 +4698,7 @@ function roomRender(r) {
     };
     const b = id => $("#" + id);
     if (b("tovote")) b("tovote").onclick = () => upd({ phase: "vote" });
+    if (b("toreveal")) b("toreveal").onclick = () => upd({ phase: "reveal", res: { free: true } });
     if (b("force")) b("force").onclick = () => roomResolve(ON.r);
     if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
     $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
@@ -4661,7 +4726,8 @@ function roomRender(r) {
     if (r.phase === "reveal" && ON.ctx.stamped !== r.round) {
       ON.ctx.stamped = r.round;
       const res = r.res || {};
-      if (T === "imposteur") stamp(res.caught ? "Démasqué" : "Raté", res.caught ? "green" : "");
+      if (T === "imposteur" && res.free) buzz([30, 30, 60]);
+      else if (T === "imposteur") stamp(res.caught ? "Démasqué" : "Raté", res.caught ? "green" : "");
       else if (T === "radar") { const best = Math.max(0, ...(res.g || []).map(o => o.p)); stamp(best === 3 ? "En plein dans le mille" : best ? "Pas mal" : "Raté", best ? "green" : ""); }
     }
     if (b("send")) {
