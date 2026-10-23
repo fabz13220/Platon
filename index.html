@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="f5bbacdf3163">
+<meta name="build" content="6c6ea0e027b5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -327,6 +327,9 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
   box-shadow: 0 14px 34px -8px rgba(166,107,255,.95), 0 0 30px -4px rgba(166,107,255,.75), inset 0 -6px 14px rgba(255,59,122,.35), inset 0 2px 0 rgba(255,255,255,.5); }
 .end-bubbles { flex: 1; min-height: 130px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 10px 0; transition: opacity .5s; }
 .end-bubbles.wait { opacity: 0; pointer-events: none; }
+.lobby-bubbles { flex: none; min-height: 150px; }
+.fr-row .fr-join { flex: none; width: auto; min-height: 40px; padding: 0 16px; font-size: 15px; margin-left: auto; }
+.fr-row .fr-txt { flex: 1; }
 /* les bulles passent au-dessus du reste de l'écran : une bulle lâchée sur les boutons reste attrapable */
 #app > *:has(.bubble) { z-index: 3; }
 .bubble.free { animation: none !important; }
@@ -1706,9 +1709,8 @@ function home() {
     </header>
     <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Un téléphone</button><button data-v="1" aria-pressed="${multi}"><svg width="18" height="16" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="9" height="17" rx="2.2"/><rect x="16" y="3" width="9" height="17" rx="2.2"/></svg>Chacun le sien</button></div>
     ${multi ? `
-      ${rail("Votes et devinettes", ["classement", "radar"], "", true)}
+      ${rail("Votes et devinettes", ["classement", "radar", "ouinon"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
-      ${rail("Questions", ["av", "ouinon"], "", true)}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["deux", "reflexe", "test"], "", true)}
       ${multiHome()}` : `
@@ -2209,7 +2211,15 @@ function bindHeader() {
   $("#pause").onclick = pauseMenu;
   const sk = $("#skip"); if (sk) sk.onclick = skipCard;
   // le vote 🔥 / 😑 est posé sur la carte elle-même, en bas à droite (avant : une barre en haut de l'écran)
-  const card = $(".stage .card.top") || $(".stage > .card"), c = curCard();
+  cardRate($(".stage .card.top") || $(".stage > .card"), curCard());
+  // la carte du dessous porte les mêmes boutons (inactifs) : quand elle passe dessus, rien ne bouge dans la carte ni n'apparaît / disparaît
+  const under = $(".stage .card.under"), nc = S.deck && S.deck[S.idx + 1];
+  // seulement si cette carte aura vraiment un vote une fois dessus
+  if (under && nc && nc.id && C[nc.type] && !$(".card-rate", under)) under.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate" aria-hidden="true"><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "top")}">🔥</button><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "mew")}">😑</button></div>`);
+  bindRate();
+}
+// boutons 🔥 / 😑 posés sur une carte (un téléphone comme plusieurs téléphones)
+function cardRate(card, c) {
   if (card && c && !$(".card-rate", card)) {
     card.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate"><button data-v="top" aria-label="Carte lourde" aria-pressed="${votes[c.id] === "top"}">🔥</button><button data-v="mew" aria-label="Carte bof" aria-pressed="${votes[c.id] === "mew"}">😑</button></div>`);
     $$(".card-rate button", card).forEach(b => {
@@ -2223,11 +2233,6 @@ function bindHeader() {
       });
     });
   }
-  // la carte du dessous porte les mêmes boutons (inactifs) : quand elle passe dessus, rien ne bouge dans la carte ni n'apparaît / disparaît
-  const under = $(".stage .card.under"), nc = S.deck && S.deck[S.idx + 1];
-  // seulement si cette carte aura vraiment un vote une fois dessus
-  if (under && nc && nc.id && C[nc.type] && !$(".card-rate", under)) under.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate" aria-hidden="true"><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "top")}">🔥</button><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "mew")}">😑</button></div>`);
-  bindRate();
 }
 // une seule nouvelle carte par tour, et c'est le même joueur qui la joue
 function skipCard(msg, force) {
@@ -4491,6 +4496,9 @@ function friendsView() {
   onStop();
   const me = store.get("me");
   view(`${onTop("Amis")}
+    <div class="section-label">Rejoindre une partie</div>
+    <div id="fj-list" class="on-list"></div>
+    <div class="field"><input id="fj-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="fj">Rejoindre</button></div>
     <div class="on-card">
       <div><span class="eyebrow">Ton pseudo</span><b class="on-name">${esc(me.name)}</b><button class="linkbtn" id="rename">Changer</button></div>
       <div><span class="eyebrow">Ton code ami</span><span class="on-code">${me.code}</span></div>
@@ -4498,6 +4506,7 @@ function friendsView() {
       <button class="btn white" id="qrbtn">Afficher mon QR code</button>
       <button class="btn white" id="keybtn">Utiliser mon compte ailleurs</button>
     </div>
+    <div class="section-label">Ajouter un ami</div>
     <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami d'un pote" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
     <div id="friends"><p class="hint muted">Chargement…</p></div>
   `, () => {
@@ -4508,6 +4517,9 @@ function friendsView() {
     $("#keybtn").onclick = keySheet;
     const add = async () => { if (await addFriend($("#friend-in").value)) $("#friend-in").value = ""; };
     $("#addf").onclick = add;
+    const fj = () => roomJoin($("#fj-in").value);
+    $("#fj").onclick = fj;
+    $("#fj-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); fj(); } };
     $("#friend-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
     heartbeat();
     net().then(({ F, db, uid }) => {
@@ -4520,10 +4532,13 @@ function friendsView() {
         box.innerHTML = !rows.length ? `<p class="hint muted">Pas encore d'amis. Demande son code ami à un pote, ou envoie-lui le tien.</p>`
           : (on.length ? `<div class="section-label">En ligne (${on.length})</div><div class="on-list">${on.map(row).join("")}</div>` : "")
           + (off.length ? `<div class="section-label">Hors ligne (${off.length})</div><div class="on-list">${off.map(row).join("")}</div>` : "");
+        const jl = $("#fj-list"), open = on.filter(f => f.room);
+        if (jl) jl.innerHTML = open.map(f => `<div class="fr-row"><span class="fr-av on">${esc((f.name || "?")[0].toUpperCase())}</span><span class="fr-txt"><b>${esc(f.name)}</b><small class="on">En salle d'attente</small></span><button class="btn red fr-join" data-room="${esc(f.room)}">Rejoindre</button></div>`).join("");
+        $$(".fr-join", jl || box).forEach(b => b.onclick = () => { b.disabled = true; roomJoin(b.dataset.room).then(ok => { if (!ok) b.disabled = false; }); });
       };
       ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "friends"), s => {
         list = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
-        list.forEach(f => { if (!subs[f.id]) { subs[f.id] = 1; ON.off.push(F.onSnapshot(F.doc(db, "users", f.id), d => { if (d.exists()) { info[f.id] = { name: d.data().name, seen: d.data().seen }; draw(); } }, () => {})); } });
+        list.forEach(f => { if (!subs[f.id]) { subs[f.id] = 1; ON.off.push(F.onSnapshot(F.doc(db, "users", f.id), d => { if (d.exists()) { info[f.id] = { name: d.data().name, seen: d.data().seen, room: d.data().room || "" }; draw(); } }, () => {})); } });
         draw();
       }, () => {}));
       // le statut « en ligne » se périme tout seul
@@ -4559,6 +4574,7 @@ const needers = r => r.card && r.card.type === "deux" ? r.card.pair.filter(u => 
   : ids(r).filter(u => u !== solo(r.card));
 const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
 async function roomCreate(game = "mix") {
+  if (SWIPE.includes(game)) game = "mix"; // les jeux qui se jouent sur un seul téléphone ne passent pas en ligne
   try {
     const { F, db, uid } = await net(), me = store.get("me");
     let code = genCode(4, "ABCDEFGHJKLMNPQRSTUVWXYZ");
@@ -4607,6 +4623,9 @@ async function roomOpen(code) {
     if (!s.exists()) { toast("La partie a été fermée."); return home(); }
     const r = s.data();
     if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return home(); }
+    // tant que la partie attend des joueurs, les amis la voient dans Amis avec un bouton « Rejoindre »
+    const pub = r.status === "lobby" ? code : "";
+    if (ON.ctx.pub !== pub) { ON.ctx.pub = pub; F.setDoc(F.doc(db, "users", uid), { room: pub }, { merge: true }).catch(() => {}); }
     ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
     if (r.host === uid) hostTick(r);
     const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und]) : "",
@@ -4616,8 +4635,9 @@ async function roomOpen(code) {
   }, () => toast("Connexion perdue, on réessaie…")));
 }
 async function roomLeave() {
-  const { F, uid } = ON.ctx.N, r = ON.r, rest = ids(r).filter(u => u !== uid), ref = ON.ctx.ref;
+  const { F, db, uid } = ON.ctx.N, r = ON.r, rest = ids(r).filter(u => u !== uid), ref = ON.ctx.ref;
   onStop(); ON.ctx = null;
+  F.setDoc(F.doc(db, "users", uid), { room: "" }, { merge: true }).catch(() => {});
   try {
     if (!rest.length) await F.deleteDoc(ref);
     else await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: F.deleteField() }, r.host === uid ? { host: rest[0] } : {}));
@@ -4676,6 +4696,7 @@ async function roomNext(r) {
     card = { type: t, t0, t1, tm, giver: team[Math.floor(r.round / 2) % team.length], word: "", ban: [], wn: 0, hit: -1, ok: 0, no: 0, pass: 0, log: [], secs: 60 }; phase = "ready";
   }
   else card = { type: t, text: fill(c.data[1]) };
+  if (c && card.type === c.type && t !== "imposteur") card.rate = { id: c.id, type: c.type, data: c.data }; // pour le vote 🔥 / 😑 sur chaque téléphone
   return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase });
 }
 // L'Imposteur sur plusieurs téléphones, façon Undercover : chacun voit son mot chez lui, chacun vote pour éliminer, sans points
@@ -4940,6 +4961,8 @@ function roomRender(r) {
     acts = nextBtn;
   }
   view(`${top}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => {
+    const rc = () => ON.r && ON.r.card && ON.r.card.rate;
+    cardRate($(".stage > .card"), rc()); bindRate($(".stage"), rc);
     $("#leave").onclick = () => {
       if (Date.now() - ON.leaveArmed < 2500) return roomLeave();
       ON.leaveArmed = Date.now(); toast("Touche encore × pour quitter la partie.");
@@ -5215,7 +5238,7 @@ function lobbyView(r, host) {
       <button class="btn white" id="share">Envoyer le lien de la partie</button>
     </div>
     <div class="section-label">Joueurs (${n})</div>
-    <div class="chips on-players">${all.map(u => `<span class="chip">${esc(r.players[u].name)}${u === r.host ? " ★" : ""}</span>`).join("")}</div>
+    ${endBubbles(all.map(u => r.players[u].name + (u === r.host ? " ★" : ""))).replace('class="end-bubbles', 'class="end-bubbles lobby-bubbles')}
     ${host ? `<div class="section-label">Jeu</div>
       <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => !SWIPE.includes(k)).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
       <div class="section-label">Manches</div>
@@ -5230,6 +5253,7 @@ function lobbyView(r, host) {
   `, async () => {
     $("#leave").onclick = () => roomLeave();
     $("#share").onclick = () => shareIt(`Viens jouer sur Platoz, code ${ON.ctx.code} :`, roomUrl(ON.ctx.code));
+    bindBubbles(); // une bulle par joueur, qu'on peut lancer comme en fin de partie
     $$("#g button").forEach(b => b.onclick = () => { const g = b.dataset.v, o = roundOpts(g); upd({ game: g, rounds: o.includes(ON.r.rounds) ? ON.r.rounds : o[1] }); });
     $$("#nr button").forEach(b => b.onclick = () => upd({ rounds: +b.dataset.v }));
     $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
