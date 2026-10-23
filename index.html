@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="39ef7414b0bc">
+<meta name="build" content="b2b4057af32d">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -566,6 +566,16 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .poles { display: flex; justify-content: space-between; gap: 16px; margin-top: 8px; font-weight: 900; font-size: 15px; line-height: 1.2; }
 .poles span { max-width: 46%; }
 .poles span + span { text-align: right; }
+.radar-hold .dial-box { cursor: pointer; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.radar-hold .dial-box * { pointer-events: none; }
+.card.radc .dial-box { width: min(calc(100% - 36px), 40vh); margin: 0 auto; }
+.card.radc .who { font-size: min(13vw, 64px); overflow-wrap: normal; word-break: normal; hyphens: manual; }
+@media (max-height: 700px) { .card.radc .who { font-size: min(11vw, 46px); } .card.radc .sub { font-size: 17px; } .card.radc .dial-box { width: min(calc(100% - 36px), 34vh); } }
+@media (max-height: 620px) { .card.radc::after { flex-basis: 0 !important; } .card.radc .who { font-size: 38px !important; } .card.radc { gap: 8px; } .card.radc .dial-box { width: min(calc(100% - 36px), 27vh); } .card.radc .who small { margin-bottom: 4px; } .card.radc .sub { font-size: 15px; line-height: 1.3; } .card.radc .poles { font-size: 14px; margin-top: 4px; }
+  .impx.radx { padding: 20px 18px; gap: 8px; } .impx.radx .big { font-size: 70px; } .impx.radx .dial-box { width: min(100%, 32vh); } }
+.impx.radx .dial-box { width: min(100%, 40vh); margin: 6px 0 0; }
+.impx.radx .poles { font-size: 16px; overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.impx.radx .ttl { overflow-wrap: normal; word-break: normal; hyphens: manual; }
 /* roue du mode Mix */
 .skip-rank { display: flex; justify-content: center; padding: 6px 0; }
 .skip-rank .btn { width: auto; padding: 12px 22px; }
@@ -2226,7 +2236,7 @@ function afterRound() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon"];
+const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar"];
 function header() {
   const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
   return `
@@ -2293,7 +2303,7 @@ function next() {
   card();
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
-const SWIPE = ["jamais", "pref", "qui", "av", "ouinon"];
+const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar"];
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
 const NOPTS = ["imposteur", "menteur"];
 const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
@@ -2404,12 +2414,19 @@ function mythoBest() {
   if (!max) return `<p class="mbest">🤥 Personne n'a réussi à vous mytho.</p>`;
   return `<p class="mbest"><span>🤥 Meilleur mytho</span><b>${w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0]}</b><small>${max} fois</small></p>`;
 }
+// Le Radar : combien de cibles le groupe a touchées en plein
+function radarBest() {
+  if (ON.ctx || S.mode !== "radar") return "";
+  const n = S.rHit || 0;
+  if (!n) return `<p class="mbest">🎯 Pas une seule cible dans le mille.</p>`;
+  return `<p class="mbest"><span>🎯 Dans le mille</span><b>${n} fois</b></p>`;
+}
 function finJamais(n = S.idx) {
   const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} ${u}${n > 1 ? "s" : ""}</span></div>
-      ${mythoBest()}
+      ${mythoBest()}${radarBest()}
       ${endBubbles(S.players.map(p => p.name))}
       <div class="confetti" id="confetti"></div>
     </div>
@@ -2992,7 +3009,64 @@ function dial(opts) {
 function dialBox(c, opts) {
   return `<div class="dial-box" id="dialbox">${dial(opts)}<div class="poles"><span>${esc(c.data[1])}</span><span>${esc(c.data[2])}</span></div></div>`;
 }
+// Le Radar seul : un téléphone, sans points. Celui qui a le tel voit la cible au doigt appuyé et donne un indice,
+// le groupe place une seule flèche ensemble, puis grande révélation façon Imposteur ; on compte les cibles en plein.
+const RADAR_RES = [[4, "civ", "🎯", "Dans le mille !"], [10, "vote", "😮", "Pas loin !"], [16, "miss", "🤏", "Presque"], [101, "inf", "🙈", "À côté"]];
+function cRadarSolo(c) {
+  if (S.idx === 0) { S.mBag = null; S.mLast = null; S.rHit = 0; }
+  const g = mentWho(), target = 8 + Math.round(Math.random() * 84);
+  view(`${header()}
+    <div class="stage">${cardShell("radar", { label: "Cible secrète de", name: g.name }, `
+      <div class="radar-hold">${dialBox(c, {})}</div>
+      <p class="sub">Garde le doigt sur le cadran pour voir la cible. Puis donne ton indice.</p>`, alt()).replace('class="card ', 'class="card radc ')}</div>
+    <div class="actions"><button class="btn red" id="pass" disabled>J'ai mon indice</button></div>`, () => {
+    bindHeader();
+    const box = $("#dialbox"), b = $("#pass");
+    const show = on => { $("svg", box).outerHTML = dial(on ? { target } : {}); };
+    box.addEventListener("pointerdown", e => { e.preventDefault(); try { box.setPointerCapture(e.pointerId); } catch (er) {} show(true); box.classList.add("on"); buzz(15); });
+    ["pointerup", "pointercancel"].forEach(t => box.addEventListener(t, () => { if (!box.classList.contains("on")) return; box.classList.remove("on"); show(false); b.disabled = false; }));
+    box.addEventListener("contextmenu", e => e.preventDefault());
+    b.onclick = guess;
+  });
+  let v = 50;
+  function guess() {
+    view(`${header()}
+      <div class="stage">${cardShell("radar", { label: "Indice de", name: g.name }, `
+        ${dialBox(c, { needle: v })}
+        <p class="sub">Placez la flèche ensemble. ${esc(g.name)} ne dit plus rien.</p>`, alt()).replace('class="card ', 'class="card radc ')}</div>
+      <div class="actions"><button class="btn red" id="lock">On valide</button></div>`, () => {
+      bindHeader();
+      const box = $("#dialbox");
+      const move = e => {
+        const svg = $("svg", box), r = svg.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width * 300, y = (e.clientY - r.top) / r.height * 168;
+        let a = Math.atan2(152 - y, x - 150) * 180 / Math.PI; if (a < 0) a = x < 150 ? 180 : 0;
+        v = Math.max(0, Math.min(100, (180 - a) / 1.8));
+        svg.outerHTML = dial({ needle: v });
+      };
+      box.onpointerdown = e => { e.preventDefault(); box.setPointerCapture(e.pointerId); move(e); box.onpointermove = move; };
+      box.onpointerup = box.onpointercancel = () => { box.onpointermove = null; };
+      $("#lock").onclick = reveal;
+    });
+  }
+  function reveal() {
+    const d = Math.abs(v - target), [, cls, emo, ttl] = RADAR_RES.find(([w]) => d <= w), hit = cls === "civ";
+    if (hit) S.rHit = (S.rHit || 0) + 1;
+    buzz(hit ? [60, 40, 60, 40, 160] : [30, 30, 60]);
+    view(`${header()}
+      <div class="stage">${impScene(cls + " radx", `<span class="kick">Indice de ${esc(g.name)}</span>
+        <span class="big">${emo}</span><span class="ttl">${ttl}</span>
+        ${dialBox(c, { target, needle: v })}`)}</div>${hit ? `<div class="confetti" id="confetti"></div>` : ""}
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      bindHeader(); if (hit) party();
+      const fly = swipeNext($(".stage .impx"), null, next);
+      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+    });
+  }
+}
 function cRadar(c) {
+  if (S.mode === "radar") return cRadarSolo(c);
   const g = nextPlayer(), guessers = others(g.name);
   const target = 8 + Math.round(Math.random() * 84);
   const votes = [];
@@ -3820,7 +3894,7 @@ const TUTO = {
   ouinon: "Lis la question à voix haute, chacun répond oui ou non, et ceux qui sont tout seuls s'expliquent. Swipe pour la suivante.",
   classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
-  radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
+  radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
