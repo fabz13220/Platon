@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="1dcead6b57a6">
+<meta name="build" content="acbcd8542438">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1061,7 +1061,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
 .rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
-.jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; transform: translate3d(0, 14px, 0) scale(.94); filter: brightness(.62); transform-origin: 50% 100%; }
+.jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; filter: brightness(.62); }
+/* paquet de cartes : deux tranches fixes sous la pile, elles ne bougent jamais d'une carte à l'autre */
+.jstack { isolation: isolate; }
+.jstack::before, .jstack::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: -7px; height: 40px; border-radius: 0 0 var(--r-xl) var(--r-xl); background: rgba(255,255,255,.13); z-index: -1; pointer-events: none; }
+.jstack::after { left: 28px; right: 28px; bottom: -13px; background: rgba(255,255,255,.07); z-index: -2; }
 .jstack > .card.top { z-index: 1; }
 .card .qcount { margin: 4px auto 0; min-width: 120px; padding: 10px 22px; border-radius: 99px; border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: var(--paper); font: 900 18px Nunito, sans-serif; letter-spacing: .04em; cursor: pointer; transition: transform .15s; }
 .card .qcount.on { transform: scale(1.25); background: rgba(255,255,255,.95); color: #EE1F66; border-color: transparent; }
@@ -2229,7 +2233,6 @@ function swipeNext(el, under, onNext) {
   const lift = (k, anim) => { // k : 0 = carte du dessous en attente, 1 = à sa place
     if (!under) return;
     under.style.transition = anim ? "transform .24s ease-out, filter .24s ease-out" : "none";
-    under.style.transform = `translate3d(0, ${14 * (1 - k)}px, 0) scale(${.94 + .06 * k})`;
     under.style.filter = `brightness(${.62 + .38 * k})`;
   };
   const set = (d, anim) => {
