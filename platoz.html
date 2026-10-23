@@ -649,6 +649,8 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .imphold.on > :not(.imp-face) { visibility: hidden; }
 /* même taille pour tous les mots (et « L'imposteur ») : jamais coupés au milieu */
 .imphold .imp-w { font-size: min(9.6vw, 44px); overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.card.impc .who { font-size: min(11vw, 52px); overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.card.impc .text { font-size: min(8vw, 34px) !important; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .imp-roles { display: flex; flex-direction: column; gap: 6px; padding: 0 22px; }
 .imp-roles div { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 17px; }
 .secret .eyebrow { font-size: 13px; opacity: .92; }
@@ -1741,7 +1743,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 3)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 4)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2648,6 +2650,8 @@ function impSetup() {
     draw();
   });
 }
+// cartes de L'Imposteur : mots jamais coupés au milieu (« Undercover », « L'imposteur »)
+const impShell = (...a) => cardShell(...a).replace('class="card ', 'class="card impc ');
 function cImpSolo(c) {
   let { imp: nImp, und: nUnd } = IMP_SET();
   if (nImp + nUnd > S.players.length - 2) { nUnd = Math.max(0, S.players.length - 2 - nImp); nImp = Math.min(nImp, S.players.length - 2); }
@@ -2685,7 +2689,7 @@ function cImpSolo(c) {
   });
   let here = null; // l'écran où revenir après l'œil
   const bindEye = () => { const e = $("#eye"); if (e) e.onclick = () => view(`${top(false)}
-    <div class="stage">${cardShell("imposteur", null, `<p class="text">Qui veut revoir son mot ?</p>
+    <div class="stage">${impShell("imposteur", null, `<p class="text">Qui veut revoir son mot ?</p>
       <div class="chips" style="padding:0 18px">${S.players.filter(p => alive.has(p)).map(p => `<button class="chip pick" data-i="${S.players.indexOf(p)}">${esc(p.name)}</button>`).join("")}</div>`, alt())}</div>
     <div class="actions"><button class="btn white" id="back">Retour à la partie</button></div>`, () => {
       $("#pause").onclick = pauseMenu;
@@ -2701,7 +2705,7 @@ function cImpSolo(c) {
     const live = S.players.filter(p => alive.has(p)), safe = live.filter(p => role.get(p) !== "imp");
     const first = rnd(safe.length ? safe : live); // l'imposteur ne commence jamais
     view(`${top(true)}
-      <div class="stage">${cardShell("imposteur", { label: "Commence", name: first.name }, `
+      <div class="stage">${impShell("imposteur", { label: "Commence", name: first.name }, `
         <p class="text">Chacun dit un mot sur son mot secret.</p>
         <p class="sub">Puis on vote pour éliminer quelqu'un. Encore ${live.length} en jeu.</p>
       `, alt())}</div>
@@ -2710,7 +2714,7 @@ function cImpSolo(c) {
   const vote = () => {
     here = vote;
     view(`${top(true)}
-      <div class="stage">${cardShell("imposteur", null, `<p class="text">Qui on élimine ?</p>
+      <div class="stage">${impShell("imposteur", null, `<p class="text">Qui on élimine ?</p>
         <div class="chips" style="padding:0 18px">${S.players.filter(p => alive.has(p)).map(p => `<button class="chip pick" data-i="${S.players.indexOf(p)}">${esc(p.name)}</button>`).join("")}</div>`, alt())}</div>
       <div class="actions"><button class="btn white" id="back">Encore un tour avant</button></div>`, () => {
       bindHeader(); bindEye();
@@ -2726,7 +2730,7 @@ function cImpSolo(c) {
     const after = () => inf === 0 ? end("civ") : civ <= 1 ? end("inf") : talk();
     here = null;
     view(`${top(false)}
-      <div class="stage">${cardShell("imposteur", { label: "Éliminé", name: p.name }, `
+      <div class="stage">${impShell("imposteur", { label: "Éliminé", name: p.name }, `
         <p class="text">${r === "civ" ? `C'était un <b>civil</b>. Raté.` : r === "und" ? `C'était un <b>undercover</b>. Bien vu.` : `C'était <b>l'imposteur</b>. Bien vu.`}</p>
         ${r === "imp" ? `<p class="sub">Dernière chance : s'il trouve le mot, les intrus gagnent.</p>` : `<p class="sub">${inf === 0 ? "Plus aucun intrus." : civ <= 1 ? "Il ne reste qu'un civil." : `Il reste ${inf} intrus${inf > 1 ? "" : ""}.`}</p>`}
       `, alt())}</div>
@@ -2741,7 +2745,7 @@ function cImpSolo(c) {
     const title = w === "civ" ? "Les civils gagnent" : onlyImp ? (one ? "L'imposteur gagne" : "Les imposteurs gagnent") : (one ? "L'undercover gagne" : "Les intrus gagnent");
     stamp(w === "civ" ? "Civils" : "Intrus", w === "civ" ? "green" : "");
     later(() => view(`${top(false)}
-      <div class="stage">${cardShell("imposteur", { label: "Fin de la manche", name: title }, `
+      <div class="stage">${impShell("imposteur", { label: "Fin de la manche", name: title }, `
         <p class="text">Le mot : <b>${esc(word)}</b>.${nUnd ? ` Undercover : <b>${esc(uw)}</b>.` : ""}</p>
         <div class="imp-roles">${ins.map(p => `<div><span>${esc(p.name)}</span><b>${ROLE[role.get(p)]}</b></div>`).join("")}</div>
       `, alt())}</div>
