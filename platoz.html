@@ -294,6 +294,10 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .fin-jamais .end-bubbles { background: radial-gradient(closest-side, rgba(140,70,255,.5), rgba(140,70,255,.18) 60%, transparent); margin: 0 -16px; }
 .fin-jamais .mast { text-shadow: 0 0 26px rgba(170,110,255,.85); }
 .fin-jamais .rank-date { color: rgba(255,255,255,.8); }
+.mbest { margin: 6px auto 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 22px; border-radius: 22px; border: 2px solid #FF3B6E; background: rgba(255,59,110,.12); box-shadow: 0 0 40px -10px rgba(255,59,110,.6); color: #fff; text-align: center; font-weight: 800; animation: impPop .7s .3s cubic-bezier(.2,1.5,.4,1) both; }
+.mbest span { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.mbest b { font-family: var(--display); font-size: min(9vw, 36px); line-height: 1.1; color: #FF6A90; text-shadow: 0 0 24px rgba(255,59,110,.6); }
+.mbest small { font-size: 13px; opacity: .7; }
 .fin-jamais .bubble { font-size: 18px; min-width: 100px; min-height: 100px;
   background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.75), rgba(190,140,255,.45) 36%, rgba(140,70,255,.9) 100%);
   box-shadow: 0 14px 34px -8px rgba(166,107,255,.95), 0 0 30px -4px rgba(166,107,255,.75), inset 0 -6px 14px rgba(255,59,122,.35), inset 0 2px 0 rgba(255,255,255,.5); }
@@ -673,6 +677,7 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .impx .ttl { font-family: var(--display); font-weight: 900; font-size: min(10.5vw, 48px); line-height: 1.02; letter-spacing: -.02em; color: var(--bd); text-shadow: 0 0 30px var(--gl), 0 0 2px var(--gl); animation: impPop .7s .15s cubic-bezier(.2,1.5,.4,1) both; }
 .impx.end .ttl { font-size: min(12vw, 56px); }
 .impx.end .big { font-size: 116px; }
+.impx.ment .big { margin: 14px 0 4px; }
 .impx .ln { font-size: 19px; line-height: 1.32; font-weight: 800; margin: 0; max-width: 30ch; }
 .impx .ln b { color: var(--yellow); text-shadow: 0 0 14px rgba(255,224,74,.5); }
 .impx .sm { font-size: 14px; font-weight: 800; opacity: .65; margin: 0; letter-spacing: .04em; }
@@ -2190,7 +2195,7 @@ function afterRound() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur"];
+const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur"];
 function header() {
   const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
   return `
@@ -2259,7 +2264,8 @@ function next() {
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
 const SWIPE = ["jamais", "pref", "qui", "av"];
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
-const noPts = () => ON.ctx ? !!(ON.r && ON.r.game === "imposteur") : SWIPE.includes(S.mode) || S.mode === "imposteur";
+const NOPTS = ["imposteur", "menteur"];
+const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
 function endDeck() {
   if (S.mode === "mix") return afterRound();
   if (noPts() && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
@@ -2360,11 +2366,19 @@ function swipeNext(el, under, onNext) {
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
   return fly;
 }
+// Le Menteur : celui qui a eu le groupe le plus souvent
+function mythoBest() {
+  if ((ON.ctx ? ON.r && ON.r.game : S.mode) !== "menteur") return "";
+  const max = Math.max(0, ...S.players.map(p => p.fool || 0)), w = S.players.filter(p => (p.fool || 0) === max).map(p => esc(p.name));
+  if (!max) return `<p class="mbest">🤥 Personne n'a réussi à vous mytho.</p>`;
+  return `<p class="mbest"><span>🤥 Meilleur mytho</span><b>${w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0]}</b><small>${max} fois</small></p>`;
+}
 function finJamais(n = S.idx) {
   const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} ${u}${n > 1 ? "s" : ""}</span></div>
+      ${mythoBest()}
       ${endBubbles(S.players.map(p => p.name))}
       <div class="confetti" id="confetti"></div>
     </div>
@@ -2606,7 +2620,61 @@ function cPref(c) {
   });
 }
 
+// Le Menteur seul : un téléphone qu'on se passe, sans points. Consigne secrète au doigt appuyé,
+// le groupe dit Vrai ou Mytho, puis grande révélation façon Imposteur ; on compte qui a eu le groupe.
+const mentFace = lie => `<span class="eyebrow" style="color:var(--paper)">Ta consigne</span><span class="mast imp-w" style="color:${lie ? "var(--red)" : "var(--yellow)"}">${lie ? "Tu mens" : "Tu dis la vérité"}</span><p>Réponds à la question qui va s'afficher, et reste crédible.</p>`;
+const mentReveal = (name, lie, fooled, votes) => impScene((lie ? "inf" : "vote") + " ment", `<span class="kick">Interrogatoire de</span><span class="nm">${esc(name)}</span>
+  <span class="big">${fooled ? "🤯" : lie ? "🤥" : "😇"}</span><span class="ttl">${lie ? "Mytho !" : "C'était vrai !"}</span>
+  <p class="ln">${fooled ? `<b>${esc(name)}</b> vous a bien eus.` : lie ? "Grillé. Bien vu, le groupe." : "Bien vu, le groupe."}</p>${votes || ""}`);
+function mentWho() {
+  if (!S.mBag || !S.mBag.length) {
+    const b = shuffle(S.players);
+    if (b.length > 1 && b[0] === S.mLast) b.push(b.shift());
+    S.mBag = b;
+  }
+  return S.mLast = S.mBag.shift();
+}
+function cMentSolo(c) {
+  if (S.idx === 0) { S.mBag = null; S.mLast = null; }
+  const p = mentWho(), q = fill(c.data[1], p), lie = Math.random() < .5;
+  view(`${header()}
+    <div class="stage"><div class="secret imphold" id="hold">
+      <span class="eyebrow" style="color:var(--paper)">Passe le téléphone à</span><span class="mast">${esc(p.name)}</span>
+      <p class="imp-cue">Garde le doigt ici pour voir ta consigne.</p>
+      <div class="imp-face">${mentFace(lie)}</div>
+    </div></div>
+    <div class="actions"><button class="btn red" id="pass" disabled>C'est bon, montre la question</button></div>`, () => {
+    $("#pause").onclick = pauseMenu;
+    const h = $("#hold"), b = $("#pass");
+    h.addEventListener("pointerdown", e => { e.preventDefault(); h.classList.add("on"); buzz(15); });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(t => h.addEventListener(t, () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); b.disabled = false; }));
+    h.addEventListener("contextmenu", e => e.preventDefault());
+    b.onclick = () => ask();
+  });
+  const ask = () => view(`${header()}
+    <div class="stage">${cardShell("menteur", { label: "Interrogatoire de", name: p.name }, `
+      <p class="text">${esc(q)}</p>
+      <p class="sub">${esc(p.name)} répond. Posez-lui toutes les questions que vous voulez, puis dites : vrai ou mytho ?</p>`, alt())}</div>
+    <div class="actions"><div class="row"><button class="btn green" id="t">😇 Vrai</button><button class="btn red" id="l">🤥 Mytho</button></div></div>`, () => {
+    bindHeader();
+    $("#t").onclick = () => show(false); $("#l").onclick = () => show(true);
+  });
+  const show = said => {
+    const fooled = said !== lie;
+    if (fooled) p.fool = (p.fool || 0) + 1;
+    buzz(fooled ? [60, 40, 60, 40, 160] : [30, 30, 60]);
+    view(`${header()}
+      <div class="stage">${mentReveal(p.name, lie, fooled)}</div>${fooled ? `<div class="confetti" id="confetti"></div>` : ""}
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      bindHeader(); if (fooled) party();
+      const fly = swipeNext($(".stage .impx"), null, next);
+      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+    });
+  };
+}
 function cMenteur(c) {
+  if (S.mode === "menteur") return cMentSolo(c);
   const p = nextPlayer();
   const q = fill(c.data[1], p);
   const lie = Math.random() < .5;
@@ -3698,7 +3766,7 @@ const TUTO = {
   radar: "Un joueur voit la cible et donne un indice. Les autres placent leur flèche. Plus t'es près, plus tu prends.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
-  menteur: "L'appli te dit en secret si tu mens. Tu réponds, on te pose 3 questions, puis on vote.",
+  menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
   deux: "Tu lis la question. À trois, vous pointez l'un de vous deux. Même réponse : un point pour lui.",
@@ -4832,8 +4900,9 @@ function roomResolve(r) {
     const ok = yes >= no && yes > 0; if (ok) add(c.target, c.kind === "v" ? 1 : 2); res = { ok, yes, no };
   } else if (c.type === "menteur") {
     const voters = needers(r).filter(u => acts[u] != null), right = voters.filter(u => (acts[u] === "l") === c.lie);
-    right.forEach(u => add(u, 1));
-    const fooled = right.length * 2 < voters.length; if (fooled) add(c.target, 2); res = { right, wrong: voters.filter(u => !right.includes(u)), fooled };
+    const fooled = right.length * 2 < voters.length; res = { right, wrong: voters.filter(u => !right.includes(u)), fooled };
+    if (r.game === "menteur") { if (fooled && r.players[c.target]) return upd({ phase: "reveal", res, [`players.${c.target}.fool`]: F.increment(1) }); } // sans points : on compte juste qui a eu le groupe
+    else { right.forEach(u => add(u, 1)); if (fooled) add(c.target, 2); }
   } else if (c.type === "classement") {
     const right = needers(r).filter(u => acts[u] != null && c.opts[+acts[u]] === c.q);
     right.forEach(u => add(u, 2)); add(c.ranker, right.length); res = { right, wrong: needers(r).filter(u => acts[u] != null && !right.includes(u)) };
@@ -4891,7 +4960,13 @@ function roomRender(r) {
     if (T === "av") stage = cardShell(T, { label: c.kind === "v" ? "Vérité pour" : "Action pour", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
       ${isSolo ? `<p class="sub">Les autres valident sur leur téléphone si tu l'as fait.</p>${waitP}` : `<p class="sub">${soloName} l'a fait ?</p>${choices([["y", "Réussi", "green"], ["n", "Refusé"]])}${waitP}`}
       ${rulePts(`Réussi : +${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}`)}`);
-    if (T === "menteur") stage = isSolo
+    if (T === "menteur" && r.game === "menteur") stage = isSolo
+      ? `<div class="secret"><span class="eyebrow" style="color:var(--paper)">Ta consigne secrète</span><span class="mast imp-w" style="color:${c.lie ? "var(--red)" : "var(--yellow)"}">${c.lie ? "Tu mens" : "Tu dis la vérité"}</span><p>${esc(c.text)}</p></div>
+        <p class="sub on-sub">Réponds à voix haute. Les autres te cuisinent, puis disent sur leur téléphone : vrai ou mytho ?</p><p class="sub on-sub" id="wait">${waitTxt(r)}</p>`
+      : cardShell(T, { label: "Interrogatoire de", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
+        <p class="sub">${soloName} répond. Posez-lui toutes les questions que vous voulez, puis : vrai ou mytho ?</p>
+        ${choices([["t", "😇 Vrai", "green"], ["l", "🤥 Mytho"]])}${waitP}`);
+    else if (T === "menteur") stage = isSolo
       ? `<div class="secret"><span class="eyebrow" style="color:var(--paper)">Consigne secrète</span><span class="mast" style="color:${c.lie ? "var(--red)" : "var(--yellow)"}">${c.lie ? "Mens" : "Dis la vérité"}</span><p>${esc(c.text)}</p></div>
         <p class="sub on-sub">Réponds à voix haute. Les autres peuvent te poser 3 questions, puis votent sur leur téléphone.</p><p class="sub on-sub" id="wait">${waitTxt(r)}</p>`
       : cardShell(T, { label: "Interrogatoire de", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
@@ -4928,13 +5003,15 @@ function roomRender(r) {
     }
     if (T === "av") stage = cardShell(T, { label: res.ok ? "Réussi par" : "Refusé par", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
       <p class="sub">${res.yes || 0} réussi · ${res.no || 0} refusé</p>${rulePts(res.ok ? `+${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}` : "Pas de point")}`);
-    if (T === "menteur") stage = cardShell(T, { label: res.fooled ? "Le groupe s'est fait avoir par" : "Bien vu, le groupe a démasqué", name: pname(r, c.target) }, `<p class="text">${soloName} ${c.lie ? "mentait" : "disait la vérité"}.</p>
+    if (T === "menteur" && r.game === "menteur") stage = mentReveal(pname(r, c.target), c.lie, res.fooled,
+      `<div class="roles">${[...(res.right || []).map(u => [u, c.lie]), ...(res.wrong || []).map(u => [u, !c.lie])].map(([u, l]) => `<span>${l ? "🤥" : "😇"} ${esc(pname(r, u))}<i>${l ? "Mytho" : "Vrai"}</i></span>`).join("")}</div>`) + (res.fooled ? `<div class="confetti" id="confetti"></div>` : "");
+    else if (T === "menteur") stage = cardShell(T, { label: res.fooled ? "Le groupe s'est fait avoir par" : "Bien vu, le groupe a démasqué", name: pname(r, c.target) }, `<p class="text">${soloName} ${c.lie ? "mentait" : "disait la vérité"}.</p>
       ${rows([...(res.right || []).map(u => [u, "+1"]), ...(res.wrong || []).map(u => [u, "0"])], i => i < (res.right || []).length ? G : R)}
       ${rulePts(res.fooled ? `+2 points pour ${soloName}` : "+1 point pour chaque bonne réponse")}`);
     if (T === "classement") stage = cardShell(T, { label: "La question de", name: pname(r, c.ranker) }, `<p class="text"><b>${esc(cap(c.q))}</b></p>
       ${rows([...(res.right || []).map(u => [u, "+2"]), ...(res.wrong || []).map(u => [u, "0"])], i => i < (res.right || []).length ? G : R)}
       <div class="radar-res"><div class="guide"><i></i><span>${soloName} (classement)</span><b>${(res.right || []).length ? "+" + res.right.length : "0"}</b></div></div>`);
-    stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
+    if (!noPts()) stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
     acts = nextBtn;
   } else if (T === "imposteur" && r.phase === "word") {
     const isImp = uid === c.imp;
@@ -5023,6 +5100,7 @@ function roomRender(r) {
       const res = r.res || {};
       if (T === "imposteur" && res.free) buzz([30, 30, 60]);
       else if (T === "imposteur") stamp(res.caught ? "Démasqué" : "Raté", res.caught ? "green" : "");
+      else if (T === "menteur" && r.game === "menteur") { if (res.fooled) party(); buzz(res.fooled ? [60, 40, 60, 40, 160] : [30, 30, 60]); }
       else if (T === "radar") { const best = Math.max(0, ...(res.g || []).map(o => o.p)); stamp(best === 3 ? "En plein dans le mille" : best ? "Pas mal" : "Raté", best ? "green" : ""); }
     }
     if (b("send")) {
@@ -5297,7 +5375,7 @@ function lobbyView(r, host) {
   });
 }
 function roomEnd(r, host) {
-  S.players = ids(r).map(u => ({ name: r.players[u].name, pts: r.players[u].pts || 0 }));
+  S.players = ids(r).map(u => ({ name: r.players[u].name, pts: r.players[u].pts || 0, fool: r.players[u].fool || 0 }));
   ranking();
   const again = $("#again"), out = $("#home");
   if (host) again.onclick = () => upd({ status: "lobby", round: 0, card: null, phase: "", acts: {}, res: null });
