@@ -846,6 +846,20 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .rank-order b { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #C2410C; font-size: 15px; }
 .rank-opts { margin: 0 22px; display: grid; gap: 8px; }
 .rank-opts .btn { min-height: 52px; font-size: 16px; text-transform: none; background: #fff; color: #C2410C; border-color: #fff; box-shadow: 0 6px 16px -8px rgba(0,0,0,.4); }
+.rank-opts .btn[aria-pressed="true"] { background: #1A0F2E; color: #fff; border-color: #fff; box-shadow: 0 0 0 3px #FFE04A, 0 6px 16px -8px rgba(0,0,0,.4); }
+.rank-order.two { grid-template-columns: 1fr 1fr; }
+.rank-order.two > div, .rank-order.mini > div { padding: 6px 10px; font-size: 15px; gap: 8px; }
+.rank-order.two b, .rank-order.mini b { width: 24px; height: 24px; font-size: 13px; }
+.rank-order > div span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.clsc .rank-opts { grid-template-columns: 1fr 1fr; }
+.card.clsc .rank-opts .btn { min-height: 64px; padding: 6px 10px; font-size: 15px; line-height: 1.15; }
+@media (max-height: 760px) { .card.clsc .who { font-size: 36px; } .card.clsc .chip { padding: 8px 14px; min-height: 0; } }
+@media (max-height: 620px) { .card.clsc { gap: 6px !important; padding-top: 14px; padding-bottom: 12px; } .card.clsc .rank-order.two > div { padding: 2px 8px; } .card.clsc .rank-opts .btn { min-height: 48px; } .card.clsc .who { font-size: 30px; } .card.clsc::after { flex-basis: 0 !important; } .card.clsc .band { display: none; } .card.clsc .who small { display: none; } .card.clsc .sub { font-size: 15px; line-height: 1.3; } }
+@media (max-height: 700px) { .card.clsc { gap: 8px; } .card.clsc .rank-opts .btn { min-height: 56px; font-size: 14px; } .card.clsc .rank-order.two > div { padding: 4px 8px; } .impx.clsx .ln + .ln { display: none; } .impx.clsx .rank-order.two > div { padding: 3px 8px; } }
+.impx.clsx .rank-order { margin: 4px 0 0; width: 100%; }
+.impx.clsx .rank-order > div { background: rgba(255,255,255,.08); color: #fff; }
+.impx.clsx s { opacity: .6; font-size: 16px; }
+@media (max-height: 700px) { .impx.clsx { gap: 6px; padding: 18px 16px; } .impx.clsx .big { font-size: 60px; } }
 /* Outils */
 .tools-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .tools-row .btn { min-height: 54px; }
@@ -2210,7 +2224,7 @@ function afterRound() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar"];
+const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar", "classement"];
 function header() {
   const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
   return `
@@ -2277,7 +2291,7 @@ function next() {
   card();
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
-const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar"];
+const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar", "classement"];
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
 const NOPTS = ["imposteur", "menteur"];
 const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
@@ -2400,7 +2414,7 @@ function finJamais(n = S.idx) {
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} ${u}${n > 1 ? "s" : ""}</span></div>
-      ${mythoBest()}${radarBest()}
+      ${mythoBest()}${radarBest()}${classBest()}
       ${endBubbles(S.players.map(p => p.name))}
       <div class="confetti" id="confetti"></div>
     </div>
@@ -3105,7 +3119,101 @@ function cRadar(c) {
 }
 
 /* -------- LE CLASSEMENT : un joueur classe tout le monde, les autres retrouvent la question -------- */
+// Le Classement seul : un téléphone, sans points. Celui qui classe voit la question au doigt appuyé,
+// classe tout le monde, puis le groupe choisit ensemble la question parmi 4 ; révélation façon Imposteur.
+const CLASS_RES = {
+  ok: ["Vous le connaissez par cœur.", "Lecture de pensée validée.", "Trop facile pour vous."],
+  ko: ["Vous l'avez pas vu venir.", "Il va falloir s'expliquer.", "Personne ne voit pareil, apparemment."]
+};
+function classBest() {
+  if (ON.ctx || S.mode !== "classement") return "";
+  const n = S.cHit || 0, m = S.cN || 0;
+  if (!m) return "";
+  if (!n) return `<p class="mbest">🏆 Pas une seule question trouvée.</p>`;
+  return `<p class="mbest"><span>🏆 Questions trouvées</span><b>${n} sur ${m}</b></p>`;
+}
+function cClassSolo(c) {
+  if (S.idx === 0) { S.mBag = null; S.mLast = null; S.cHit = 0; S.cN = 0; }
+  const r = mentWho(), q = c.data[1], cap = s => s.charAt(0).toUpperCase() + s.slice(1), order = [];
+  const list = (o, cls) => `<div class="rank-order ${cls || ""}${S.players.length > 5 ? " two" : ""}">${o.map((p, i) => `<div><b>${i + 1}</b><span>${esc(p.name)}</span></div>`).join("")}</div>`;
+  view(`${header()}
+    <div class="stage"><div class="secret imphold" id="hold">
+      <span class="eyebrow" style="color:var(--paper)">Passe le téléphone à</span><span class="mast">${esc(r.name)}</span>
+      <p class="imp-cue">Garde le doigt ici pour voir ta question.</p>
+      <div class="imp-face"><span class="eyebrow" style="color:var(--paper)">Classe tout le monde</span><span class="mast imp-w" style="color:var(--yellow)">${esc(cap(q))}</span><p>Toi compris. Les autres devront retrouver la question.</p></div>
+    </div></div>
+    <div class="actions"><button class="btn red" id="pass" disabled>C'est bon, je classe</button></div>`, () => {
+    $("#pause").onclick = pauseMenu;
+    const h = $("#hold"), b = $("#pass");
+    h.addEventListener("pointerdown", e => { e.preventDefault(); h.classList.add("on"); buzz(15); });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(t => h.addEventListener(t, () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); b.disabled = false; }));
+    h.addEventListener("contextmenu", e => e.preventDefault());
+    b.onclick = rank;
+  });
+  function rank() {
+    view(`${header()}
+      <div class="stage">${cardShell("classement", { label: "Classement secret de", name: r.name }, `
+        <p class="sub" style="margin:0">${esc(cap(q))}. Touche les prénoms du 1er au dernier.</p>
+        <div id="order"></div>
+        ${chipsHtml()}
+        <p style="text-align:center;margin:0"><button class="linkbtn" id="redo">Recommencer</button></p>`, alt()).replace('class="card ', 'class="card clsc ')}</div>
+      <div class="actions"><button class="btn red" id="lock" disabled></button></div>`, () => {
+      bindHeader();
+      const draw = () => {
+        // le dernier se place tout seul
+        if (order.length === S.players.length - 1) order.push(S.players.find(p => !order.includes(p)));
+        $("#order").innerHTML = order.length ? list(order) : "";
+        $$(".chip.pick").forEach(b => b.style.display = order.includes(S.players[+b.dataset.i]) ? "none" : "");
+        const done = order.length === S.players.length;
+        $("#redo").style.visibility = order.length ? "" : "hidden";
+        $("#lock").disabled = !done;
+        $("#lock").textContent = done ? "Montrer aux autres" : `Encore ${S.players.length - order.length} à classer`;
+      };
+      $$(".chip.pick").forEach(b => b.onclick = () => { order.push(S.players[+b.dataset.i]); buzz(10); draw(); });
+      $("#redo").onclick = () => { order.length = 0; draw(); };
+      $("#lock").onclick = guess;
+      draw();
+    });
+  }
+  function guess() {
+    const decoys = shuffle(pool("classement").filter(x => x.data[1] !== q)).slice(0, 3).map(x => x.data[1]);
+    const opts = shuffle([q, ...decoys]);
+    let pick = -1;
+    view(`${header()}
+      <div class="stage">${cardShell("classement", { label: "Le classement de", name: r.name }, `
+        ${list(order)}
+        <p class="sub" style="margin:0">C'était quoi la question ? Choisissez ensemble.</p>
+        <div class="rank-opts">${opts.map((o, k) => `<button class="btn white" data-i="${k}" aria-pressed="false">${esc(cap(o))}</button>`).join("")}</div>`, alt()).replace('class="card ', 'class="card clsc ')}</div>
+      <div class="actions"><button class="btn red" id="lock" disabled>On valide</button></div>`, () => {
+      bindHeader();
+      $$(".rank-opts button").forEach(b => b.onclick = () => {
+        pick = +b.dataset.i; buzz(10);
+        $$(".rank-opts button").forEach(x => x.setAttribute("aria-pressed", x === b));
+        $("#lock").disabled = false;
+      });
+      $("#lock").onclick = () => reveal(opts[pick]);
+    });
+  }
+  function reveal(said) {
+    const ok = said === q;
+    S.cN = (S.cN || 0) + 1; if (ok) S.cHit = (S.cHit || 0) + 1;
+    buzz(ok ? [60, 40, 60, 40, 160] : [30, 30, 60]);
+    view(`${header()}
+      <div class="stage">${impScene((ok ? "civ" : "inf") + " clsx", `<span class="kick">La question de ${esc(r.name)}</span>
+        <span class="big">${ok ? "🏆" : "🙈"}</span><span class="ttl">${ok ? "Bien vu !" : "Raté !"}</span>
+        <p class="ln">C'était <b>${esc(q)}</b>.${ok ? "" : `<br><s>${esc(said)}</s>`}</p>
+        <p class="ln" style="font-size:16px;opacity:.85">${rnd(CLASS_RES[ok ? "ok" : "ko"])}</p>
+        ${list(order, "mini")}`)}</div>${ok ? `<div class="confetti" id="confetti"></div>` : ""}
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      bindHeader(); if (ok) party();
+      const fly = swipeNext($(".stage .impx"), null, next);
+      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+    });
+  }
+}
 function cClassement(c) {
+  if (S.mode === "classement") return cClassSolo(c);
   const r = nextPlayer(), order = [];
   const q = c.data[1], cap = s => s.charAt(0).toUpperCase() + s.slice(1);
   const rule = `Bonne question : +2 points pour toi, +1 point pour ${esc(r.name)}`;
@@ -3874,7 +3982,7 @@ const TUTO = {
   av: "La carte dit à qui c'est le tour. Swipe à droite pour une action, à gauche pour une vérité. Tu réponds ou tu le fais, et on swipe. Si tu veux pas, on swipe quand même.",
   pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
   ouinon: "Lis la question à voix haute, chacun répond oui ou non, et ceux qui sont tout seuls s'expliquent. Swipe pour la suivante.",
-  classement: "Un joueur lit une question en secret et classe tout le monde. Les autres doivent retrouver la question. Bien trouvé : 2 points, et 1 pour celui qui a classé.",
+  classement: "Celui qui a le tel voit une question en secret et classe tout le monde, lui compris. Les autres regardent le classement et se mettent d'accord pour retrouver la question.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
