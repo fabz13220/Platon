@@ -847,10 +847,10 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .rank-opts { margin: 0 22px; display: grid; gap: 8px; }
 .rank-opts .btn { min-height: 52px; font-size: 16px; text-transform: none; background: #fff; color: #C2410C; border-color: #fff; box-shadow: 0 6px 16px -8px rgba(0,0,0,.4); }
 .rank-opts .btn[aria-pressed="true"] { background: #1A0F2E; color: #fff; border-color: #fff; box-shadow: 0 0 0 3px #FFE04A, 0 6px 16px -8px rgba(0,0,0,.4); }
-.rank-order.two { grid-template-columns: 1fr 1fr; }
+.rank-order.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .rank-order.two > div, .rank-order.mini > div { padding: 6px 10px; font-size: 15px; gap: 8px; }
 .rank-order.two b, .rank-order.mini b { width: 24px; height: 24px; font-size: 13px; }
-.rank-order > div span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-order > div span { min-width: 0; overflow-wrap: normal; word-break: normal; line-height: 1.1; }
 .card.clsc .rank-opts { grid-template-columns: 1fr 1fr; }
 .card.clsc .rank-opts .btn { min-height: 64px; padding: 6px 10px; font-size: 15px; line-height: 1.15; }
 @media (max-height: 760px) { .card.clsc .who { font-size: 36px; } .card.clsc .chip { padding: 8px 14px; min-height: 0; } }
@@ -859,6 +859,16 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .impx.clsx .rank-order { margin: 4px 0 0; width: 100%; }
 .impx.clsx .rank-order > div { background: rgba(255,255,255,.08); color: #fff; }
 .impx.clsx s { opacity: .6; font-size: 16px; }
+.card.clsc.fit1 { gap: 8px; padding-bottom: 14px; } .card.clsc.fit1 .who { font-size: 30px; } .card.clsc.fit1 .who small { margin-bottom: 4px; } .card.clsc.fit1 .sub { font-size: 15px; line-height: 1.3; }
+.card.clsc.fit1 .rank-order > div { padding: 3px 8px; font-size: 14px; } .card.clsc.fit1 .rank-order b { width: 22px; height: 22px; font-size: 12px; }
+.card.clsc.fit1 .rank-opts .btn { min-height: 44px; font-size: 14px; } .card.clsc.fit1 .chip { padding: 7px 12px; font-size: 15px; min-height: 0; }
+.card.clsc.fit2 .band { display: none; } .card.clsc.fit2 .who small { display: none; } .card.clsc.fit2 { gap: 6px; padding-top: 14px; } .card.clsc.fit2 .rank-order { gap: 4px; } .card.clsc.fit2 .rank-opts { gap: 6px; }
+.card.clsc.fit3 .rank-order:not(.two) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .card.clsc.fit3 .rank-opts .btn { min-height: 38px; font-size: 13px; padding: 4px 8px; } .card.clsc.fit3 .chips { gap: 6px; }
+.card.clsc.fit4 .who { font-size: 22px; } .card.clsc.fit4 .card-rate { display: none; } .card.clsc.fit4 .rank-order > div { padding: 1px 6px; font-size: 13px; } .card.clsc.fit4 .rank-opts .btn { min-height: 34px; }
+.impx.clsx.fit1 { gap: 6px; padding: 18px 14px; } .impx.clsx.fit1 .big { font-size: 56px; } .impx.clsx.fit1 .ln { font-size: 16px; } .impx.clsx.fit1 .rank-order > div { padding: 3px 8px; font-size: 14px; }
+.impx.clsx.fit2 .ln + .ln { display: none; } .impx.clsx.fit2 .big { font-size: 44px; } .impx.clsx.fit2 .ttl { font-size: 36px; }
+.impx.clsx.fit3 .kick { display: none; } .impx.clsx.fit3 .big { display: none; }
+.impx.clsx.fit4 s, .impx.clsx.fit4 br { display: none; } .impx.clsx.fit4 .rank-order > div { padding: 1px 6px; font-size: 13px; }
 @media (max-height: 700px) { .impx.clsx { gap: 6px; padding: 18px 16px; } .impx.clsx .big { font-size: 60px; } }
 /* Outils */
 .tools-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -2224,7 +2234,7 @@ function afterRound() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar", "classement"];
+const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar"];
 function header() {
   const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
   return `
@@ -3132,15 +3142,30 @@ function classBest() {
   if (!n) return `<p class="mbest">🏆 Pas une seule question trouvée.</p>`;
   return `<p class="mbest"><span>🏆 Questions trouvées</span><b>${n} sur ${m}</b></p>`;
 }
+// après le classement, on ne change plus la carte
+const noSkip = () => { const k = $("#skip"); if (k) k.replaceWith(Object.assign(document.createElement("span"), { style: "width:44px" })); };
+// tout doit tenir sur un écran : on resserre la carte par paliers tant que ça dépasse
+function clsFit(el) {
+  if (!el) return;
+  const over = () => {
+    const a = $(".actions"), st = el.parentElement;
+    const R = el.getBoundingClientRect(), cut = [...el.querySelectorAll("span, b, p, button")].some(x => x.offsetParent && x.getBoundingClientRect().bottom > R.bottom + 1);
+    return cut || st.scrollHeight > st.clientHeight + 1 || (a && a.getBoundingClientRect().bottom > innerHeight + 1) || document.scrollingElement.scrollHeight > innerHeight + 1;
+  };
+  const an = el.style.animation; el.style.animation = "none"; // l'animation d'entrée fausse les mesures
+  for (let k = 1; k <= 4 && over(); k++) el.classList.add("fit" + k);
+  el.style.animation = an;
+}
 function cClassSolo(c) {
-  if (S.idx === 0) { S.mBag = null; S.mLast = null; S.cHit = 0; S.cN = 0; }
-  const r = mentWho(), q = c.data[1], cap = s => s.charAt(0).toUpperCase() + s.slice(1), order = [];
+  if (S.idx === 0 && !S.changed) { S.mBag = null; S.mLast = null; S.cHit = 0; S.cN = 0; }
+  // « Changer » garde le même joueur, avec une autre question
+  const r = S.cR = S.changed && S.cR ? S.cR : mentWho(), q = c.data[1], cap = s => s.charAt(0).toUpperCase() + s.slice(1), order = [];
   const list = (o, cls) => `<div class="rank-order ${cls || ""}${S.players.length > 5 ? " two" : ""}">${o.map((p, i) => `<div><b>${i + 1}</b><span>${esc(p.name)}</span></div>`).join("")}</div>`;
   view(`${header()}
     <div class="stage"><div class="secret imphold" id="hold">
       <span class="eyebrow" style="color:var(--paper)">Passe le téléphone à</span><span class="mast">${esc(r.name)}</span>
       <p class="imp-cue">Garde le doigt ici pour voir ta question.</p>
-      <div class="imp-face"><span class="eyebrow" style="color:var(--paper)">Classe tout le monde</span><span class="mast imp-w" style="color:var(--yellow)">${esc(cap(q))}</span><p>Toi compris. Les autres devront retrouver la question.</p></div>
+      <div class="imp-face"><span class="eyebrow" style="color:var(--paper)">Classe tout le monde</span><span class="mast imp-w" style="color:var(--yellow);font-size:${q.length > 38 ? "min(7.4vw, 34px)" : q.length > 24 ? "min(8.4vw, 40px)" : ""}">${esc(cap(q))}</span><p>Toi compris. Les autres devront retrouver la question.</p></div>
     </div></div>
     <div class="actions"><button class="btn red" id="pass" disabled>C'est bon, je classe</button></div>`, () => {
     $("#pause").onclick = pauseMenu;
@@ -3149,6 +3174,7 @@ function cClassSolo(c) {
     ["pointerup", "pointercancel", "pointerleave"].forEach(t => h.addEventListener(t, () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); b.disabled = false; }));
     h.addEventListener("contextmenu", e => e.preventDefault());
     b.onclick = rank;
+    $("#skip").onclick = skipCard;
   });
   function rank() {
     view(`${header()}
@@ -3168,6 +3194,7 @@ function cClassSolo(c) {
         $("#redo").style.visibility = order.length ? "" : "hidden";
         $("#lock").disabled = !done;
         $("#lock").textContent = done ? "Montrer aux autres" : `Encore ${S.players.length - order.length} à classer`;
+        clsFit($(".card.clsc"));
       };
       $$(".chip.pick").forEach(b => b.onclick = () => { order.push(S.players[+b.dataset.i]); buzz(10); draw(); });
       $("#redo").onclick = () => { order.length = 0; draw(); };
@@ -3192,6 +3219,7 @@ function cClassSolo(c) {
         $("#lock").disabled = false;
       });
       $("#lock").onclick = () => reveal(opts[pick]);
+      noSkip(); clsFit($(".card.clsc"));
     });
   }
   function reveal(said) {
@@ -3205,7 +3233,7 @@ function cClassSolo(c) {
         <p class="ln" style="font-size:16px;opacity:.85">${rnd(CLASS_RES[ok ? "ok" : "ko"])}</p>
         ${list(order, "mini")}`)}</div>${ok ? `<div class="confetti" id="confetti"></div>` : ""}
       <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
-      bindHeader(); if (ok) party();
+      bindHeader(); noSkip(); clsFit($(".stage .impx")); if (ok) party();
       const fly = swipeNext($(".stage .impx"), null, next);
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
       $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
