@@ -543,9 +543,10 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .radar-hold .dial-box * { pointer-events: none; }
 .card.radc .dial { width: min(100%, 40vh); margin: 0 auto; }
 .card.radc .who { font-size: min(13vw, 64px); overflow-wrap: normal; word-break: normal; hyphens: manual; }
+@media (max-height: 760px) { .impx.radx { gap: 8px; padding: 22px 18px; } .impx.radx .big { font-size: 72px; } .impx.radx .dial-box .dial { width: min(100%, 34vh); } }
 @media (max-height: 700px) { .card.radc .who { font-size: min(11vw, 46px); } .card.radc .sub { font-size: 17px; } .card.radc .dial { width: min(100%, 34vh); } }
 @media (max-height: 620px) { .card.radc::after { flex-basis: 0 !important; } .card.radc .who { font-size: 38px !important; } .card.radc { gap: 8px; } .card.radc .dial { width: min(100%, 26vh); } .card.radc .who small { display: none; } .card.radc .sub { font-size: 15px; line-height: 1.3; } .card.radc .poles { font-size: 14px; margin-top: 4px; } .card.radc .poles span { padding: 4px 9px; }
-  .impx.radx { padding: 20px 18px; gap: 8px; } .impx.radx .big { font-size: 70px; } .impx.radx .dial-box .dial { width: min(100%, 30vh); } }
+  .impx.radx { padding: 18px 16px; gap: 6px; } .impx.radx .big { font-size: 60px; } .impx.radx .ln { font-size: 16px; } .impx.radx .dial-box .dial { width: min(100%, 27vh); } }
 .impx.radx .dial-box { width: 100%; margin: 6px 0 0; } .impx.radx .dial { width: min(100%, 40vh); margin: 0 auto; }
 .impx.radx .poles { font-size: 17px; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .impx.radx .ttl { overflow-wrap: normal; word-break: normal; hyphens: manual; }
@@ -2390,9 +2391,9 @@ function mythoBest() {
 // Le Radar : combien de cibles le groupe a touchées en plein
 function radarBest() {
   if (ON.ctx || S.mode !== "radar") return "";
-  const n = S.rHit || 0;
-  if (!n) return `<p class="mbest">🎯 Pas une seule cible dans le mille.</p>`;
-  return `<p class="mbest"><span>🎯 Dans le mille</span><b>${n} fois</b></p>`;
+  const n = S.rHit || 0, m = S.rMille || 0;
+  if (!n) return `<p class="mbest">🎯 Pas une seule cible touchée.</p>`;
+  return `<p class="mbest"><span>🎯 Cibles touchées</span><b>${n}</b>${m ? `<small>dont ${m} dans le mille</small>` : ""}</p>`;
 }
 function finJamais(n = S.idx) {
   const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
@@ -2984,9 +2985,16 @@ function dialBox(c, opts) {
 }
 // Le Radar seul : un téléphone, sans points. Celui qui a le tel voit la cible au doigt appuyé et donne un indice,
 // le groupe place une seule flèche ensemble, puis grande révélation façon Imposteur ; on compte les cibles en plein.
-const RADAR_RES = [[4, "civ", "🎯", "Dans le mille !"], [10, "vote", "😮", "Pas loin !"], [16, "miss", "🤏", "Presque"], [101, "inf", "🙈", "À côté"]];
+// [écart max, couleur, emoji, titre, petites phrases] : tout ce qui tombe dans la zone colorée compte comme touché
+const RADAR_RES = [
+  [4, "civ", "🎯", "Dans le mille !", ["Vous êtes dans sa tête.", "Pile au centre, chapeau.", "Télépathie, rien à dire."]],
+  [10, "vote", "🔥", "Touché !", ["Pas loin du centre.", "À deux doigts du parfait.", "Bien vu, le groupe."]],
+  [16, "und", "👌", "Ça passe !", ["Dans la zone, de justesse.", "Touché du bout des doigts.", "Ça compte quand même."]],
+  [26, "miss", "🤏", "Raté de peu", ["Juste à côté.", "À un cheveu.", "Si près, si loin."]],
+  [42, "inf", "😬", "Loin du compte", ["Pas la même longueur d'onde.", "Vous l'avez pas suivi du tout.", "C'était l'indice ou vous ?"]],
+  [101, "inf", "🙈", "À l'ouest", ["Complètement à côté.", "Vous parlez pas la même langue.", "Là, c'est un autre cadran."]]];
 function cRadarSolo(c) {
-  if (S.idx === 0) { S.mBag = null; S.mLast = null; S.rHit = 0; }
+  if (S.idx === 0) { S.mBag = null; S.mLast = null; S.rHit = 0; S.rMille = 0; }
   const g = mentWho(), target = 8 + Math.round(Math.random() * 84);
   view(`${header()}
     <div class="stage">${cardShell("radar", { label: "Cible secrète de", name: g.name }, `
@@ -3023,12 +3031,13 @@ function cRadarSolo(c) {
     });
   }
   function reveal() {
-    const d = Math.abs(v - target), [, cls, emo, ttl] = RADAR_RES.find(([w]) => d <= w), hit = cls === "civ";
+    const d = Math.abs(v - target), k = RADAR_RES.findIndex(([w]) => d <= w), [, cls, emo, ttl, lines] = RADAR_RES[k], hit = k <= 2;
     if (hit) S.rHit = (S.rHit || 0) + 1;
+    if (k === 0) S.rMille = (S.rMille || 0) + 1;
     buzz(hit ? [60, 40, 60, 40, 160] : [30, 30, 60]);
     view(`${header()}
       <div class="stage">${impScene(cls + " radx", `<span class="kick">Indice de ${esc(g.name)}</span>
-        <span class="big">${emo}</span><span class="ttl">${ttl}</span>
+        <span class="big">${emo}</span><span class="ttl">${ttl}</span><p class="ln">${rnd(lines)}</p>
         ${dialBox(c, { target, needle: v })}`)}</div>${hit ? `<div class="confetti" id="confetti"></div>` : ""}
       <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
       bindHeader(); if (hit) party();
