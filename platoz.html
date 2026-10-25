@@ -859,6 +859,13 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .impx.clsx .rank-order { margin: 4px 0 0; width: 100%; }
 .impx.clsx .rank-order > div { background: rgba(255,255,255,.08); color: #fff; }
 .impx.clsx s { opacity: .6; font-size: 16px; }
+.clsq { position: relative; margin: 0 22px; padding: 14px 16px; border-radius: 18px; background: #1A0F2E; text-align: center; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; cursor: pointer; box-shadow: inset 0 0 0 2px rgba(255,255,255,.25); }
+.clsq * { pointer-events: none; }
+.clsq b { display: block; font-family: var(--display); font-weight: 900; font-size: min(7vw, 30px); line-height: 1.1; color: var(--yellow); filter: blur(6px); opacity: .75; transition: filter .12s, opacity .12s; overflow-wrap: normal; word-break: normal; }
+.clsq span { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 900; font-size: 16px; color: #fff; text-shadow: 0 1px 6px #1A0F2E, 0 0 14px #1A0F2E; transition: opacity .12s; }
+.clsq.on b { filter: none; opacity: 1; } .clsq.on span { opacity: 0; }
+.card.clsc.fit1 .clsq { padding: 10px 12px; } .card.clsc.fit1 .clsq b { font-size: min(6vw, 24px); }
+.card.clsc.fit3 .clsq b { font-size: 19px; } .card.clsc.fit4 .clsq { padding: 6px 10px; }
 .card.clsc.fit1 { gap: 8px; padding-bottom: 14px; } .card.clsc.fit1 .who { font-size: 30px; } .card.clsc.fit1 .who small { margin-bottom: 4px; } .card.clsc.fit1 .sub { font-size: 15px; line-height: 1.3; }
 .card.clsc.fit1 .rank-order > div { padding: 3px 8px; font-size: 14px; } .card.clsc.fit1 .rank-order b { width: 22px; height: 22px; font-size: 12px; }
 .card.clsc.fit1 .rank-opts .btn { min-height: 44px; font-size: 14px; } .card.clsc.fit1 .chip { padding: 7px 12px; font-size: 15px; min-height: 0; }
@@ -3200,12 +3207,18 @@ function cClassSolo(c) {
   function rank() {
     view(`${header()}
       <div class="stage">${cardShell("classement", { label: "Classement secret de", name: r.name }, `
-        <p class="sub" style="margin:0">${esc(cap(q))}. Touche les prénoms du 1er au dernier.</p>
+        <div class="clsq" id="clsq"><b>${esc(cap(q))}</b><span>👆 Appuie pour voir la question</span></div>
+        <p class="sub" style="margin:0">Touche les prénoms du 1er au dernier.</p>
         <div id="order"></div>
         ${chipsHtml()}
         <p style="text-align:center;margin:0"><button class="linkbtn" id="redo">Recommencer</button></p>`, alt()).replace('class="card ', 'class="card clsc ')}</div>
       <div class="actions"><button class="btn red" id="lock" disabled></button></div>`, () => {
       bindHeader(); clsSkip();
+      // la question reste floutée : nette seulement tant qu'on appuie dessus
+      const qb = $("#clsq");
+      qb.addEventListener("pointerdown", e => { e.preventDefault(); qb.classList.add("on"); buzz(10); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(t => qb.addEventListener(t, () => qb.classList.remove("on")));
+      qb.addEventListener("contextmenu", e => e.preventDefault());
       const draw = () => {
         // le dernier se place tout seul
         if (order.length === S.players.length - 1) order.push(S.players.find(p => !order.includes(p)));
