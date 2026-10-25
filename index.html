@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="0bca9aac35fd">
+<meta name="build" content="367780cab548">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1120,6 +1120,8 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .tb-minus { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); font-size: 22px; color: #FF5A82; white-space: nowrap; pointer-events: none; animation: tbMinus 1s ease-out forwards; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
 @keyframes tbMinus { 0% { opacity: 0; transform: translate(-50%, -6px) scale(.8); } 20% { opacity: 1; transform: translate(-50%, 4px) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, 26px) scale(1); } }
 .tb-play .band .mast { max-width: 100%; overflow: hidden; }
+.stage > .card.tb-play { animation: tbIn .16s ease-out both; }
+@keyframes tbIn { from { transform: translateY(14px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
 .tb-play .tb-word { font-size: clamp(38px, 13vw, 58px); margin: 0 16px; }
 .tb-play .tb-forbid { flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 0 14px; padding: 12px 10px; background: rgba(10,4,30,.55); }
 .tb-play .tb-forbid small { flex-basis: auto; font-size: 13px; opacity: 1; color: #FFC2D3; }
@@ -4002,11 +4004,14 @@ const tbAnd = l => l.length > 1 ? l.slice(0, -1).join(", ") + " et " + l[l.lengt
 const tbTime = s => s < 60 ? `${s} s` : `${Math.floor(s / 60)} min${s % 60 ? " " + String(s % 60).padStart(2, "0") : ""}`;
 function tabooSetup() {
   if (!TB.teams[0].length || TB.teams.flat().length !== S.names.length || TB.teams.flat().some(n => !S.names.includes(n))) tabooSplit();
+  // si l'écart devient trop grand (à 4 joueurs, toujours), le premier joueur de l'autre équipe fait l'échange
   const move = (n, from, to) => {
-    if (TB.teams[from].length <= 2) { toast("Il faut au moins 2 joueurs par équipe."); return draw(); }
-    TB.teams[from] = TB.teams[from].filter(x => x !== n); TB.teams[to].push(n); buzz(10); draw();
+    TB.teams[from] = TB.teams[from].filter(x => x !== n); TB.teams[to].push(n);
+    if (TB.teams[to].length - TB.teams[from].length > 1 || TB.teams[from].length < 2) TB.teams[from].push(TB.teams[to].shift());
+    buzz(10); draw(true);
   };
-  const draw = () => {
+  const draw = anim => {
+    const old = {}; if (anim) $$("#teams .tb-name").forEach(b => { old[b.dataset.n] = b.getBoundingClientRect(); });
     $("#teams").innerHTML = TB.teams.map((t, i) => `<div class="tb-team" data-t="${i}" style="--tc:${TB_COLS[i]}">
       <label class="tb-thead"><input class="tb-tname" data-t="${i}" value="${esc(tbName(i))}" maxlength="18" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Nom de l'équipe"></label>
       <div class="tb-names">${t.map(n => `<button class="tb-name" data-n="${esc(n)}">${esc(n)}</button>`).join("")}</div></div>`).join("");
@@ -4015,13 +4020,19 @@ function tabooSetup() {
       f.onblur = () => { f.value = tbName(+f.dataset.t); };
       f.onkeydown = e => { if (e.key === "Enter") f.blur(); };
     });
-    $$("#teams .tb-name").forEach(b => tbDrag(b, move));
+    $$("#teams .tb-name").forEach(b => {
+      tbDrag(b, move);
+      const o = old[b.dataset.n]; if (!o) return;
+      const r = b.getBoundingClientRect(), dx = o.left - r.left, dy = o.top - r.top; if (!dx && !dy) return;
+      b.style.transition = "none"; b.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => requestAnimationFrame(() => { b.style.transition = "transform .28s cubic-bezier(.2,.9,.3,1)"; b.style.transform = ""; }));
+    });
     $("#tsec").textContent = tbTime(TB.secs);
     $("#tm").disabled = TB.secs <= 15; $("#tp").disabled = TB.secs >= 300;
   };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Sans le dire</span><span style="width:44px"></span></div>
-    <p class="hint muted" style="text-align:center;margin:0">Fais glisser un prénom pour le changer d'équipe. Touche le nom d'une équipe pour le changer.</p>
+    <p class="hint muted" style="text-align:center;margin:0">Fais glisser ou touche un prénom pour le changer d'équipe. Touche le nom d'une équipe pour le changer.</p>
     <div id="teams" class="tb-teams"></div>
     <p style="text-align:center;margin:0"><button class="linkbtn" id="mix">Refaire les équipes au hasard</button></p>
     <div class="section-label">Chrono</div>
@@ -4042,13 +4053,13 @@ function tbDrag(b, move) {
   const n = b.dataset.n, from = () => TB.teams[0].includes(n) ? 0 : 1;
   const at = (x, y) => $$("#teams .tb-team").findIndex(t => { const r = t.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; });
   let x0 = null, y0 = 0, drag = false, pid = null;
-  const reset = () => { x0 = null; drag = false; b.classList.remove("drag"); b.style.transform = ""; $$("#teams .tb-team").forEach(t => t.classList.remove("drop")); };
+  const reset = () => { x0 = null; drag = false; b.classList.remove("drag"); $$("#teams .tb-team").forEach(t => t.classList.remove("drop")); };
   b.addEventListener("pointerdown", e => { x0 = e.clientX; y0 = e.clientY; drag = false; pid = e.pointerId; try { b.setPointerCapture(pid); } catch (er) {} });
   b.addEventListener("pointermove", e => {
     if (x0 === null || e.pointerId !== pid) return;
     const dx = e.clientX - x0, dy = e.clientY - y0;
     if (!drag && Math.hypot(dx, dy) < 8) return;
-    drag = true; b.classList.add("drag"); b.style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
+    drag = true; b.classList.add("drag"); b.style.transition = "none"; b.style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
     const o = at(e.clientX, e.clientY);
     $$("#teams .tb-team").forEach((t, i) => t.classList.toggle("drop", i === o && o !== from()));
   });
@@ -4057,6 +4068,7 @@ function tbDrag(b, move) {
     const was = drag, f = from(), to = was ? at(e.clientX, e.clientY) : 1 - f;
     reset();
     if (to >= 0 && to !== f) move(n, f, to);
+    else { b.style.transition = "transform .2s ease-out"; b.style.transform = ""; } // lâché dans sa propre équipe : il revient à sa place
   });
   b.addEventListener("pointercancel", reset);
 }
@@ -4074,7 +4086,7 @@ function tabooTurn() {
     <div class="actions"><button class="btn red" id="go">Lancer le chrono (${tbTime(TB.secs)})</button></div>
   `, () => { bindQuit(); tbFit(); $("#go").onclick = () => tabooPlay(t, g); });
 }
-// pendant le chrono : swipe à droite = trouvé, à gauche = passé (−5 s) ; « Interdit » = −1 point, on garde la même carte
+// pendant le chrono : swipe à droite = trouvé, à gauche = passé (−5 s) ; « Interdit » = −1 point et carte suivante
 function tabooPlay(t, g) {
   let left = TB.secs, c = tbCard(), over = false, fouls = 0, fly = () => {};
   const log = [];
@@ -4114,16 +4126,48 @@ function tabooPlay(t, g) {
         <div class="tb-forbid"><small>Interdit de dire</small>${d.slice(2).map(w => `<span>${esc(w)}</span>`).join("")}</div>
       </div>`;
       const el = $("#tbc");
-      fly = swipeCard(el, v => act(v === "oui" ? "ok" : "pass", id));
-      el.querySelector(".swipe-tag.oui").textContent = "TROUVÉ"; el.querySelector(".swipe-tag.non").textContent = "PASSE";
+      fly = tbSwipe(el, v => act(v === "oui" ? "ok" : "pass", id));
       tbFitWord(el); pts();
     };
     $("#ok").onclick = () => fly("oui"); $("#pass").onclick = () => fly("non");
-    $("#no").onclick = () => { if (over) return; fouls++; buzz([80, 40, 80]); stamp("Interdit", "tbq"); pts(); };
+    $("#no").onclick = () => { if (over) return; fouls++; buzz([80, 40, 80]); stamp("Interdit", "tbq"); c = tbCard(); show(); };
     show(); tbFit();
     const tick = setInterval(() => { if (!$("#timer")) return clearInterval(tick); tickTo(left - 1); if (left <= 10 && left > 0) buzz(8); }, 1000);
     timers.push(tick);
   });
+}
+// comme swipeCard, en plus rapide : pendant le chrono chaque seconde compte
+function tbSwipe(el, onPick) {
+  el.classList.add("swipe");
+  el.insertAdjacentHTML("beforeend", `<span class="swipe-tag oui" aria-hidden="true">TROUVÉ</span><span class="swipe-tag non" aria-hidden="true">PASSE</span>`);
+  const tOui = el.querySelector(".swipe-tag.oui"), tNon = el.querySelector(".swipe-tag.non");
+  let x0 = null, y0 = 0, dx = 0, done = false, pid = null, pts = [];
+  const set = (d, anim) => {
+    el.style.animation = "none"; el.style.transition = anim ? "transform .16s ease-out" : "none";
+    el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
+    tOui.style.opacity = Math.max(0, Math.min(1, d / 70)); tNon.style.opacity = Math.max(0, Math.min(1, -d / 70));
+  };
+  const fly = v => {
+    if (done) return; done = true; buzz(12);
+    const d = (v === "oui" ? 1 : -1) * (innerWidth + 200);
+    (v === "oui" ? tOui : tNon).style.opacity = 1;
+    el.style.animation = "none"; el.style.transition = "transform .15s ease-in"; el.style.transform = `translateX(${d}px) rotate(${d / 18}deg)`;
+    setTimeout(() => onPick(v), 120);
+  };
+  el.addEventListener("pointerdown", e => { if (done) return; x0 = e.clientX; y0 = e.clientY; dx = 0; pid = e.pointerId; pts = [[e.clientX, e.timeStamp]]; });
+  el.addEventListener("pointermove", e => {
+    if (x0 === null || e.pointerId !== pid) return;
+    dx = e.clientX - x0; pts.push([e.clientX, e.timeStamp]); if (pts.length > 6) pts.shift();
+    if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(e.clientY - y0)) { try { el.setPointerCapture(pid); } catch (er) {} }
+    set(dx);
+  });
+  const end = () => {
+    if (x0 === null) return; x0 = null;
+    const [a, b] = [pts[0], pts[pts.length - 1]], v = b[1] > a[1] ? (b[0] - a[0]) / (b[1] - a[1]) : 0; // un petit coup sec suffit
+    if (Math.abs(dx) > 70 || (Math.abs(v) > .35 && Math.abs(dx) > 20)) fly((Math.abs(v) > .35 ? v : dx) > 0 ? "oui" : "non"); else set(0, true);
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  return fly;
 }
 // un mot long ne se coupe jamais : on réduit la taille jusqu'à ce qu'il tienne sur la largeur
 function tbFitWord(card) {
