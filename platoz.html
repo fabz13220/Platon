@@ -1243,6 +1243,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .jstack::before, .jstack::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: -7px; height: 40px; border-radius: 0 0 var(--r-xl) var(--r-xl); background: rgba(255,255,255,.13); z-index: -1; pointer-events: none; }
 .jstack::after { left: 28px; right: 28px; bottom: -13px; background: rgba(255,255,255,.07); z-index: -2; }
 .jstack > .card.top { z-index: 1; }
+/* la carte du dessus est déjà sur sa propre couche : le premier geste et « Suivante » partent sans à-coup */
+.jstack > .card.top.swipe { will-change: transform; }
+/* le symbole néon (deux drop-shadow) sur sa propre couche : il coûtait la moitié du dessin de chaque nouvelle carte */
+.jstack > .card::before { will-change: transform; }
+.jstack > .card.under > .under-shade { position: absolute; inset: 0; z-index: 9; border-radius: inherit; background: #000; opacity: .38; pointer-events: none; will-change: opacity; }
 .card .qcount { margin: 4px auto 0; min-width: 120px; padding: 10px 22px; border-radius: 99px; border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: var(--paper); font: 900 18px Nunito, sans-serif; letter-spacing: .04em; cursor: pointer; transition: transform .15s; }
 /* Qui pourrait : carte duel, deux prénoms au-dessus de la question */
 .card .qduel { margin: 0 22px; align-self: flex-start; max-width: calc(100% - 44px); padding: 8px 16px 9px; border-radius: 18px; background: #fff; color: #EE1F66; font: 900 22px/1.15 var(--display), sans-serif; box-shadow: 0 10px 24px -12px rgba(30,0,60,.6); }
@@ -2598,10 +2603,14 @@ function swipeNext(el, under, onNext) {
   if (!el) return () => {};
   el.classList.add("swipe");
   let x0 = null, y0 = 0, dx = 0, done = false, pid = null, pts = [];
+  // la carte du dessous est assombrie par un voile dont on change l'opacité : animer filter: brightness()
+  // redessinait toute la carte (et ses grandes ombres) à chaque image, ce qui saccadait sur iPhone
+  const shade = under && document.createElement("i");
+  if (shade) { shade.className = "under-shade"; under.appendChild(shade); under.style.filter = "none"; }
   const lift = (k, anim) => { // k : 0 = carte du dessous en attente, 1 = à sa place
-    if (!under) return;
-    under.style.transition = anim ? "transform .24s ease-out, filter .24s ease-out" : "none";
-    under.style.filter = `brightness(${.62 + .38 * k})`;
+    if (!shade) return;
+    shade.style.transition = anim ? "opacity .24s ease-out" : "none";
+    shade.style.opacity = .38 * (1 - k);
   };
   const set = (d, anim) => {
     el.style.transition = anim ? "transform .24s cubic-bezier(.2,.9,.3,1.2)" : "none";
