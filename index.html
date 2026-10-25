@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="41335206cf6d">
+<meta name="build" content="66a55e25bc8a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -346,7 +346,8 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .pur-row i { height: 12px; border-radius: 999px; background: rgba(255,255,255,.16); overflow: hidden; }
 .pur-row u { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #FF3B6E, #FFB23A); box-shadow: 0 0 12px rgba(255,90,120,.6); }
 .pur-row b { text-align: right; font-variant-numeric: tabular-nums; }
-.pur-tap { text-align: center; margin: 0; }
+.pur-how span { white-space: nowrap; }
+.pur-how { margin: 0; text-align: center; font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7); }
 .sheet .pur-bars, .sheet .pur-def { color: inherit; }
 @media (max-height: 700px) { .sheet .mbest { padding: 6px 18px; margin-top: 0; } .sheet .mbest b { font-size: 28px; } .sheet .pur-bars { gap: 4px 10px; } .sheet .pur-def b { font-size: 20px; } .pur-fin .pur-bars { gap: 5px 10px; } }
 @media (max-height: 600px) { .sheet .pur-def b { display: inline; font-size: 17px; } .sheet > .mast { font-size: 24px !important; } .sheet .mbest { gap: 0; } .sheet .mbest b { font-size: 24px; } .sheet .pur-row > * { font-size: 14px; } }
@@ -2167,6 +2168,7 @@ function playersScreen() {
   };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Qui joue ?</span><span style="width:44px"></span></div>
+    ${S.mode === "test" ? purWho(true) : ""}
     <div class="field"><input id="name-input" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom du joueur"><button class="btn" type="button" id="add">Ajouter</button></div>
     <div class="chips" id="chips"></div>
     <div id="bubbles"></div>
@@ -2174,7 +2176,7 @@ function playersScreen() {
     ${tutoLink()}
     <div class="actions"><button class="btn red" id="next"></button></div>
   `, () => {
-    $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg();
+    $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg(); bindPurWho();
     // pas de <form> : le cadre de l'artifact bloque l'envoi des formulaires
     const add = () => {
       const v = $("#name-input").value.trim().replace(/\s+/g, " ");
@@ -4518,7 +4520,7 @@ const TUTO = {
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
-  test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton % de pureté, thème par thème. À plusieurs, chacun son tour et on compare.",
+  test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton % de pureté, thème par thème : 100 %, t'as jamais rien fait, 0 %, t'as tout fait. À plusieurs, chacun son tour et on compare.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
 };
 const tutoSession = new Set();
@@ -4803,7 +4805,7 @@ const DEUX = [
   [2,"lâcherait l'autre pour 10 000 €"],[2,"a le plus honteux historique de recherche"],
   [3,"a le plus de body count"],[3,"enverrait une photo osée en premier"],[3,"est le plus bruyant au lit"],[3,"a déjà pensé à quelqu'un d'autre au lit"]
 ];
-// Test de pureté : un thème = [clé, emoji, nom, ce qui te définit quand c'est ton pire thème, questions]
+// Test de pureté : un thème = [clé, emoji, nom, ce qui te définit quand c'est ton pire thème, 20 questions]
 const PUR = [
   ["alcool", "🍻", "Alcool", "Pilier de bar", [
     "T'as déjà vomi à cause de l'alcool ?",
@@ -4815,7 +4817,17 @@ const PUR = [
     "T'as déjà dormi par terre après une soirée ?",
     "T'as déjà menti à tes parents pour cacher que t'avais bu ?",
     "T'as déjà appelé quelqu'un à 4 h du mat après avoir trop bu ?",
-    "T'as déjà bu un verre que t'avais trouvé posé quelque part ?"
+    "T'as déjà bu un verre que t'avais trouvé posé quelque part ?",
+    "T'as déjà fait un apéro qui a fini à 6 h du mat ?",
+    "T'as déjà vomi dans un taxi ou une voiture ?",
+    "T'as déjà perdu ton téléphone en soirée ?",
+    "T'as déjà dormi dans les toilettes d'une soirée ?",
+    "T'as déjà fait une déclaration d'amour après avoir trop bu ?",
+    "T'as déjà bu de l'alcool en cachette au lycée ?",
+    "T'as déjà raté un rendez-vous à cause de la gueule de bois ?",
+    "T'as déjà bu un mélange douteux préparé par un pote ?",
+    "T'as déjà repris un verre le lendemain pour faire passer la gueule de bois ?",
+    "T'as déjà fini à l'hôpital à cause de l'alcool ?"
   ]],
   ["drogue", "🌿", "Drogue", "Tête dans les nuages", [
     "T'as déjà fumé un joint ?",
@@ -4827,7 +4839,17 @@ const PUR = [
     "T'as déjà caché de la drogue chez tes parents ?",
     "T'as déjà eu un fou rire de deux heures après avoir fumé ?",
     "T'as déjà vidé un frigo en pleine nuit après avoir fumé ?",
-    "T'as déjà goûté à autre chose que du cannabis ?"
+    "T'as déjà goûté à autre chose que du cannabis ?",
+    "T'as déjà roulé un joint ?",
+    "T'as déjà fumé avec quelqu'un que tu connaissais pas ?",
+    "T'as déjà caché une odeur de fumée avant de rentrer chez toi ?",
+    "T'as déjà dépensé plus de 50 € en drogue en une soirée ?",
+    "T'as déjà fumé tous les jours pendant un mois ?",
+    "T'as déjà fait une crise de parano après avoir fumé ?",
+    "T'as déjà pris des champignons ?",
+    "T'as déjà vendu un peu de drogue à un pote ?",
+    "T'as déjà mangé un truc sans savoir qu'il y avait de la drogue dedans ?",
+    "T'as déjà fumé un joint dans un lieu public ?"
   ]],
   ["sexe", "🔥", "Sexe", "Insatiable", [
     "T'as déjà couché le premier soir ?",
@@ -4839,7 +4861,17 @@ const PUR = [
     "T'as déjà fait l'amour chez tes parents ?",
     "T'as déjà couché avec quelqu'un sans connaître son prénom ?",
     "T'as déjà couché avec un pote ?",
-    "T'as déjà fait l'amour dans une voiture ?"
+    "T'as déjà fait l'amour dans une voiture ?",
+    "T'as déjà fait l'amour dans la nature ?",
+    "T'as déjà couché avec quelqu'un rencontré sur une appli le jour même ?",
+    "T'as déjà fait l'amour au boulot ou à l'école ?",
+    "T'as déjà eu un coup d'un soir en vacances ?",
+    "T'as déjà fait une sextape ?",
+    "T'as déjà acheté un sextoy ?",
+    "T'as déjà fait l'amour plus de trois fois dans la même nuit ?",
+    "T'as déjà couché avec deux personnes dans la même semaine ?",
+    "Quelqu'un est déjà entré pendant que tu faisais l'amour ?",
+    "T'as déjà fait l'amour dans des toilettes ou une cabine d'essayage ?"
   ]],
   ["amour", "💔", "Amour", "Bourreau des cœurs", [
     "T'as déjà trompé quelqu'un ?",
@@ -4851,7 +4883,17 @@ const PUR = [
     "T'as déjà craqué pour le copain ou la copine d'un pote ?",
     "T'as déjà eu deux histoires en même temps ?",
     "T'as déjà embrassé deux personnes dans la même soirée ?",
-    "T'as déjà embrassé quelqu'un sans connaître son prénom ?"
+    "T'as déjà embrassé quelqu'un sans connaître son prénom ?",
+    "T'as déjà dragué quelqu'un juste pour rendre ton ex jaloux ?",
+    "T'as déjà embrassé l'ex d'un pote ?",
+    "T'as déjà fouillé le téléphone de ton copain ou de ta copine ?",
+    "T'as déjà dit que t'étais célibataire alors que t'étais en couple ?",
+    "T'as déjà largué quelqu'un pour quelqu'un d'autre ?",
+    "T'as déjà eu une histoire avec un collègue ?",
+    "T'as déjà menti sur ton nombre d'ex ?",
+    "T'as déjà gardé quelqu'un sous le coude au cas où ?",
+    "T'as déjà espionné le nouveau copain ou la nouvelle copine de ton ex ?",
+    "T'as déjà eu une histoire avec quelqu'un de beaucoup plus âgé ?"
   ]],
   ["hygiene", "🧼", "Hygiène", "Allergique au savon", [
     "T'as déjà mangé un truc tombé par terre ?",
@@ -4863,7 +4905,17 @@ const PUR = [
     "T'as déjà dormi avec tes chaussures ?",
     "T'as déjà mangé un truc périmé depuis plus d'une semaine ?",
     "T'as déjà fait pipi sous la douche ?",
-    "T'as déjà gardé les mêmes draps plus d'un mois ?"
+    "T'as déjà gardé les mêmes draps plus d'un mois ?",
+    "T'as déjà gardé la même serviette de bain plus de deux semaines ?",
+    "T'as déjà mis du déo à la place d'une douche ?",
+    "T'as déjà oublié de tirer la chasse chez quelqu'un ?",
+    "T'as déjà mangé dans une assiette pas lavée ?",
+    "T'as déjà mangé tes crottes de nez ?",
+    "T'as déjà utilisé la brosse à dents de quelqu'un ?",
+    "T'as déjà laissé de la vaisselle sale plus d'une semaine ?",
+    "T'as déjà porté le même jean un mois sans le laver ?",
+    "T'as déjà fait pipi dehors en pleine ville ?",
+    "T'as déjà oublié de te laver les mains en sortant des toilettes ?"
   ]],
   ["interdit", "🚨", "Interdit", "Hors-la-loi", [
     "T'as déjà volé un truc dans un magasin ?",
@@ -4875,7 +4927,17 @@ const PUR = [
     "T'as déjà fait le mur ?",
     "T'as déjà gardé la monnaie qu'on t'avait rendue en trop ?",
     "T'as déjà menti sur ton âge pour entrer quelque part ?",
-    "T'as déjà doublé toute une file d'attente l'air de rien ?"
+    "T'as déjà doublé toute une file d'attente l'air de rien ?",
+    "T'as déjà utilisé le compte Netflix de quelqu'un sans lui dire ?",
+    "T'as déjà imité la signature de tes parents ?",
+    "T'as déjà escaladé une grille pour entrer quelque part ?",
+    "T'as déjà piqué un verre dans un bar ?",
+    "T'as déjà menti à la police ?",
+    "T'as déjà séché les cours toute une semaine ?",
+    "T'as déjà téléchargé des films illégalement ?",
+    "T'as déjà pris un truc au boulot sans rien dire ?",
+    "T'as déjà roulé beaucoup trop vite ?",
+    "T'as déjà fait une soirée chez quelqu'un sans que le proprio le sache ?"
   ]],
   ["honte", "🙈", "La honte", "Pro de la honte", [
     "Tu t'es déjà fait refouler d'une boîte ?",
@@ -4887,7 +4949,17 @@ const PUR = [
     "T'as déjà fait coucou à quelqu'un qui saluait quelqu'un d'autre ?",
     "T'as déjà chanté si fort que les voisins sont venus taper ?",
     "T'as déjà eu un crush sur un prof ?",
-    "T'as déjà répondu « toi aussi » au serveur qui te souhaitait bon appétit ?"
+    "T'as déjà répondu « toi aussi » au serveur qui te souhaitait bon appétit ?",
+    "T'as déjà appelé un prof « maman » ou « papa » ?",
+    "T'as déjà raté un bisou ou un check ?",
+    "T'as déjà eu un fou rire à un enterrement ?",
+    "T'as déjà liké une vieille photo de quelqu'un sans faire exprès ?",
+    "T'as déjà passé toute une journée la braguette ouverte ?",
+    "T'as déjà lâché un pet devant plein de monde ?",
+    "T'as déjà dit « je t'aime » par erreur en raccrochant ?",
+    "T'as déjà chanté faux au karaoké devant des inconnus ?",
+    "Quelqu'un t'a déjà vu danser devant ton miroir ?",
+    "T'as déjà dit le mauvais prénom à quelqu'un que tu connais bien ?"
   ]],
   ["mytho", "🤥", "Mensonges", "Mytho de compétition", [
     "T'as déjà menti sur ton CV ?",
@@ -4899,7 +4971,17 @@ const PUR = [
     "T'as déjà fait semblant d'aimer un cadeau ?",
     "T'as déjà accusé quelqu'un d'autre d'un truc que t'avais fait ?",
     "T'as déjà répété un secret qu'on t'avait confié ?",
-    "T'as déjà dit du mal d'un pote dans son dos ?"
+    "T'as déjà dit du mal d'un pote dans son dos ?",
+    "T'as déjà menti sur ta taille ou ton poids ?",
+    "T'as déjà menti sur ton salaire ?",
+    "T'as déjà fait semblant de connaître une chanson pour suivre la conversation ?",
+    "T'as déjà menti sur l'endroit où t'étais ?",
+    "T'as déjà dit que t'avais plus de batterie pour couper court ?",
+    "T'as déjà inventé un drame pour sécher le boulot ?",
+    "T'as déjà raconté une histoire en l'exagérant beaucoup ?",
+    "T'as déjà menti à tes parents sur tes notes ?",
+    "T'as déjà fait semblant d'écouter quelqu'un pendant tout un repas ?",
+    "T'as déjà dit que t'avais pas vu un message alors que si ?"
   ]]
 ];
 
@@ -5159,21 +5241,30 @@ function testIntro() {
   purThemes(1); // seul de base, quel que soit le nombre de joueurs ; « À plusieurs » passe par l'écran des joueurs
 }
 function testStart() { purThemes(S.names.length); }
+// Seul / À plusieurs : sur l'écran des thèmes et sur celui des joueurs, on passe de l'un à l'autre quand on veut
+const purWho = many => `<div class="seg" id="pur-who"><button data-v="1" aria-pressed="${!many}">Seul</button><button data-v="2" aria-pressed="${many}">À plusieurs</button></div>`;
+const bindPurWho = () => $$("#pur-who button").forEach(b => b.onclick = () => {
+  if (b.getAttribute("aria-pressed") === "true") return;
+  buzz(10); if (b.dataset.v === "1") purThemes(1); else { S.mode = "test"; playersScreen(); }
+});
 // thèmes cochés de base, on décoche ce qu'on veut pas
 function purThemes(n) {
-  const on = new Set(purOn().map(t => t[0])), per = n > 1 ? 5 : 10;
+  const on = new Set(purOn().map(t => t[0])), key = n > 1 ? "purPerN" : "purPer1";
+  let per = store.get(key, n > 1 ? 5 : 10);
   const count = () => { const k = PUR.filter(t => on.has(t[0])).length * per; $("#go").disabled = !k; $("#go").innerHTML = k ? `C'est parti <small>${k} questions${n > 1 ? " chacun" : ""}</small>` : "Coche au moins un thème"; };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Test de pureté</span><span style="width:44px"></span></div>
-    <div class="seg" id="pur-who"><button data-v="1" aria-pressed="${n === 1}">Seul</button><button data-v="2" aria-pressed="${n > 1}">À plusieurs</button></div>
+    ${purWho(n > 1)}
     <div class="section-label">Décoche ce que tu veux pas</div>
     <div class="chips pur-themes">${PUR.map(t => `<button class="chip pick" data-k="${t[0]}" aria-pressed="${on.has(t[0])}">${t[1]} ${esc(t[2])}</button>`).join("")}</div>
-    <p class="hint muted" style="text-align:center;margin:0">Droite pour oui, gauche pour non. Personne voit tes réponses.</p>
+    <div class="section-label">Questions par thème <small>plus il y en a, plus c'est précis</small></div>
+    <div class="seg" id="pur-per">${[[5, "Rapide"], [10, "Normal"], [20, "Complet"]].map(([v, l]) => `<button data-v="${v}" aria-pressed="${v === per}">${l} · ${v}</button>`).join("")}</div>
     ${tutoLink()}
     <div class="actions"><button class="btn red" id="go"></button></div>
   `, () => {
     $("#back").onclick = n > 1 ? playersScreen : home; bindTutoLink("test");
-    $$("#pur-who button").forEach(b => b.onclick = () => { buzz(10); if (b.dataset.v === "1") { if (n > 1) purThemes(1); } else if (n === 1) { S.mode = "test"; playersScreen(); } });
+    bindPurWho();
+    $$("#pur-per button").forEach(b => b.onclick = () => { per = +b.dataset.v; store.set(key, per); buzz(10); $$("#pur-per button").forEach(x => x.setAttribute("aria-pressed", x === b)); count(); });
     $$(".pur-themes .chip").forEach(b => b.onclick = () => {
       const k = b.dataset.k; on.has(k) ? on.delete(k) : on.add(k); b.setAttribute("aria-pressed", on.has(k)); buzz(10);
       store.set("purThemes", [...on]); count();
@@ -5260,6 +5351,7 @@ function purScore(p, qs) {
 const purDetail = R => `
   <p class="mbest"><span>${R.pct >= 50 ? "😇" : "😈"} Pur à</span><b>${R.pct} %</b><small>${purTitle(R.pct)}</small></p>
   <p class="pur-def">${R.def ? `Ce qui te définit : <b>${R.def[1]} ${esc(R.def[3])}</b>` : "Rien ne te définit. Louche."}</p>
+  <p class="pur-how"><span>100 % = t'as jamais rien fait</span> · <span>0 % = t'as tout fait</span></p>
   <div class="pur-bars">${R.th.map(x => `<div class="pur-row"><span>${x.t[1]} ${esc(x.t[2])}</span><i><u style="width:${Math.max(x.pct, 2)}%"></u></i><b>${x.pct} %</b></div>`).join("")}</div>`;
 function testEnd(P, qs) {
   stat("end", "test", P.length, "un");
