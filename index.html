@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="7d92445e2421">
+<meta name="build" content="2e1db18f12d1">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -327,6 +327,28 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .mbest span { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .mbest b { font-family: var(--display); font-size: min(9vw, 36px); line-height: 1.1; color: #FF6A90; text-shadow: 0 0 24px rgba(255,59,110,.6); }
 .mbest small { font-size: 13px; opacity: .7; }
+/* Test de pureté */
+.pur-themes { justify-content: center; }
+.pur-themes .chip.pick { padding: 10px 16px; min-height: 48px; font-size: 17px; }
+.card .pur-th { margin: 0 22px; font-weight: 800; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.card .tlean { position: absolute; top: 76px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 5; }
+.card .tlean b { font-family: var(--display); font-size: 30px; padding: 2px 14px; border: 4px solid currentColor; border-radius: 14px; text-transform: uppercase; opacity: 0; transition: opacity .12s; background: rgba(0,0,0,.18); }
+.card .tlean .ty { color: #6DFFB0; transform: rotate(-12deg); }
+.card .tlean .tn { color: #fff; transform: rotate(12deg); order: 2; }
+.card[data-lean="y"] .tlean .ty, .card[data-lean="n"] .tlean .tn { opacity: 1; }
+.pur-def { margin: 0; text-align: center; color: #fff; font-size: 16px; }
+.pur-def b { display: block; font-family: var(--display); font-size: min(6.4vw, 24px); margin-top: 2px; }
+.pur-bars { display: grid; grid-template-columns: max-content 1fr auto; align-items: center; gap: 7px 10px; width: 100%; max-width: 420px; margin: 0 auto; }
+.pur-row { display: contents; color: #fff; font-weight: 800; font-size: 15px; }
+.pur-row > * { color: #fff; font-weight: 800; font-size: 15px; }
+.pur-row span { white-space: nowrap; }
+.pur-row i { height: 12px; border-radius: 999px; background: rgba(255,255,255,.16); overflow: hidden; }
+.pur-row u { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #FF3B6E, #FFB23A); box-shadow: 0 0 12px rgba(255,90,120,.6); }
+.pur-row b { text-align: right; font-variant-numeric: tabular-nums; }
+.pur-tap { text-align: center; margin: 0; }
+.sheet .pur-bars, .sheet .pur-def { color: inherit; }
+@media (max-height: 700px) { .sheet .mbest { padding: 6px 18px; margin-top: 0; } .sheet .mbest b { font-size: 28px; } .sheet .pur-bars { gap: 4px 10px; } .sheet .pur-def b { font-size: 20px; } .pur-fin .pur-bars { gap: 5px 10px; } }
+@media (max-height: 600px) { .sheet .pur-def b { display: inline; font-size: 17px; } .sheet > .mast { font-size: 24px !important; } .sheet .mbest { gap: 0; } .sheet .mbest b { font-size: 24px; } .sheet .pur-row > * { font-size: 14px; } }
 .fin-jamais .bubble { font-size: 18px; min-width: 100px; min-height: 100px;
   background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.75), rgba(190,140,255,.45) 36%, rgba(140,70,255,.9) 100%);
   box-shadow: 0 14px 34px -8px rgba(166,107,255,.95), 0 0 30px -4px rgba(166,107,255,.75), inset 0 -6px 14px rgba(255,59,122,.35), inset 0 2px 0 rgba(255,255,255,.5); }
@@ -1864,7 +1886,7 @@ const TYPES = {
   menteur:   { label: "Le Menteur", color: "var(--blue)", dark: true, desc: "Vrai ou mytho ?" },
   deux:      { label: "Qui de nous deux", color: "var(--violet)", dark: true, desc: "" },
   reflexe:   { label: "Duel réflexe", color: "var(--blue)", dark: true, desc: "" },
-  test:      { label: "Test de scandale", color: "var(--red)", dark: true, desc: "" }
+  test:      { label: "Test de pureté", color: "var(--red)", dark: true, desc: "" }
 };
 const LEVELS = [
   { n: 1, name: "Chill", desc: "Tranquille, même avec ta daronne." },
@@ -2026,8 +2048,8 @@ function home() {
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
-  const maxOf = t => ({ p4: 2, deux: 16, test: 1, uno: 10 })[t] || 16;
-  const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de scandale", "T'es grave à quel point ?"] };
+  const maxOf = t => ({ p4: 2, deux: 16, uno: 10 })[t] || 16;
+  const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
   const rail = (title, list, id, on) => (list = on ? list.filter(t => !ONE_PHONE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
@@ -2041,12 +2063,12 @@ function home() {
       ${rail("Votes et devinettes", ["classement", "radar"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
-      ${rail("Duels", ["reflexe", "test"], "", true)}
+      ${rail("Duels", ["reflexe"], "", true)}
       ${multiHome()}` : `
       ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
       ${rail("En équipes", fit(["taboo", "imposteur", "menteur"])).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
-      ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe"], "row-societe") : ""}
+      ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe", "test"], "row-societe") : ""}
       ${n === 1 ? rail("En solo", fit(["reflexe", "test"])) : ""}
       ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
@@ -2131,7 +2153,7 @@ function ideaSheet() {
 }
 
 /* -------- JOUEURS -------- */
-function minPlayers() { if (S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
+function minPlayers() { if (S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe" || S.mode === "test") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
 function playersScreen() {
   const min = minPlayers();
   const draw = () => {
@@ -2386,6 +2408,7 @@ function popGroup(b, g, draw) {
 /* -------- AMBIANCE -------- */
 function ambiance() {
   if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
+  if (S.mode === "test") return testStart(); // Test de pureté : les thèmes remplacent l'intensité
   if (S.mode === "reflexe") return reflexStart(); // Duel réflexe : rien à régler à part les pièges, déjà sur l'écran des joueurs
   if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ni de réglage ex et sexe, tous les mots
   const draw = () => {
@@ -2485,7 +2508,7 @@ function wheel(auto) {
 }
 // roue du mode 1 joueur : deux parts, résultat tiré au sort
 function soloWheel() {
-  const games = [{ name: "Duel réflexe", col: "#FF3B6E", run: reflexSolo }, { name: "Test de scandale", col: "#4D8BFF", run: testIntro }];
+  const games = [{ name: "Duel réflexe", col: "#FF3B6E", run: reflexSolo }, { name: "Test de pureté", col: "#4D8BFF", run: testIntro }];
   const R = 140, C0 = 150;
   const pt = (a, r) => { const t = (a - 90) * Math.PI / 180; return [C0 + r * Math.cos(t), C0 + r * Math.sin(t)]; };
   const slices = games.map((g, i) => {
@@ -4493,7 +4516,7 @@ const TUTO = {
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
-  test: "Tu réponds oui ou non, personne voit. À la fin t'as ton score.",
+  test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton % de pureté, thème par thème. À plusieurs, chacun son tour et on compare.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
 };
 const tutoSession = new Set();
@@ -4778,31 +4801,104 @@ const DEUX = [
   [2,"lâcherait l'autre pour 10 000 €"],[2,"a le plus honteux historique de recherche"],
   [3,"a le plus de body count"],[3,"enverrait une photo osée en premier"],[3,"est le plus bruyant au lit"],[3,"a déjà pensé à quelqu'un d'autre au lit"]
 ];
-const TEST = [
-  ["T'as déjà menti sur ton âge ?","a menti sur son âge"],
-  ["T'as déjà stalké un ex pendant plus d'une heure ?","a stalké un ex pendant une heure"],
-  ["T'as déjà ghosté quelqu'un ?","a ghosté quelqu'un"],
-  ["Tu t'es déjà fait refouler d'une boîte ?","s'est fait refouler d'une boîte"],
-  ["T'as déjà fouillé le téléphone de quelqu'un ?","a fouillé un téléphone"],
-  ["T'as déjà fait semblant d'être malade pour éviter quelqu'un ?","a simulé une maladie"],
-  ["T'as déjà dit « je t'aime » sans le penser ?","a dit je t'aime sans le penser"],
-  ["T'as déjà embrassé quelqu'un dont tu connaissais pas le prénom ?","a embrassé un inconnu"],
-  ["T'as déjà vomi en soirée ?","a vomi en soirée"],
-  ["T'as déjà oublié comment tu étais rentré chez toi ?","a oublié comment il est rentré"],
-  ["T'as déjà eu un crush sur le mec ou la meuf d'un pote ?","a craqué pour le partenaire d'un pote"],
-  ["T'as déjà eu une relation secrète ?","a eu une relation secrète"],
-  ["T'as déjà embrassé deux personnes dans la même soirée ?","a embrassé deux personnes le même soir"],
-  ["T'as déjà envoyé une photo que tu regrettes ?","a envoyé une photo regrettable"],
-  ["T'as déjà recouché avec un ex ?","a recouché avec un ex"],
-  ["T'as déjà triché à un examen ?","a triché à un examen"],
-  ["T'as déjà volé quelque chose dans un magasin ?","a volé dans un magasin"],
-  ["T'as déjà passé une nuit blanche avant d'aller travailler ?","a enchaîné nuit blanche et boulot"],
-  ["T'as déjà dragué quelqu'un pour un verre gratuit ?","a dragué pour un verre gratuit"],
-  ["T'as déjà dit du mal d'un ami dans son dos ?","a balancé sur un ami"],
-  ["T'as déjà couché le premier soir ?","a couché le premier soir"],
-  ["T'as déjà fait l'amour dans un lieu public ?","l'a fait dans un lieu public"],
-  ["T'as déjà trompé quelqu'un ?","a trompé quelqu'un"],
-  ["T'as déjà eu une histoire avec quelqu'un de beaucoup plus âgé ?","a eu une histoire avec plus âgé"]
+// Test de pureté : un thème = [clé, emoji, nom, ce qui te définit quand c'est ton pire thème, questions]
+const PUR = [
+  ["alcool", "🍻", "Alcool", "Pilier de bar", [
+    "T'as déjà vomi à cause de l'alcool ?",
+    "T'as déjà oublié la fin d'une soirée ?",
+    "T'as déjà bu avant midi ?",
+    "T'as déjà fini une bouteille sans la partager ?",
+    "T'as déjà eu la gueule de bois deux jours de suite ?",
+    "T'as déjà fait un concours de shots ?",
+    "T'as déjà dormi par terre après une soirée ?",
+    "T'as déjà menti à tes parents pour cacher que t'avais bu ?",
+    "T'as déjà appelé quelqu'un à 4 h du mat après avoir trop bu ?",
+    "T'as déjà bu un verre que t'avais trouvé posé quelque part ?"
+  ]],
+  ["drogue", "🌿", "Drogue", "Tête dans les nuages", [
+    "T'as déjà fumé un joint ?",
+    "T'as déjà mangé un space cake ?",
+    "T'as déjà acheté de la drogue ?",
+    "T'as déjà pris un truc sans savoir ce que c'était ?",
+    "T'as déjà fait un bad trip ?",
+    "T'as déjà fumé avant d'aller en cours ou au boulot ?",
+    "T'as déjà caché de la drogue chez tes parents ?",
+    "T'as déjà eu un fou rire de deux heures après avoir fumé ?",
+    "T'as déjà vidé un frigo en pleine nuit après avoir fumé ?",
+    "T'as déjà goûté à autre chose que du cannabis ?"
+  ]],
+  ["sexe", "🔥", "Sexe", "Insatiable", [
+    "T'as déjà couché le premier soir ?",
+    "T'as déjà fait l'amour dans un lieu public ?",
+    "T'as déjà envoyé une photo coquine ?",
+    "T'as déjà simulé ?",
+    "T'as déjà eu un plan cul ?",
+    "T'as déjà fait un plan à trois ?",
+    "T'as déjà fait l'amour chez tes parents ?",
+    "T'as déjà couché avec quelqu'un sans connaître son prénom ?",
+    "T'as déjà couché avec un pote ?",
+    "T'as déjà fait l'amour dans une voiture ?"
+  ]],
+  ["amour", "💔", "Amour", "Bourreau des cœurs", [
+    "T'as déjà trompé quelqu'un ?",
+    "T'as déjà recouché avec un ex ?",
+    "T'as déjà réécrit à un ex en pleine nuit ?",
+    "T'as déjà ghosté quelqu'un ?",
+    "T'as déjà quitté quelqu'un par message ?",
+    "T'as déjà dit « je t'aime » sans le penser ?",
+    "T'as déjà craqué pour le copain ou la copine d'un pote ?",
+    "T'as déjà eu deux histoires en même temps ?",
+    "T'as déjà embrassé deux personnes dans la même soirée ?",
+    "T'as déjà embrassé quelqu'un sans connaître son prénom ?"
+  ]],
+  ["hygiene", "🧼", "Hygiène", "Allergique au savon", [
+    "T'as déjà mangé un truc tombé par terre ?",
+    "T'as déjà remis le même caleçon ou la même culotte le lendemain ?",
+    "T'as déjà fait pipi dans une piscine ?",
+    "T'as déjà passé trois jours sans te laver ?",
+    "T'as déjà zappé de te brosser les dents toute une journée ?",
+    "T'as déjà senti tes chaussettes pour savoir si elles étaient propres ?",
+    "T'as déjà dormi avec tes chaussures ?",
+    "T'as déjà mangé un truc périmé depuis plus d'une semaine ?",
+    "T'as déjà fait pipi sous la douche ?",
+    "T'as déjà gardé les mêmes draps plus d'un mois ?"
+  ]],
+  ["interdit", "🚨", "Interdit", "Hors-la-loi", [
+    "T'as déjà volé un truc dans un magasin ?",
+    "T'as déjà triché à un examen ?",
+    "T'as déjà pris le train ou le métro sans ticket ?",
+    "T'as déjà quitté un resto sans payer ?",
+    "T'as déjà conduit sans permis ?",
+    "T'as déjà eu affaire à la police ?",
+    "T'as déjà fait le mur ?",
+    "T'as déjà gardé la monnaie qu'on t'avait rendue en trop ?",
+    "T'as déjà menti sur ton âge pour entrer quelque part ?",
+    "T'as déjà doublé toute une file d'attente l'air de rien ?"
+  ]],
+  ["honte", "🙈", "La honte", "Pro de la honte", [
+    "Tu t'es déjà fait refouler d'une boîte ?",
+    "T'as déjà dansé sur une table ?",
+    "T'as déjà envoyé un message à la mauvaise personne ?",
+    "T'as déjà fait semblant de pas voir quelqu'un dans la rue ?",
+    "T'as déjà trébuché devant plein de monde ?",
+    "T'as déjà pleuré devant un dessin animé ?",
+    "T'as déjà fait coucou à quelqu'un qui saluait quelqu'un d'autre ?",
+    "T'as déjà chanté si fort que les voisins sont venus taper ?",
+    "T'as déjà eu un crush sur un prof ?",
+    "T'as déjà répondu « toi aussi » au serveur qui te souhaitait bon appétit ?"
+  ]],
+  ["mytho", "🤥", "Mensonges", "Mytho de compétition", [
+    "T'as déjà menti sur ton CV ?",
+    "T'as déjà fait semblant d'être malade pour pas sortir ?",
+    "T'as déjà annulé au dernier moment avec une fausse excuse ?",
+    "T'as déjà dit « j'arrive » alors que t'étais encore sous la douche ?",
+    "T'as déjà fait croire que t'avais lu un livre ?",
+    "T'as déjà menti à quelqu'un sur sa cuisine ?",
+    "T'as déjà fait semblant d'aimer un cadeau ?",
+    "T'as déjà accusé quelqu'un d'autre d'un truc que t'avais fait ?",
+    "T'as déjà répété un secret qu'on t'avait confié ?",
+    "T'as déjà dit du mal d'un pote dans son dos ?"
+  ]]
 ];
 
 /* deux prénoms pour les jeux à deux */
@@ -5050,53 +5146,125 @@ function rxEnd() {
     [P, P.map(n => S.rx.elim && alive.length === 1 && n === alive[0] ? "🏆" : B[n] != null ? B[n] + " ms" : "Faux départ")], () => { S.players = shuffle(S.players); reflexGroup(); });
 }
 
-/* ---------- TEST DE SCANDALE ---------- */
-const testQs = () => TEST.filter(q => S.hot || !isHot(q));
+/* ---------- TEST DE PURETÉ ---------- */
+// un téléphone. On décoche les thèmes qu'on veut pas. Seul : toutes les questions des thèmes gardés ;
+// à plusieurs : 5 par thème, les mêmes pour tout le monde, on se passe le tel. Score = % de « non », par thème et en tout.
+const purOn = () => { const v = store.get("purThemes", null); return PUR.filter(t => !v || v.includes(t[0])); };
+const purTitle = pct => pct >= 90 ? "Ange certifié" : pct >= 70 ? "Sage en apparence" : pct >= 50 ? "Suspect sous surveillance" : pct >= 30 ? "Scandale ambulant" : "Ennemi public n°1";
+const purPct = (yes, n) => Math.round((n - yes) / n * 100);
 function testIntro() {
   if (tutoGate("test", testIntro)) return;
+  if (store.get("count", 4) > 1) { S.mode = "test"; return playersScreen(); }
+  purThemes(1);
+}
+function testStart() { purThemes(S.names.length); }
+// thèmes cochés de base, on décoche ce qu'on veut pas
+function purThemes(n) {
+  const on = new Set(purOn().map(t => t[0])), per = n > 1 ? 5 : 10;
+  const count = () => { const k = PUR.filter(t => on.has(t[0])).length * per; $("#go").disabled = !k; $("#go").innerHTML = k ? `C'est parti <small>${k} questions${n > 1 ? " chacun" : ""}</small>` : "Coche au moins un thème"; };
   view(`
-    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Test de scandale</span><span style="width:44px"></span></div>
-    <div class="stage">${cardShell("test", null, `
-      <p class="text">${testQs().length} questions, réponds honnêtement. Tu obtiens ton indice de scandale, à partager si tu l'assumes.</p>
-      <p class="sub">Personne ne voit tes réponses, seulement ton score et trois de tes aveux.</p>`)}</div>
-    <input class="duo-in" id="solo-name" maxlength="14" placeholder="Ton prénom" autocomplete="off" autocapitalize="words" enterkeyhint="go" value="${esc(store.get("solo-name", ""))}" aria-label="Ton prénom">
-    <div class="actions"><button class="btn red" id="go">Commencer</button></div>
+    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Test de pureté</span><span style="width:44px"></span></div>
+    <div class="section-label">Décoche ce que tu veux pas</div>
+    <div class="chips pur-themes">${PUR.map(t => `<button class="chip pick" data-k="${t[0]}" aria-pressed="${on.has(t[0])}">${t[1]} ${esc(t[2])}</button>`).join("")}</div>
+    <p class="hint muted" style="text-align:center;margin:0">Droite pour oui, gauche pour non. Personne voit tes réponses.</p>
+    ${tutoLink()}
+    <div class="actions"><button class="btn red" id="go"></button></div>
   `, () => {
-    $("#back").onclick = home;
-    const go = () => { const n = $("#solo-name").value.trim(); if (!n) { toast("Entre ton prénom pour la Une."); return; } store.set("solo-name", n); testRun(n); };
-    $("#go").onclick = go; $("#solo-name").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+    $("#back").onclick = n > 1 ? playersScreen : home; bindTutoLink("test");
+    $$(".pur-themes .chip").forEach(b => b.onclick = () => {
+      const k = b.dataset.k; on.has(k) ? on.delete(k) : on.add(k); b.setAttribute("aria-pressed", on.has(k)); buzz(10);
+      store.set("purThemes", [...on]); count();
+    });
+    $("#go").onclick = () => {
+      const qs = shuffle(PUR.filter(t => on.has(t[0])).flatMap(t => shuffle(t[4]).slice(0, per).map(q => ({ q, t }))));
+      testRun(n > 1 ? shuffle(S.names).map(x => ({ name: x })) : [{ name: "" }], qs);
+    };
+    count();
   });
 }
-function testRun(name) {
-  stat("start", "test", 1, "un");
-  const qs = shuffle(testQs()), yes = []; let i = 0;
-  const ask = () => {
-    if (i >= qs.length) return testResult(name, yes, qs.length);
+function testRun(P, qs) {
+  const solo = P.length === 1;
+  stat("start", "test", P.length, "un");
+  S.inGame = true; keepAwake(); P.forEach(p => { p.yes = new Set(); });
+  let k = 0;
+  // au tour de quelqu'un : les autres regardent ailleurs
+  const pass = () => {
+    if (k >= P.length) return testEnd(P, qs);
+    if (solo) return ask(0, false);
     view(`
-      <div class="topbar">${quitBtn()}<span class="progress">${i + 1} / ${qs.length}</span><span style="width:44px"></span></div>
-      <div class="bar" style="margin:0"><i style="width:${i / qs.length * 100}%;background:var(--red)"></i></div>
-      <div class="stage">${cardShell("test", null, `<p class="text">${esc(qs[i][0])}</p>`, i % 2)}</div>
+      <div class="topbar">${quitBtn()}<span class="progress">${k + 1} / ${P.length}</span><span style="width:44px"></span></div>
+      <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">${k ? "Passe le téléphone à" : "Au tour de"}</span><span class="mast">${esc(P[k].name)}</span><p>Les autres, regardez ailleurs.</p></div></div>
+      <div class="actions"><button class="btn red" id="go">C'est moi, j'y vais</button></div>`, () => { bindQuit(); $("#go").onclick = () => ask(0, false); });
+  };
+  const face = (i, top, slid) => cardShell("test", null, `
+      <p class="pur-th">${qs[i].t[1]} ${esc(qs[i].t[2])}</p>
+      <p class="text">${esc(qs[i].q)}</p>
+      <p class="sub">${i < 2 && k === 0 ? "Droite pour oui, gauche pour non." : "&nbsp;"}</p>
+      <span class="tlean" aria-hidden="true"><b class="ty">Oui</b><b class="tn">Non</b></span>`, i % 2 === 1)
+    .replace('class="card ', `class="card ${top ? "top " + (slid ? "still " : "") : "under "}`);
+  const ask = (i, slid) => {
+    if (i >= qs.length) { k++; return pass(); }
+    view(`
+      <div class="topbar">${quitBtn()}<span class="progress">${solo ? "" : esc(P[k].name) + " · "}${i + 1} / ${qs.length}</span><span style="width:44px"></span></div>
+      <div class="stage jstack">${i + 1 < qs.length ? face(i + 1, false) : ""}${face(i, true, slid)}</div>
       <div class="actions"><div class="row"><button class="btn white" id="n">Non</button><button class="btn red" id="y">Oui</button></div></div>`, () => {
       bindQuit();
-      $("#y").onclick = () => { yes.push(qs[i][1]); i++; ask(); };
-      $("#n").onclick = () => { i++; ask(); };
+      const tEl = $(".jstack .top");
+      const fly = swipeNext(tEl, $(".jstack .under"), () => {
+        if (parseFloat(tEl.style.transform.slice(12)) > 0) P[k].yes.add(i);
+        ask(i + 1, true);
+      });
+      // pendant le geste, la carte affiche Oui ou Non selon le côté
+      let x0 = null;
+      tEl.addEventListener("pointerdown", e => { x0 = e.clientX; });
+      tEl.addEventListener("pointermove", e => { if (x0 !== null) tEl.dataset.lean = e.clientX - x0 > 24 ? "y" : e.clientX - x0 < -24 ? "n" : ""; });
+      const up = () => { x0 = null; later(() => { if (Math.abs(parseFloat(tEl.style.transform.slice(12)) || 0) < 1) tEl.dataset.lean = ""; }, 260); }; // revenue au milieu : plus rien
+      tEl.addEventListener("pointerup", up); tEl.addEventListener("pointercancel", up);
+      $("#y").onclick = () => { tEl.dataset.lean = "y"; fly(1); };
+      $("#n").onclick = () => { tEl.dataset.lean = "n"; fly(-1); };
     });
   };
-  ask();
+  pass();
 }
-function testResult(name, yes, total) {
-  stat("end", "test", 1, "un");
-  const pct = Math.round(yes.length / total * 100);
-  const title = pct <= 15 ? "Ange certifié" : pct <= 35 ? "Sage en apparence" : pct <= 55 ? "Suspect sous surveillance" : pct <= 75 ? "Scandale ambulant" : "Ennemi public n°1";
-  const av = shuffle(yes).slice(0, 3);
-  const A = {
-    kicker: "Test de scandale",
-    headline: `${name} scandaleux à ${pct} %`,
-    deck: `Verdict de la rédaction : ${title}.`,
-    items: av.map((t, k) => ({ title: "Aveu n°" + (k + 1), name: name, desc: name + " " + t })),
-    stats: [[pct + "%", "indice"], [yes.length, "aveux"], [total - yes.length, "dénégations"]]
-  };
-  view(`${miniUne(A)}${resultActions()}`, () => { stamp(pct + " %", pct > 55 ? "" : "blue"); bindResult(A, () => testRun(name), "test-de-scandale"); });
+// % par thème et en tout, et le pire thème (ce qui te définit)
+function purScore(p, qs) {
+  const th = PUR.filter(t => qs.some(x => x.t === t)).map(t => {
+    const idx = qs.map((x, i) => x.t === t ? i : -1).filter(i => i >= 0);
+    return { t, pct: purPct(idx.filter(i => p.yes.has(i)).length, idx.length) };
+  });
+  const worst = th.slice().sort((a, b) => a.pct - b.pct)[0];
+  return { pct: purPct(p.yes.size, qs.length), th, def: worst && worst.pct < 100 ? worst.t : null };
+}
+const purDetail = R => `
+  <p class="mbest"><span>${R.pct >= 50 ? "😇" : "😈"} Pur à</span><b>${R.pct} %</b><small>${purTitle(R.pct)}</small></p>
+  <p class="pur-def">${R.def ? `Ce qui te définit : <b>${R.def[1]} ${esc(R.def[3])}</b>` : "Rien ne te définit. Louche."}</p>
+  <div class="pur-bars">${R.th.map(x => `<div class="pur-row"><span>${x.t[1]} ${esc(x.t[2])}</span><i><u style="width:${Math.max(x.pct, 2)}%"></u></i><b>${x.pct} %</b></div>`).join("")}</div>`;
+function testEnd(P, qs) {
+  stat("end", "test", P.length, "un");
+  S.inGame = false;
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  const again = () => purThemes(P.length);
+  if (P.length > 1) {
+    P.forEach(p => { p.R = purScore(p, qs); });
+    const L = P.slice().sort((a, b) => a.R.pct - b.R.pct), min = L[0].R.pct, w = L.filter(p => p.R.pct === min).map(p => p.name);
+    const best = min < 100 ? `<p class="mbest"><span>😈 Le moins pur</span><b>${esc(w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0])}</b><small>pur à ${min} %</small></p>`
+      : `<p class="mbest">😇 Que des anges. Ou des menteurs.</p>`;
+    rxFin("", best, [L.map(p => p.name), L.map(p => p.R.pct + " %")], again);
+    $(".rx-fin .rank-date").textContent = "Touche une bulle pour voir le détail"; // à la place de la date
+    // toucher une bulle : les % par thème de ce joueur
+    $$(".end-bubbles .bubble").forEach((b, i) => { b.style.cursor = "pointer"; b.onclick = () => sheet(`<span class="mast" style="font-size:30px">${esc(L[i].name)}</span>${purDetail(L[i].R)}<button class="btn" id="pur-ok">Fermer</button>`, x => { $("#pur-ok", x).onclick = () => x.remove(); }); });
+    return;
+  }
+  view(`
+    <div class="rank anim fin-jamais rx-fin pur-fin" style="flex:1">
+      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${qs.length} questions</span></div>
+      ${purDetail(purScore(P[0], qs))}
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <div class="actions">
+      <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
+    </div>
+  `, () => { $("#again").onclick = again; $("#home").onclick = home; party(); buzz([40, 30, 80]); });
 }
 
 /* ---------- image story générique ---------- */
