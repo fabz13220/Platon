@@ -2146,7 +2146,7 @@ function home() {
       if (multi) return roomCreate("mix");
       // seul : la roue choisit parmi les jeux solo
       if (n === 1) return soloWheel();
-      S.mode = "mix"; playersScreen();
+      S.mode = "mix"; wheel(true); // la roue tourne tout de suite, avec le nombre de joueurs de l'accueil
     };
     $$(".tile:not([data-on])").forEach(b => b.onclick = () => {
       const m = b.dataset.mode;
@@ -2481,7 +2481,6 @@ function popGroup(b, g, draw) {
 
 /* -------- AMBIANCE -------- */
 function ambiance() {
-  if (S.mode === "mix") return wheel(true); // le Mix : la roue tourne tout de suite, sans réglages
   if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
   if (S.mode === "test") return testStart(); // Test de pureté : les thèmes remplacent l'intensité
   if (S.mode === "p4") return p4Start(); // Aligne 4 : rien à régler
@@ -2536,7 +2535,7 @@ function wheelSvg(games, label) {
     <div class="wheel-hub"></div><div class="wheel-pin"></div></div>`;
 }
 function wheel(auto) {
-  const nb = S.names.length, games = WHEEL.filter(g => g.min <= nb && nb <= (g.max || 16)), seg = 360 / games.length;
+  const nb = store.get("count", 4), games = WHEEL.filter(g => g.min <= nb && nb <= (g.max || 16)), seg = 360 / games.length;
   let turned = 0; // la roue repart de là où elle s'est arrêtée
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Mix</span><span style="width:44px"></span></div>
@@ -2546,7 +2545,7 @@ function wheel(auto) {
     </div>
     <div class="actions"><button class="btn red" id="spin">Lancer la roue</button></div>
   `, () => {
-    $("#back").onclick = () => { S.mode = "mix"; playersScreen(); };
+    $("#back").onclick = home;
     let busy = false;
     const spin = () => {
       if (busy) return; busy = true;
@@ -2568,11 +2567,9 @@ function wheel(auto) {
     if (auto) later(spin, 350);
   });
 }
-// le jeu tiré se lance comme depuis l'accueil, avec les joueurs déjà là ; ceux qui ont des réglages sur l'écran des joueurs y passent
+// le jeu tiré se lance comme depuis l'accueil : les joueurs (et les réglages de certains jeux), puis les réglages du jeu
 function mixPlay(t) {
-  S.mode = t;
-  if (["reflexe", "uno", "test"].includes(t)) return playersScreen();
-  ambiance();
+  S.mode = t; playersScreen();
 }
 // roue du mode 1 joueur : deux parts, résultat tiré au sort
 function soloWheel() {
