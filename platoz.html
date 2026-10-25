@@ -78,6 +78,8 @@ html, body { height: 100%; }
 html { background: var(--night); overflow: hidden; overscroll-behavior: none; }
 /* Safari : la page ne défile plus, donc sa barre du bas ne se replie plus ; on s'arrête au-dessus d'elle (zone visible réelle) */
 @supports (height: 100dvh) { html { height: 100dvh; } }
+/* appli de l'écran d'accueil : hauteur réelle de la zone de la page (iOS 26 la donne plus courte qu'elle n'est) */
+html.standalone { height: var(--app-h, 100dvh); }
 body {
   margin: 0;
   background: var(--night);
@@ -90,10 +92,9 @@ body {
   overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; /* la page ne rebondit plus : seul un contenu trop long défile */
   -webkit-font-smoothing: antialiased;
 }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--night); }
 /* night-club ambient light: three soft blobs + irregular sparkle, tinted by the card on screen */
 body::after {
-  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  content: ""; position: fixed; inset: 0 0 -160px; pointer-events: none; z-index: 0; /* déborde en bas : le fond va jusqu'au bord de l'écran même quand iOS se trompe de hauteur */
   background:
     radial-gradient(70% 42% at 8% 4%, var(--amb1), transparent 70%),
     radial-gradient(60% 40% at 100% 96%, var(--amb2), transparent 70%),
@@ -304,6 +305,28 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .end-bubbles { flex: 1; min-height: 130px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 18px 14px; padding: 10px 0; transition: opacity .5s; }
 .end-bubbles.wait { opacity: 0; pointer-events: none; }
 .lobby-bubbles { flex: none; min-height: 150px; }
+/* aucune page ne défile, sauf le menu : si ça ne tient pas, on resserre, puis on réduit tout l'écran */
+body.lock { overflow: hidden; }
+body.squeeze #app { gap: 10px; padding-top: 4px; }
+body.squeeze #bubbles { min-height: 110px; }
+body.squeeze .lobby-bubbles { min-height: 100px; }
+body.squeeze .stage > .secret { min-height: 0; }
+body.squeeze #chips { gap: 6px; max-height: 32vh; overflow-y: auto; flex: none; }
+body.squeeze #app:has(#chips) .actions::before { display: none; }
+body.squeeze #bubbles { gap: 8px 10px; padding: 0; }
+body.squeeze #bubbles .linkbtn { padding: 2px; }
+body.squeeze #chips .chip { font-size: 15px; min-height: 38px; padding: 4px 5px 4px 12px; gap: 6px; }
+/* Tester les cartes : deux colonnes, tout tient sur un écran */
+.opts.tester-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opts.tester-opts .opt { min-height: 0; padding: 10px 12px; gap: 10px; }
+.opts.tester-opts .opt .pepper { width: 34px; height: 34px; font-size: 14px; }
+.opts.tester-opts .opt .mast { font-size: 15px; }
+.opts.tester-opts .opt p { font-size: 12.5px; }
+/* iOS 26 : bande de l'heure dessinée par le système, la page commence dessous ; le haut du fond se fond dans cette bande */
+body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70px); mask-image: linear-gradient(transparent, #000 70px); }
+/* paquet de cartes : la carte du dessous reste cachée pendant que la carte du dessus arrive (sinon elle transparaît) */
+.jstack:has(> .card.top:not(.still)) > .card.under { animation: underWait .42s step-end both; }
+@keyframes underWait { from { visibility: hidden; } to { visibility: visible; } }
 .fr-row .fr-join { flex: none; width: auto; min-height: 40px; padding: 0 16px; font-size: 15px; margin-left: auto; }
 .fr-row .fr-txt { flex: 1; }
 /* les bulles passent au-dessus du reste de l'écran : une bulle lâchée sur les boutons reste attrapable */
@@ -1830,7 +1853,19 @@ function view(html, after) {
   clearTimers(); $$(".sheet-wrap").forEach(s => s.remove()); $$(".tool-wrap").forEach(s => s.remove());
   app.innerHTML = html; window.scrollTo(0, 0); document.body.scrollTop = 0;
   if (after) after();
-  fitStage(); fitWords();
+  fitWords(); fitPage(true);
+}
+// aucune page ne défile sauf le menu : la carte se resserre, puis l'écran, puis tout est réduit pour tenir
+function fitPage(reset) {
+  const B = document.body, menu = !!$(".tabbar", app);
+  const over = () => B.scrollHeight > B.clientHeight + 1;
+  if (reset) { B.classList.remove("squeeze"); app.style.zoom = ""; B.classList.toggle("lock", !menu); fitStage(); }
+  if (menu || !over()) return;
+  if (!B.classList.contains("squeeze")) { B.classList.add("squeeze"); if (!over()) return; }
+  const z = parseFloat(app.style.zoom) || 1;
+  if ($(".bubble", app) || z <= .64) { B.classList.remove("lock"); return; } // bulles (calculs à l'échelle 1) ou trop petit : on laisse défiler plutôt que de couper
+  app.style.zoom = Math.max(.64, z * (B.clientHeight - 2) / B.scrollHeight).toFixed(3);
+  if (over()) B.classList.remove("lock");
 }
 // un prénom ou un mot trop long ne se coupe jamais au milieu : on réduit la taille du texte jusqu'à ce qu'il tienne
 function fitWords() {
@@ -1848,8 +1883,21 @@ function fitStage() {
   if (over()) c.classList.add("tight");
   if (over()) c.classList.add("tighter");
 }
-addEventListener("resize", fitStage);
-if (document.fonts) document.fonts.ready.then(fitStage);
+addEventListener("resize", () => { appHeight(); fitPage(true); });
+// le contenu change sans nouvel écran (prénoms ajoutés, cartes jouées) : on revérifie que tout tient
+let fitRaf = 0;
+if (window.ResizeObserver) new ResizeObserver(() => { if (!fitRaf) fitRaf = requestAnimationFrame(() => { fitRaf = 0; fitPage(); }); }).observe(app);
+// appli de l'écran d'accueil sur iPhone : iOS 26 peut garder une bande pour l'heure et donner une hauteur fausse à la page
+function appHeight() {
+  const st = navigator.standalone || matchMedia("(display-mode: standalone)").matches, R = document.documentElement;
+  R.classList.toggle("standalone", !!st);
+  if (st) R.style.setProperty("--app-h", innerHeight + "px");
+  const probe = document.createElement("div"); probe.style.cssText = "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)"; document.body.appendChild(probe);
+  const top = parseFloat(getComputedStyle(probe).paddingTop) || 0; probe.remove();
+  document.body.classList.toggle("ios-band", !!(st && navigator.standalone && top < 1 && screen.height >= 812 && innerHeight < screen.height - 30));
+}
+appHeight();
+if (document.fonts) document.fonts.ready.then(() => fitPage(true));
 function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
 
 /* -------- ACCUEIL -------- */
@@ -3749,7 +3797,7 @@ function testerMenu() {
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Tester les cartes</span><span style="width:44px"></span></div>
     <p class="hint muted" style="text-align:center;margin:0">Passe les cartes une par une : 🔥 Lourd si elle est bien, 😑 Bof si elle est nulle. Tes votes servent à améliorer le jeu.</p>
-    <div class="opts">${TEST_TYPES.map(([t, l]) => `<button class="opt" data-t="${t}"><span class="pepper">${n(t)}</span><span><span class="mast">${l}</span><p>${C[t].length} cartes · ${n(t)} notées</p></span></button>`).join("")}</div>
+    <div class="opts tester-opts">${TEST_TYPES.map(([t, l]) => `<button class="opt" data-t="${t}"><span class="pepper">${n(t)}</span><span><span class="mast">${l}</span><p>${C[t].length} cartes · ${n(t)} notées</p></span></button>`).join("")}</div>
     <div class="actions"><button class="btn white" id="res">Voir les résultats</button></div>
   `, () => {
     $("#back").onclick = home;
