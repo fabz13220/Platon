@@ -4492,7 +4492,7 @@ const TUTO = {
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
-  test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton % de pureté, thème par thème : 100 %, t'as jamais rien fait, 0 %, t'as tout fait. À plusieurs, chacun son tour et on compare.",
+  test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
 };
 const tutoSession = new Set();
@@ -4777,7 +4777,7 @@ const DEUX = [
   [2,"lâcherait l'autre pour 10 000 €"],[2,"a le plus honteux historique de recherche"],
   [3,"a le plus de body count"],[3,"enverrait une photo osée en premier"],[3,"est le plus bruyant au lit"],[3,"a déjà pensé à quelqu'un d'autre au lit"]
 ];
-// Test de pureté : un thème = [clé, emoji, nom, ce qui te définit quand c'est ton pire thème, 20 questions]
+// Test de pureté : un thème = [clé, emoji, nom, ce qui te définit quand c'est ton thème le plus haut, 20 questions]
 const PUR = [
   ["alcool", "🍻", "Alcool", "Pilier de bar", [
     "T'as déjà vomi à cause de l'alcool ?",
@@ -5204,10 +5204,10 @@ function rxEnd() {
 
 /* ---------- TEST DE PURETÉ ---------- */
 // un téléphone. On décoche les thèmes qu'on veut pas. Seul : toutes les questions des thèmes gardés ;
-// à plusieurs : 5 par thème, les mêmes pour tout le monde, on se passe le tel. Score = % de « non », par thème et en tout.
+// à plusieurs : 5 par thème, les mêmes pour tout le monde, on se passe le tel. Score = % de « oui », par thème et en tout.
 const purOn = () => { const v = store.get("purThemes", null); return PUR.filter(t => !v || v.includes(t[0])); };
-const purTitle = pct => pct >= 90 ? "Ange certifié" : pct >= 70 ? "Sage en apparence" : pct >= 50 ? "Suspect sous surveillance" : pct >= 30 ? "Scandale ambulant" : "Ennemi public n°1";
-const purPct = (yes, n) => Math.round((n - yes) / n * 100);
+const purTitle = pct => pct <= 10 ? "Ange certifié" : pct <= 30 ? "Sage en apparence" : pct <= 50 ? "Suspect sous surveillance" : pct <= 70 ? "Scandale ambulant" : "Ennemi public n°1";
+const purPct = (yes, n) => Math.round(yes / n * 100); // 100 % = t'as tout fait, 0 % = rien fait (choix de Fabio)
 function testIntro() {
   if (tutoGate("test", testIntro)) return;
   purThemes(1); // seul de base, quel que soit le nombre de joueurs ; « À plusieurs » passe par l'écran des joueurs
@@ -5311,19 +5311,19 @@ function testRun(P, qs) {
   };
   pass();
 }
-// % par thème et en tout, et le pire thème (ce qui te définit)
+// % par thème et en tout, et le thème le plus haut (ce qui te définit)
 function purScore(p, qs) {
   const th = PUR.filter(t => qs.some(x => x.t === t)).map(t => {
     const idx = qs.map((x, i) => x.t === t ? i : -1).filter(i => i >= 0);
     return { t, pct: purPct(idx.filter(i => p.yes.has(i)).length, idx.length) };
   });
-  const worst = th.slice().sort((a, b) => a.pct - b.pct)[0];
-  return { pct: purPct(p.yes.size, qs.length), th, def: worst && worst.pct < 100 ? worst.t : null };
+  const worst = th.slice().sort((a, b) => b.pct - a.pct)[0];
+  return { pct: purPct(p.yes.size, qs.length), th, def: worst && worst.pct > 0 ? worst.t : null };
 }
 const purDetail = R => `
-  <p class="mbest"><span>${R.pct >= 50 ? "😇" : "😈"} Pur à</span><b>${R.pct} %</b><small>${purTitle(R.pct)}</small></p>
+  <p class="mbest"><span>${R.pct < 50 ? "😇" : "😈"} Ton score</span><b>${R.pct} %</b><small>${purTitle(R.pct)}</small></p>
   <p class="pur-def">${R.def ? `Ce qui te définit : <b>${R.def[1]} ${esc(R.def[3])}</b>` : "Rien ne te définit. Louche."}</p>
-  <p class="pur-how"><span>100 % = t'as jamais rien fait</span> · <span>0 % = t'as tout fait</span></p>
+  <p class="pur-how"><span>100 % = t'as tout fait</span> · <span>0 % = t'as rien fait</span></p>
   <div class="pur-bars">${R.th.map(x => `<div class="pur-row"><span>${x.t[1]} ${esc(x.t[2])}</span><i><u style="width:${Math.max(x.pct, 2)}%"></u></i><b>${x.pct} %</b></div>`).join("")}</div>`;
 function testEnd(P, qs) {
   stat("end", "test", P.length, "un");
@@ -5332,8 +5332,8 @@ function testEnd(P, qs) {
   const again = () => purThemes(P.length);
   if (P.length > 1) {
     P.forEach(p => { p.R = purScore(p, qs); });
-    const L = P.slice().sort((a, b) => a.R.pct - b.R.pct), min = L[0].R.pct, w = L.filter(p => p.R.pct === min).map(p => p.name);
-    const best = min < 100 ? `<p class="mbest"><span>😈 Le moins pur</span><b>${esc(w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0])}</b><small>pur à ${min} %</small></p>`
+    const L = P.slice().sort((a, b) => b.R.pct - a.R.pct), max = L[0].R.pct, w = L.filter(p => p.R.pct === max).map(p => p.name);
+    const best = max > 0 ? `<p class="mbest"><span>😈 Le plus gros score</span><b>${esc(w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0])}</b><small>${max} %</small></p>`
       : `<p class="mbest">😇 Que des anges. Ou des menteurs.</p>`;
     // toucher une bulle : les % par thème de ce joueur
     rxFin("", best, [L.map(p => p.name), L.map(p => p.R.pct + " %")], again, false,
