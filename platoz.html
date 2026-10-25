@@ -1050,55 +1050,80 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .uno-colors button { min-height: 70px; border: 0; border-radius: 18px; color: #1A0F2E; font-weight: 900; font-size: 18px; text-transform: capitalize; }
 .card[style*="--taboo"] { --glyph: "∅"; --g: linear-gradient(165deg, #FF6A88 0%, #E0245E 50%, #8A1050 100%); --glow: rgba(240,40,110,.6); --pill-ink: #9F1239; }
 .tb-teams { display: grid; gap: 10px; }
-.tb-team { padding: 14px 16px; border-radius: var(--r-l); background: rgba(255,255,255,.06); box-shadow: inset 4px 0 0 var(--tc), inset 0 0 0 1px var(--hair); }
+.tb-team { padding: 14px 16px; border-radius: var(--r-l); background: rgba(255,255,255,.06); box-shadow: inset 4px 0 0 var(--tc), inset 0 0 0 1px var(--hair); transition: background .15s, box-shadow .15s; }
 .tb-team b { font-family: var(--display); font-size: 17px; color: var(--tc); }
 .tb-team p { margin: 4px 0 0; font-weight: 800; }
-.tb-score { display: flex; gap: 8px; justify-content: center; }
+.tb-team.drop { background: rgba(255,255,255,.14); box-shadow: inset 4px 0 0 var(--tc), inset 0 0 0 2px var(--tc); }
+.tb-score { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .tb-score span { padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,.07); font-weight: 900; box-shadow: inset 0 0 0 1.5px transparent; }
 .tb-score span.on { box-shadow: inset 0 0 0 2px var(--tc); }
 .tb-score b { color: var(--tc); margin-left: 4px; }
-.tb-timer { font-family: var(--display); font-size: 30px; font-weight: 900; min-width: 64px; text-align: center; }
+.tb-timer { position: relative; font-family: var(--display); font-size: 30px; font-weight: 900; min-width: 64px; text-align: center; }
 .tb-timer.hot { color: #FF3B6E; animation: tbPulse 1s infinite; }
 @keyframes tbPulse { 50% { transform: scale(1.15); } }
-.tb-card .tb-word { margin: 0 22px; font-family: var(--display); font-weight: 900; font-size: clamp(32px, 10vw, 46px); line-height: 1.05; text-align: center; overflow-wrap: anywhere; }
-.tb-forbid { margin: 0 18px; padding: 14px; border-radius: var(--r-l); background: rgba(0,0,0,.24); display: flex; flex-direction: column; gap: 6px; text-align: center; }
-.tb-forbid small { font-weight: 900; letter-spacing: .14em; text-transform: uppercase; font-size: 11.5px; opacity: .8; }
-.tb-forbid span { font-weight: 900; font-size: 20px; }
+.tb-card .tb-word { margin: 0 22px; font-family: var(--display); font-weight: 900; font-size: clamp(32px, 10vw, 46px); line-height: 1.05; text-align: center; overflow-wrap: normal; word-break: normal; }
+.tb-forbid { margin: 0 18px; padding: 14px; border-radius: var(--r-l); background: rgba(0,0,0,.24); display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; text-align: center; }
+.tb-forbid small { flex-basis: 100%; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; font-size: 11.5px; opacity: .8; }
+.tb-forbid span { font-weight: 900; line-height: 1.15; font-size: 18px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.14); }
 .stage > .card.tb-card { min-height: 0; flex: 0 1 auto; gap: 14px; padding-bottom: 18px; }
-.tb-forbid { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.tb-forbid small { flex-basis: 100%; }
-.tb-forbid span { line-height: 1.15; font-size: 18px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.14); }
+.card.tb-card::before { display: none; } /* le grand symbole décoratif passait sur les mots */
 .tb-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-#app > .tb-btns { grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: auto; }
-#app > .tb-btns .btn { padding-left: 6px; padding-right: 6px; font-size: 16px; white-space: nowrap; }
-.tb-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.tb-name { border: 0; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font: inherit; font-weight: 800; font-size: 15px; box-shadow: inset 0 0 0 1.5px var(--tc); cursor: pointer; }
-.tb-name:active { transform: scale(.94); }
+.tb-no { --bg: rgba(255,59,110,.18) !important; box-shadow: inset 0 0 0 1.5px #FF3B6E !important; }
+/* réglages : glisser un prénom d'une équipe à l'autre, nom d'équipe modifiable, chrono réglable */
+.tb-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-height: 36px; }
+.tb-name { position: relative; border: 0; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font: inherit; font-weight: 800; font-size: 15px; box-shadow: inset 0 0 0 1.5px var(--tc); cursor: grab; touch-action: none; }
+.tb-name.drag { z-index: 20; background: var(--tc); box-shadow: 0 12px 24px -8px rgba(0,0,0,.6); transition: none; }
+.tb-tname { width: 100%; border: 0; padding: 0; background: none; color: var(--tc); font-family: var(--display); font-weight: 800; font-size: 18px; outline: none; }
+.tb-tname:focus { border-bottom: 2px solid var(--tc); }
+.tb-thead { display: flex; align-items: center; gap: 8px; }
+.tb-thead::after { content: "✎"; color: var(--tc); opacity: .7; font-size: 16px; }
+.tb-step { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.tb-step button { width: 52px; height: 52px; border-radius: 50%; border: 0; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.3); color: #fff; font-size: 28px; font-weight: 900; line-height: 1; }
+.tb-step button:disabled { opacity: .35; }
+.tb-step b { font-family: var(--display); font-size: 28px; min-width: 130px; text-align: center; }
 .tb-teams.tbfit1 .tb-team { padding: 10px 12px; } .tb-teams.tbfit1 .tb-names { gap: 5px; margin-top: 6px; } .tb-teams.tbfit1 .tb-name { padding: 5px 10px; font-size: 14px; }
 .hint.tbfit2 { display: none; }
-.tb-teams.tbfit3 .tb-name { padding: 4px 8px; font-size: 13px; } .seg.tbfit3 button { min-height: 40px; }
+.tb-teams.tbfit3 .tb-name { padding: 4px 8px; font-size: 13px; } .tb-step.tbfit3 button { width: 44px; height: 44px; }
 .stage.tbfit1 .secret p { font-size: 18px; } .stage.tbfit2 .secret .mast { font-size: 38px; } .stage.tbfit3 .secret p { font-size: 15px; }
-.card.tb-card::before, .card.tb-end::before { display: none; } /* le grand symbole décoratif passait sur les mots */
-.tb-end .tb-score span { background: rgba(0,0,0,.3); box-shadow: inset 0 0 0 1.5px var(--tc); }
-.tb-end .tb-score b { color: #fff; }
+/* pendant le chrono : gros chrono, gros mot, mots interdits bien lisibles */
+.tb-top .tb-timer { font-size: 46px; min-width: 96px; padding: 2px 14px; border-radius: 999px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 2px var(--tc); line-height: 1.1; }
+.tb-top .tb-net { font-size: 18px; min-width: 44px; text-align: center; }
+.tb-minus { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); font-size: 22px; color: #FF5A82; white-space: nowrap; pointer-events: none; animation: tbMinus 1s ease-out forwards; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+@keyframes tbMinus { 0% { opacity: 0; transform: translate(-50%, -6px) scale(.8); } 20% { opacity: 1; transform: translate(-50%, 4px) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, 26px) scale(1); } }
+.tb-play .band .mast { max-width: 100%; overflow: hidden; }
+.tb-play .tb-word { font-size: clamp(38px, 13vw, 58px); margin: 0 16px; }
+.tb-play .tb-forbid { flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 0 14px; padding: 12px 10px; background: rgba(10,4,30,.55); }
+.tb-play .tb-forbid small { flex-basis: auto; font-size: 13px; opacity: 1; color: #FFC2D3; }
+.tb-play .tb-forbid span { background: none; padding: 1px 6px; font-size: 25px; color: #fff; }
+#app > .tb-btns { grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: auto; }
+#app > .tb-btns .btn { padding-left: 6px; padding-right: 6px; font-size: 16px; white-space: nowrap; flex-direction: column; gap: 0; line-height: 1.1; }
+#app > .tb-btns .btn small { font-size: 12.5px; font-weight: 800; opacity: .85; }
+.stage.tbfit1 .tb-play .tb-forbid span { font-size: 22px; } .stage.tbfit1 .tb-play { gap: 10px; }
+.stage.tbfit2 .tb-play .tb-word { font-size: 36px; } .stage.tbfit2 .tb-play .tb-forbid span { font-size: 20px; }
+.stage.tbfit3 .tb-play .tb-forbid { gap: 2px; padding: 8px; } .stage.tbfit3 .tb-play .tb-forbid span { font-size: 18px; }
+.stamp.tbq { animation: tbStamp .75s ease-out both; }
+@keyframes tbStamp { 0% { transform: translate(-50%,-50%) rotate(-7deg) scale(1.6); opacity: 0; } 20% { transform: translate(-50%,-50%) rotate(-7deg) scale(.95); opacity: 1; } 60% { transform: translate(-50%,-50%) rotate(-7deg) scale(1); opacity: 1; } 100% { transform: translate(-50%,-50%) rotate(-7deg) scale(1); opacity: 0; } }
+/* fin de manche : l'équipe en gros, une grille fixe de mots (toucher un mot ne bouge rien) */
+.tb-endhead { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; padding: 12px 14px; border-radius: var(--r-l); background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 2px var(--tc); }
+.tb-endteam { font-family: var(--display); font-weight: 900; font-size: 26px; color: var(--tc); line-height: 1.1; }
+.tb-endpts { font-family: var(--display); font-weight: 900; font-size: 34px; line-height: 1.1; }
+.tb-endsub { font-weight: 800; font-size: 15px; color: var(--muted); }
+.tb-fix { margin: 0; font-weight: 700; font-size: 14px; color: var(--muted); text-align: center; }
+.stage.tb-endst { justify-content: flex-start; gap: 10px; }
+.tb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tb-c { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 6px 10px; border: 0; border-radius: 12px; text-align: left; font: inherit; font-weight: 900; font-size: 15px; line-height: 1.1; color: #fff; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.14); cursor: pointer; }
+.tb-c i { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 14px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+.tb-c span { min-width: 0; overflow-wrap: normal; }
+.tb-c.ok { background: rgba(46,230,160,.16); box-shadow: inset 0 0 0 1.5px #2EE6A0; }
+.tb-c.ok i { background: #2EE6A0; color: #0B0720; box-shadow: none; }
+.tb-c:not(.ok) span { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.35); }
 .tb-row .btn { white-space: nowrap; font-size: 17px; padding-left: 8px; padding-right: 8px; }
-.stage.tbfit1 .tb-end .mast { font-size: 24px; } .stage.tbfit1 .tb-w { padding: 5px 9px; font-size: 13.5px; }
-.stage.tbfit2 .tb-fix { display: none; } .stage.tbfit2 .tb-words { gap: 4px; } .stage.tbfit2 .tb-w { padding: 4px 7px; font-size: 12.5px; } .stage.tbfit2 .tb-w b { font-size: 10.5px; }
-.stage.tbfit3 .tb-end { gap: 8px; } .stage.tbfit3 .tb-w { padding: 3px 6px; font-size: 11.5px; }
+.stage.tbfit1 .tb-c { min-height: 34px; padding: 4px 8px; font-size: 14px; } .stage.tbfit1 .tb-endhead { padding: 8px 12px; }
+.stage.tbfit2 .tb-fix { display: none; } .stage.tbfit2 .tb-endpts { font-size: 26px; } .stage.tbfit2 .tb-grid { grid-template-columns: 1fr 1fr 1fr; }
+.stage.tbfit3 .tb-c { min-height: 28px; font-size: 12.5px; gap: 5px; } .stage.tbfit3 .tb-c i { width: 18px; height: 18px; font-size: 11px; }
 .end-bubbles.tbfit1 { gap: 10px 8px; } .end-bubbles.tbfit1 .bubble { min-width: 72px; min-height: 72px; padding: 8px 12px; font-size: 14px; }
 .end-bubbles.tbfit2 .bubble { min-width: 58px; min-height: 58px; padding: 6px 10px; font-size: 12.5px; }
 .end-bubbles.tbfit3 { min-height: 0; gap: 6px; }
-.tb-card .tb-word { overflow-wrap: normal; word-break: normal; }
-.stage > .card.tb-end { min-height: 0; flex: 0 1 auto; gap: 12px; padding-bottom: 16px; }
-.tb-fix { margin: 0 20px; font-weight: 700; font-size: 14px; opacity: .8; text-align: center; }
-.tb-words { margin: 0 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.tb-w { border: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 12px; font: inherit; font-weight: 900; font-size: 15px; color: #fff; background: rgba(255,255,255,.12); cursor: pointer; }
-.tb-w b { font-size: 12px; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,.25); }
-.tb-w.ok { background: rgba(46,230,160,.22); box-shadow: inset 0 0 0 1.5px #2EE6A0; }
-.tb-w.no { background: rgba(255,59,110,.22); box-shadow: inset 0 0 0 1.5px #FF3B6E; }
-.tb-w.pass span { opacity: .7; }
-
-.tb-no { --bg: rgba(255,59,110,.18) !important; box-shadow: inset 0 0 0 1.5px #FF3B6E !important; }
 .count-seg { margin-top: -4px; }
 /* sensation d'appli : pas de sélection de texte ni de loupe au toucher, sauf dans les champs */
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
@@ -3937,95 +3962,133 @@ function proposeTool() {
 }
 
 /* -------- SANS LE DIRE : un téléphone, deux équipes, on fait deviner un mot sans dire les mots interdits -------- */
-const TB = { teams: [[], []], score: [0, 0], turns: 0, secs: 60, giver: [0, 0] };
-const TB_NAMES = ["Équipe Feu", "Équipe Glace"], TB_COLS = ["#FF3B6E", "#4D8BFF"];
-const tbOf = i => TB_NAMES[i].replace("Équipe", "équipe");
+const TB = { teams: [[], []], score: [0, 0], turns: 0, secs: store.get("tbSecs", 60), giver: [0, 0], names: store.get("tbNames", null) };
+const TB_NAMES = ["Équipe Feu", "Équipe Glace"], TB_COLS = ["#FF3B6E", "#4D8BFF"], TB_PASS = 5; // passer coûte 5 secondes
+const tbName = i => (TB.names && TB.names[i]) || TB_NAMES[i];
+const tbAnd = l => l.length > 1 ? l.slice(0, -1).join(", ") + " et " + l[l.length - 1] : l.join("");
+const tbTime = s => s < 60 ? `${s} s` : `${Math.floor(s / 60)} min${s % 60 ? " " + String(s % 60).padStart(2, "0") : ""}`;
 function tabooSetup() {
   if (!TB.teams[0].length || TB.teams.flat().length !== S.names.length || TB.teams.flat().some(n => !S.names.includes(n))) tabooSplit();
+  const move = (n, from, to) => {
+    if (TB.teams[from].length <= 2) { toast("Il faut au moins 2 joueurs par équipe."); return draw(); }
+    TB.teams[from] = TB.teams[from].filter(x => x !== n); TB.teams[to].push(n); buzz(10); draw();
+  };
   const draw = () => {
-    $("#teams").innerHTML = TB.teams.map((t, i) => `<div class="tb-team" style="--tc:${TB_COLS[i]}"><b>${TB_NAMES[i]}</b><div class="tb-names">${t.map(n => `<button class="tb-name" data-n="${esc(n)}">${esc(n)}</button>`).join("")}</div></div>`).join("");
-    // toucher un prénom le fait passer dans l'autre équipe
-    $$("#teams .tb-name").forEach(b => b.onclick = () => {
-      const n = b.dataset.n, i = TB.teams[0].includes(n) ? 0 : 1;
-      if (TB.teams[i].length <= 2) return toast("Il faut au moins 2 joueurs par équipe.");
-      TB.teams[i] = TB.teams[i].filter(x => x !== n); TB.teams[1 - i].push(n); buzz(10); draw();
+    $("#teams").innerHTML = TB.teams.map((t, i) => `<div class="tb-team" data-t="${i}" style="--tc:${TB_COLS[i]}">
+      <label class="tb-thead"><input class="tb-tname" data-t="${i}" value="${esc(tbName(i))}" maxlength="18" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Nom de l'équipe"></label>
+      <div class="tb-names">${t.map(n => `<button class="tb-name" data-n="${esc(n)}">${esc(n)}</button>`).join("")}</div></div>`).join("");
+    $$("#teams .tb-tname").forEach(f => {
+      f.oninput = () => { const i = +f.dataset.t; TB.names = [tbName(0), tbName(1)]; TB.names[i] = f.value.trim().replace(/\s+/g, " ") || TB_NAMES[i]; store.set("tbNames", TB.names); };
+      f.onblur = () => { f.value = tbName(+f.dataset.t); };
+      f.onkeydown = e => { if (e.key === "Enter") f.blur(); };
     });
-    $$("#tbsecs button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === TB.secs));
+    $$("#teams .tb-name").forEach(b => tbDrag(b, move));
+    $("#tsec").textContent = tbTime(TB.secs);
+    $("#tm").disabled = TB.secs <= 15; $("#tp").disabled = TB.secs >= 300;
   };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Sans le dire</span><span style="width:44px"></span></div>
-    <p class="hint muted" style="text-align:center;margin:0">Fais deviner le mot à ton équipe sans dire les mots interdits. Pas de gestes. Touche un prénom pour le changer d'équipe.</p>
+    <p class="hint muted" style="text-align:center;margin:0">Fais glisser un prénom pour le changer d'équipe. Touche le nom d'une équipe pour le changer.</p>
     <div id="teams" class="tb-teams"></div>
-    <p style="text-align:center;margin:0"><button class="linkbtn" id="mix">Refaire les équipes</button></p>
-    <div class="section-label">Temps par manche</div>
-    <div class="seg" id="tbsecs"><button data-v="45">45 s</button><button data-v="60">1 min</button><button data-v="90">1 min 30</button></div>
+    <p style="text-align:center;margin:0"><button class="linkbtn" id="mix">Refaire les équipes au hasard</button></p>
+    <div class="section-label">Chrono</div>
+    <div class="tb-step"><button id="tm" aria-label="Moins de temps">−</button><b id="tsec"></b><button id="tp" aria-label="Plus de temps">+</button></div>
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
     $("#back").onclick = ambiance;
     $("#mix").onclick = () => { tabooSplit(); buzz(10); draw(); };
-    $$("#tbsecs button").forEach(b => b.onclick = () => { TB.secs = +b.dataset.v; draw(); });
+    const step = d => { TB.secs = Math.max(15, Math.min(300, TB.secs + d)); store.set("tbSecs", TB.secs); buzz(8); draw(); };
+    $("#tm").onclick = () => step(-15); $("#tp").onclick = () => step(15);
     $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.deck = shuffle(pool("taboo")); S.inGame = true; keepAwake(); tabooTurn(); };
     draw();
     tbFit();
   });
 }
+// un prénom se fait glisser d'une équipe à l'autre ; un simple toucher le fait aussi passer en face
+function tbDrag(b, move) {
+  const n = b.dataset.n, from = () => TB.teams[0].includes(n) ? 0 : 1;
+  const at = (x, y) => $$("#teams .tb-team").findIndex(t => { const r = t.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; });
+  let x0 = null, y0 = 0, drag = false, pid = null;
+  const reset = () => { x0 = null; drag = false; b.classList.remove("drag"); b.style.transform = ""; $$("#teams .tb-team").forEach(t => t.classList.remove("drop")); };
+  b.addEventListener("pointerdown", e => { x0 = e.clientX; y0 = e.clientY; drag = false; pid = e.pointerId; try { b.setPointerCapture(pid); } catch (er) {} });
+  b.addEventListener("pointermove", e => {
+    if (x0 === null || e.pointerId !== pid) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (!drag && Math.hypot(dx, dy) < 8) return;
+    drag = true; b.classList.add("drag"); b.style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
+    const o = at(e.clientX, e.clientY);
+    $$("#teams .tb-team").forEach((t, i) => t.classList.toggle("drop", i === o && o !== from()));
+  });
+  b.addEventListener("pointerup", e => {
+    if (x0 === null) return;
+    const was = drag, f = from(), to = was ? at(e.clientX, e.clientY) : 1 - f;
+    reset();
+    if (to >= 0 && to !== f) move(n, f, to);
+  });
+  b.addEventListener("pointercancel", reset);
+}
 function tabooSplit() { const n = shuffle(S.names); TB.teams = [n.filter((_, i) => i % 2 === 0), n.filter((_, i) => i % 2 === 1)]; }
 const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(pool("taboo")); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
-const tbBoard = cur => `<div class="tb-score">${TB_NAMES.map((n, i) => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${n.replace("Équipe ", "")} <b>${TB.score[i]}</b></span>`).join("")}</div>`;
-const tbNet = log => log.reduce((a, x) => a + (x.r === "ok" ? 1 : x.r === "no" ? -1 : 0), 0);
+const tbBoard = (cur, sc = TB.score) => `<div class="tb-score">${[0, 1].map(i => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${esc(tbName(i))} <b>${sc[i]}</b></span>`).join("")}</div>`;
 const tbSign = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
 function tabooTurn() {
   const t = TB.turns % 2, team = TB.teams[t], g = team[TB.giver[t] % team.length];
   view(`
     <div class="topbar">${quitBtn()}<span class="progress">Manche ${TB.turns + 1}</span><span style="width:44px"></span></div>
     ${tbBoard(t)}
-    <div class="stage"><div class="secret" style="--c:${TB_COLS[t]}"><span class="eyebrow" style="color:var(--paper)">${TB_NAMES[t]} · passe le téléphone à</span><span class="mast">${esc(g)}</span>
-      <p>Ton équipe devine : ${team.filter(n => n !== g).map(esc).join(", ")}.<br>Quelqu'un de l'${tbOf(1 - t)} regarde l'écran avec toi.</p></div></div>
-    <div class="actions"><button class="btn red" id="go">Lancer le chrono</button></div>
+    <div class="stage"><div class="secret" style="--c:${TB_COLS[t]}"><span class="eyebrow" style="color:var(--paper)">${esc(tbName(t))} · passe le téléphone à</span><span class="mast">${esc(g)}</span>
+      <p>Tu dois faire deviner à ton équipe&nbsp;: ${tbAnd(team.filter(n => n !== g).map(esc))}.<br>Quelqu'un de ${esc(tbName(1 - t))} regarde l'écran avec toi.</p></div></div>
+    <div class="actions"><button class="btn red" id="go">Lancer le chrono (${tbTime(TB.secs)})</button></div>
   `, () => { bindQuit(); tbFit(); $("#go").onclick = () => tabooPlay(t, g); });
 }
-// pendant le chrono : la carte seule ; swipe à droite = trouvé, à gauche = passé, « Interdit » = −1
+// pendant le chrono : swipe à droite = trouvé, à gauche = passé (−5 s) ; « Interdit » = −1 point, on garde la même carte
 function tabooPlay(t, g) {
-  let left = TB.secs, c = tbCard(), over = false, fly = () => {};
+  let left = TB.secs, c = tbCard(), over = false, fouls = 0, fly = () => {};
   const log = [];
   view(`
-    <div class="topbar">${quitBtn()}<span class="tb-timer" id="timer">${left}</span><span class="progress tb-net" id="pts">0</span></div>
+    <div class="topbar tb-top" style="--tc:${TB_COLS[t]}">${quitBtn()}<span class="tb-timer" id="timer">${left}</span><span class="progress tb-net" id="pts">0</span></div>
     <div class="stage" id="stage"></div>
     <div class="tb-btns">
-      <button class="btn white" id="pass">← Passer</button>
-      <button class="btn ink tb-no" id="no">Interdit</button>
-      <button class="btn green" id="ok">Trouvé →</button>
+      <button class="btn white" id="pass">← Passer<small>−${TB_PASS} s</small></button>
+      <button class="btn ink tb-no" id="no">Interdit<small>−1 point</small></button>
+      <button class="btn green" id="ok">Trouvé →<small>+1 point</small></button>
     </div>
   `, () => {
     bindQuit();
+    const net = () => log.filter(x => x.r === "ok").length - fouls;
+    const pts = () => { $("#pts").textContent = tbSign(net()); };
+    const tickTo = s => {
+      left = s; const el = $("#timer"); if (!el) return;
+      el.firstChild.nodeValue = Math.max(0, left); el.classList.toggle("hot", left <= 10);
+      if (left <= 0 && !over) { over = true; clearInterval(tick); buzz([200, 80, 200]); stamp("Temps écoulé"); later(() => tabooEnd(t, g, log, fouls), 900); }
+    };
     const act = (r, id) => {
       if (over || id !== c.id) return; // un double toucher ne compte qu'une fois
       log.push({ w: c.data[1], r });
-      if (r === "ok") buzz(20); else if (r === "no") { buzz([80, 40, 80]); stamp("Interdit"); }
+      if (r === "ok") buzz(20);
+      else { // passer coûte du temps, et ça se voit sous le chrono
+        const m = document.createElement("span"); m.className = "tb-minus"; m.textContent = `−${TB_PASS} s`; $("#timer").appendChild(m); setTimeout(() => m.remove(), 1000);
+        buzz([30, 30, 30]); tickTo(left - TB_PASS);
+        if (over) return;
+      }
       c = tbCard(); show();
     };
     const show = () => {
       const d = c.data, id = c.id;
-      $("#stage").innerHTML = `<div class="card tb-card" id="tbc" style="--c:var(--taboo)">
-        <div class="band"><span class="mast">Fais deviner</span></div>
+      $("#stage").innerHTML = `<div class="card tb-card tb-play" id="tbc" style="--c:var(--taboo)">
+        <div class="band"><span class="mast">${esc(tbName(t))}</span></div>
         <p class="tb-word">${esc(d[1])}</p>
         <div class="tb-forbid"><small>Interdit de dire</small>${d.slice(2).map(w => `<span>${esc(w)}</span>`).join("")}</div>
       </div>`;
       const el = $("#tbc");
       fly = swipeCard(el, v => act(v === "oui" ? "ok" : "pass", id));
       el.querySelector(".swipe-tag.oui").textContent = "TROUVÉ"; el.querySelector(".swipe-tag.non").textContent = "PASSE";
-      tbFitWord(el);
-      $("#pts").textContent = tbSign(tbNet(log));
-      $("#no").onclick = () => act("no", id);
+      tbFitWord(el); pts();
     };
     $("#ok").onclick = () => fly("oui"); $("#pass").onclick = () => fly("non");
-    show();
-    const tick = setInterval(() => {
-      left--; const el = $("#timer"); if (!el) return clearInterval(tick);
-      el.textContent = Math.max(0, left); el.classList.toggle("hot", left <= 10);
-      if (left <= 10 && left > 0) buzz(8);
-      if (left <= 0) { clearInterval(tick); over = true; buzz([200, 80, 200]); stamp("Temps écoulé"); later(() => tabooEnd(t, g, log), 900); }
-    }, 1000);
+    $("#no").onclick = () => { if (over) return; fouls++; buzz([80, 40, 80]); stamp("Interdit", "tbq"); pts(); };
+    show(); tbFit();
+    const tick = setInterval(() => { if (!$("#timer")) return clearInterval(tick); tickTo(left - 1); if (left <= 10 && left > 0) buzz(8); }, 1000);
     timers.push(tick);
   });
 }
@@ -4035,37 +4098,36 @@ function tbFitWord(card) {
   let f = parseFloat(getComputedStyle(w).fontSize);
   while ((w.scrollWidth > w.clientWidth + 1 || w.getBoundingClientRect().height > f * 2.3) && f > 20) w.style.fontSize = (f -= 2) + "px";
 }
-// fin de manche : la liste des mots ; toucher un mot le corrige (trouvé → passé → interdit → trouvé)
-function tabooEnd(t, g, log) {
-  const NEXT = { ok: "pass", pass: "no", no: "ok" }, LBL = { ok: "+1", no: "−1", pass: "passé" };
+// fin de manche : l'équipe en gros, ses points, et les mots ; toucher un mot le passe de trouvé à pas trouvé
+function tabooEnd(t, g, log, fouls) {
   view(`
     <div class="topbar">${quitBtn()}<span class="progress">Manche ${TB.turns + 1}</span><span style="width:44px"></span></div>
-    <div class="stage"><div class="card tb-end" style="--c:${TB_COLS[t]}">
-      <div class="band"><span class="mast" id="net"></span></div>
-      <p class="tb-fix">${log.length ? "Une erreur ? Touche le mot pour corriger." : "Aucun mot cette fois."}</p>
-      <div class="tb-words" id="words"></div>
+    <div class="stage tb-endst">
+      <div class="tb-endhead" style="--tc:${TB_COLS[t]}"><span class="tb-endteam">${esc(tbName(t))}</span><span class="tb-endpts" id="net"></span><span class="tb-endsub" id="sub"></span></div>
+      ${log.length ? `<p class="tb-fix">Erreur de swipe ? Touche le mot.</p><div class="tb-grid" id="words">${log.map((x, i) => `<button class="tb-c" data-i="${i}"><i></i><span>${esc(x.w)}</span></button>`).join("")}</div>` : `<p class="tb-fix">Aucun mot cette fois.</p>`}
       <div id="board"></div>
-    </div></div>
+    </div>
     <div class="actions"><div class="row tb-row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="next">Équipe suivante</button></div></div>
   `, () => {
     bindQuit();
+    const net = () => log.filter(x => x.r === "ok").length - fouls;
     const draw = () => {
-      const n = tbNet(log);
+      const n = net(), ok = log.filter(x => x.r === "ok").length, sc = TB.score.slice(); sc[t] += n;
       $("#net").textContent = `${tbSign(n)} point${Math.abs(n) > 1 ? "s" : ""}`;
-      $("#words").innerHTML = log.map((x, i) => `<button class="tb-w ${x.r}" data-i="${i}"><span>${esc(x.w)}</span><b>${LBL[x.r]}</b></button>`).join("");
-      $$("#words .tb-w").forEach(b => b.onclick = () => { const x = log[+b.dataset.i]; x.r = NEXT[x.r]; buzz(10); draw(); });
-      const sc = TB.score.slice(); sc[t] += n;
-      $("#board").innerHTML = `<div class="tb-score">${TB_NAMES.map((nm, i) => `<span style="--tc:${TB_COLS[i]}">${nm.replace("Équipe ", "")} <b>${sc[i]}</b></span>`).join("")}</div>`;
-      tbFit();
+      $("#sub").textContent = `${ok} trouvé${ok > 1 ? "s" : ""}${fouls ? ` · ${fouls} interdit${fouls > 1 ? "s" : ""}` : ""}`;
+      // seule la couleur et la coche changent : la grille ne bouge pas
+      $$("#words .tb-c").forEach(b => { const on = log[+b.dataset.i].r === "ok"; b.classList.toggle("ok", on); b.querySelector("i").textContent = on ? "✓" : ""; });
+      $("#board").innerHTML = tbBoard(-1, sc);
     };
-    const close = go => { TB.score[t] += tbNet(log); TB.giver[t]++; TB.turns++; go(); };
+    $$("#words .tb-c").forEach(b => b.onclick = () => { const x = log[+b.dataset.i]; x.r = x.r === "ok" ? "pass" : "ok"; buzz(10); draw(); });
+    const close = go => { TB.score[t] += net(); TB.giver[t]++; TB.turns++; go(); };
     $("#next").onclick = () => close(tabooTurn);
     $("#stop").onclick = () => close(tabooFinal);
-    draw();
+    draw(); tbFit();
   });
 }
-const tbOver = () => document.body.scrollHeight > document.body.clientHeight + 1 || [...$$(".actions .btn")].some(b => b.getBoundingClientRect().bottom > innerHeight + 1);
-// beaucoup de joueurs, beaucoup de mots ou petit écran : on resserre par paliers tant que l'écran défile
+const tbOver = () => document.body.scrollHeight > document.body.clientHeight + 1 || [...$$(".actions .btn, #app > .tb-btns .btn")].some(b => b.getBoundingClientRect().bottom > innerHeight + 1);
+// beaucoup de joueurs, beaucoup de mots ou petit écran : on resserre par paliers tant que l'écran déborde
 function tbFit() {
   const els = [...app.children], cls = ["tbfit1", "tbfit2", "tbfit3"];
   els.forEach(e => e.classList.remove(...cls));
@@ -4078,8 +4140,8 @@ function tabooFinal() {
   buzz([60, 40, 140]);
   view(`
     <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Sans le dire</span></div>
-      <p class="rank-say">${w < 0 ? "Égalité parfaite" : "Victoire de l'" + tbOf(w)}</p>
-      <ol class="rank-list">${[0, 1].sort((x, y) => TB.score[y] - TB.score[x]).map((i, k) => `<li class="up"><span class="rk">${w < 0 ? 1 : k + 1}</span><span class="nm">${TB_NAMES[i]}</span><b>${TB.score[i]} pt${Math.abs(TB.score[i]) > 1 ? "s" : ""}</b></li>`).join("")}</ol>
+      <p class="rank-say">${w < 0 ? "Égalité parfaite" : esc(tbName(w)) + " gagne"}</p>
+      <ol class="rank-list">${[0, 1].sort((x, y) => TB.score[y] - TB.score[x]).map((i, k) => `<li class="up"><span class="rk">${w < 0 ? 1 : k + 1}</span><span class="nm">${esc(tbName(i))}</span><b>${TB.score[i]} pt${Math.abs(TB.score[i]) > 1 ? "s" : ""}</b></li>`).join("")}</ol>
       <div class="confetti" id="confetti"></div></div>
     ${endBubbles(S.names)}
     <div class="actions"><div class="row"><button class="btn red" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div></div>
@@ -4258,7 +4320,7 @@ const TUTO = {
   classement: "Celui qui a le tel voit une question en secret et classe tout le monde, lui compris. Les autres regardent le classement et se mettent d'accord pour retrouver la question.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
-  taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer. Quelqu'un de l'autre équipe te surveille.",
+  taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
