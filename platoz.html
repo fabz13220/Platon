@@ -1066,7 +1066,7 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .propose .chips { padding: 0; }
 .propose .chip.pick { min-height: 42px; font-size: 15px; padding: 8px 14px; }
 
-/* Puissance 4 */
+/* Aligne 4 (ex-Puissance 4) */
 .p4-msg { text-align: center; margin: 0; font-family: var(--display); font-weight: 800; font-size: 21px; display: flex; gap: 10px; align-items: center; justify-content: center; min-height: 30px; }
 .p4c { width: 22px; height: 22px; border-radius: 50%; display: inline-block; }
 .p4c.p0, .p4 i.p0 { background: radial-gradient(circle at 35% 30%, #FF8FB0, #FF3B6E 60%, #C80F48); }
@@ -1079,6 +1079,15 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 @keyframes p4drop { from { transform: translateY(calc(var(--r) * -110%)); } }
 @keyframes p4bounce { 40% { transform: translateY(-10%); } }
 .p4 i.hl { box-shadow: 0 0 0 3px #fff, 0 0 18px #fff; }
+/* prénoms et score : un prénom long passe à la ligne entier, jamais coupé */
+.p4-score { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 0; font-weight: 800; font-size: 16px; }
+.p4-score .nm { white-space: nowrap; min-width: 0; display: flex; flex: 0 1 auto; }
+.p4-score .nm:first-child { justify-content: flex-end; }
+.p4-score .nm > span { display: inline-flex; align-items: center; gap: 6px; }
+.p4-score .p4c { width: 14px; height: 14px; flex: none; }
+.p4-score .pts { font-family: var(--display); font-size: 20px; white-space: nowrap; }
+.p4-next { text-align: center; margin: 0; min-height: 1.4em; }
+.hint .p4c { width: 14px; height: 14px; vertical-align: -1px; margin: 0 5px; }
 /* Uno */
 .uno { position: relative; width: 58px; height: 86px; flex: none; border-radius: 10px; border: 3px solid #fff; background: var(--uc); color: #fff; font-family: var(--display); font-weight: 900; font-size: 22px; display: grid; place-items: center; box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); padding: 0; }
 .uno span { width: 78%; height: 62%; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--uc); display: grid; place-items: center; transform: rotate(-18deg); }
@@ -2022,8 +2031,8 @@ function home() {
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
-  const maxOf = t => ({ p4: 2, deux: 16, uno: 10 })[t] || 16;
-  const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
+  const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
+  const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
   const rail = (title, list, id, on) => (list = on ? list.filter(t => !ONE_PHONE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
@@ -2075,7 +2084,7 @@ function home() {
     };
     $$(".tile:not([data-on])").forEach(b => b.onclick = () => {
       const m = b.dataset.mode;
-      if (m === "p4") duoSetup(p4Start);
+      if (m === "p4") { S.mode = "p4"; playersScreen(); }
       else if (m === "uno") { S.mode = "uno"; playersScreen(); }
       else if (m === "reflexe") reflexMenu();
       else if (m === "test") testIntro();
@@ -2127,7 +2136,7 @@ function ideaSheet() {
 }
 
 /* -------- JOUEURS -------- */
-function minPlayers() { if (S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe" || S.mode === "test") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
+function minPlayers() { if (S.mode === "p4" || S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe" || S.mode === "test") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
 function playersScreen() {
   const min = minPlayers();
   const draw = () => {
@@ -2384,6 +2393,7 @@ function popGroup(b, g, draw) {
 function ambiance() {
   if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
   if (S.mode === "test") return testStart(); // Test de pureté : les thèmes remplacent l'intensité
+  if (S.mode === "p4") return p4Start(); // Aligne 4 : rien à régler
   if (S.mode === "reflexe") return reflexStart(); // Duel réflexe : rien à régler à part les pièges, déjà sur l'écran des joueurs
   if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ni de réglage ex et sexe, tous les mots
   const draw = () => {
@@ -4319,14 +4329,19 @@ function tabooFinal() {
   `, () => { tbFit(); party(); $("#again").onclick = tabooSetup; $("#home").onclick = home; bindBubbles(); });
 }
 
-/* -------- PUISSANCE 4 : deux joueurs sur le même écran -------- */
-const P4 = { wins: [0, 0], first: 0 };
+/* -------- ALIGNE 4 (ex-Puissance 4) : un téléphone, à deux ou plus (le gagnant reste, le perdant laisse sa place) -------- */
+const P4 = { key: "", wins: {}, q: [], first: 0, round: 0 };
+// « Ensuite : Max, Zoé, Lina et 4 autres »
+const p4Next = q => q.length ? `Ensuite : ${q.slice(0, 3).map(esc).join(", ")}${q.length > 3 ? ` et ${q.length - 3} autre${q.length > 4 ? "s" : ""}` : ""}` : "";
 function p4Start() {
   if (tutoGate("p4", p4Start)) return;
-  stat("start", "p4", 2, "un");
-  const names = S.duo, R = 6, W = 7;
+  const key = S.names.join("|");
+  if (P4.key !== key) Object.assign(P4, { key, wins: {}, q: S.names.slice(), first: 0, round: 0 });
+  P4.round++;
+  const Q = P4.q, names = Q.slice(0, 2), R = 6, W = 7;
+  stat("start", "p4", Q.length, "un");
   const g = Array.from({ length: R }, () => Array(W).fill(-1));
-  let cur = P4.first, over = false, line = null, last = null;
+  let cur = P4.first, over = false, line = null, last = null, swap = "";
   const win = (r, c) => {
     const p = g[r][c];
     for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
@@ -4336,28 +4351,41 @@ function p4Start() {
     }
     return null;
   };
+  // fin de manche : à deux, le perdant commence la suivante ; à plus, le gagnant reste et celui qui arrive commence
+  const end = w => {
+    over = true;
+    if (Q.length === 2) { P4.first = w >= 0 ? 1 - w : 1 - P4.first; return; }
+    const stay = names[w >= 0 ? w : 0], out = names[w >= 0 ? 1 - w : 1];
+    P4.q = [stay, ...Q.slice(2), out]; P4.first = 1;
+    swap = `${esc(out)} laisse sa place à ${esc(Q[2])}.`;
+  };
   const draw = () => {
     const full = g[0].every(x => x >= 0);
     const msg = line ? `<b class="p4c p${cur}"></b>${esc(names[cur])} gagne !` : full ? "Match nul" : `<b class="p4c p${cur}"></b>Au tour de ${esc(names[cur])}`;
+    const sub = over ? swap : p4Next(Q.slice(2));
     view(`
-      <div class="topbar">${quitBtn()}<span class="progress">${esc(names[0])} ${P4.wins[0]} - ${P4.wins[1]} ${esc(names[1])}</span><span style="width:44px"></span></div>
+      <div class="topbar">${quitBtn()}<span class="progress">Manche ${P4.round}</span><span style="width:44px"></span></div>
+      <p class="p4-score"><span class="nm"><span><b class="p4c p0"></b>${esc(names[0])}</span></span><span class="pts">${P4.wins[names[0]] || 0} - ${P4.wins[names[1]] || 0}</span><span class="nm"><span>${esc(names[1])}<b class="p4c p1"></b></span></span></p>
       <p class="p4-msg">${msg}</p>
       <div class="p4" id="p4">${Array.from({ length: W }, (_, c) => `<button class="p4col" data-c="${c}" aria-label="Colonne ${c + 1}">${Array.from({ length: R }, (_, r) => {
         const v = g[r][c], hl = line && line.some(([a, b]) => a === r && b === c), drop = last && last[0] === r && last[1] === c;
         return `<i class="${v >= 0 ? "p" + v : ""}${hl ? " hl" : ""}${drop ? " drop" : ""}" style="--r:${r + 1}"></i>`;
       }).join("")}</button>`).join("")}</div>
-      <div class="actions">${over ? `<div class="row"><button class="btn red" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div>` : ""}</div>
+      ${Q.length > 2 ? `<p class="hint muted p4-next">${sub}</p>` : ""}
+      <div class="actions">${over ? `<div class="row"><button class="btn red" id="again">${Q.length > 2 ? "Manche suivante" : "Revanche"}</button><button class="btn white" id="home">Accueil</button></div>` : ""}</div>
     `, () => {
       bindQuit();
+      // un prénom trop long rapetisse au lieu d'être coupé
+      $$(".p4-score .nm").forEach(el => { let f = 16; while (el.firstChild.offsetWidth > el.clientWidth + 1 && f > 11) el.style.fontSize = --f + "px"; });
       if (over) { $("#again").onclick = p4Start; $("#home").onclick = home; return; }
       $$(".p4col").forEach(b => b.onclick = () => {
         const c = +b.dataset.c; let r = R - 1; while (r >= 0 && g[r][c] >= 0) r--;
         if (r < 0) { buzz([20, 30, 20]); return; }
         g[r][c] = cur; last = [r, c]; buzz(15);
         line = win(r, c);
-        if (line || g[0].every(x => x >= 0)) stat("end", "p4", 2, "un");
-        if (line) { over = true; P4.wins[cur]++; P4.first = 1 - cur; buzz([60, 40, 120]); }
-        else if (g[0].every(x => x >= 0)) { over = true; P4.first = 1 - P4.first; }
+        if (line || g[0].every(x => x >= 0)) stat("end", "p4", Q.length, "un");
+        if (line) { P4.wins[names[cur]] = (P4.wins[names[cur]] || 0) + 1; end(cur); buzz([60, 40, 120]); }
+        else if (g[0].every(x => x >= 0)) end(-1);
         else cur = 1 - cur;
         draw();
       });
@@ -4494,7 +4522,7 @@ const TUTO = {
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir, Mr. White n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
-  p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
+  p4: "Chacun son tour, tu touches une colonne et ton jeton tombe. Le premier qui aligne 4 jetons gagne, en ligne, en colonne ou en diagonale. À plus de deux, le gagnant reste et le perdant laisse sa place au suivant.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
@@ -4507,7 +4535,7 @@ function showTuto(key, then, force) {
   const done = () => { try { then && then(); } catch (e) { console.error(e); } };
   if (!steps || (!force && (seen.includes(key) || tutoSession.has(key)))) return done();
   tutoSession.add(key); clearTimers(); $$(".tuto-wrap").forEach(t => t.remove());
-  const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Puissance 4", mix: "Mode Mix" })[key] || key;
+  const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Aligne 4", mix: "Mode Mix" })[key] || key;
   const w = document.createElement("div"); w.className = "tuto-wrap";
   w.innerHTML = `<div class="tuto" role="dialog" aria-modal="true" aria-label="Règles : ${esc(name)}">
     <div class="tuto-head"><span>Règles · <b>${esc(name)}</b></span><span id="tuto-n"></span></div>
@@ -4963,29 +4991,6 @@ const PUR = [
 ];
 
 /* deux prénoms pour les jeux à deux */
-function duoSetup(then) {
-  const d = S.duo || ["", ""];
-  view(`
-    <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Qui joue ?</span><span style="width:44px"></span></div>
-    <div class="opts">
-      <input class="duo-in" id="duo-a" maxlength="14" placeholder="Joueur 1" autocomplete="off" autocapitalize="words" enterkeyhint="next" value="${esc(d[0])}" aria-label="Prénom du joueur 1">
-      <input class="duo-in" id="duo-b" maxlength="14" placeholder="Joueur 2" autocomplete="off" autocapitalize="words" enterkeyhint="done" value="${esc(d[1])}" aria-label="Prénom du joueur 2">
-    </div>
-    ${tutoLink()}
-    <div class="actions"><button class="btn red" id="next">Continuer</button></div>
-  `, () => {
-    $("#back").onclick = home; bindTutoLink(then === p4Start ? "p4" : "reflexe");
-    const go = () => {
-      const a = $("#duo-a").value.trim(), b = $("#duo-b").value.trim();
-      if (!a || !b) { toast("Il faut deux prénoms."); return; }
-      if (a.toLowerCase() === b.toLowerCase()) { toast("Il faut deux prénoms différents."); return; }
-      store.set("duo", [a, b]); S.duo = [a, b]; then();
-    };
-    $("#next").onclick = go;
-    $("#duo-a").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#duo-b").focus(); } };
-    $("#duo-b").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
-  });
-}
 function quitBtn() { return `<button class="iconbtn" id="quit" aria-label="Quitter">×</button>`; }
 function bindQuit() {
   $("#quit").onclick = () => sheet(`<span class="mast" style="font-size:30px">Quitter la partie ?</span>
@@ -5380,7 +5385,7 @@ async function saveStory(A, btn, file) {
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const SITE = "https://fabz13220.github.io/Platon/";
-const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 2], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Puissance 4", 2], uno: ["Uno", 2] };
+const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 2], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Aligne 4", 2], uno: ["Uno", 2] };
 // jeux longs : une manche = une partie entière, jamais tirés par le Mix
 const LONG = ["p4", "uno", "taboo"], NEWG = ["deux", "reflexe", "p4", "uno", "taboo"];
 const roundOpts = g => ({ p4: [3, 5, 7], uno: [1, 2, 3], taboo: [4, 6, 8] })[g] || [4, 6, 10];
@@ -5818,7 +5823,16 @@ async function roomNext(r) {
     if (r.traps !== false && Math.random() < .45) { d += 900; trap = Math.round(700 + Math.random() * (d - 2100)); }
     card = { type: t, delay: Math.round(d), trap, tcol: rnd(["red", "blue", "violet", "pink"]) };
   }
-  else if (t === "p4") { card = { type: t, a: turnOf, b: all[(r.round + 1) % n], board: ".".repeat(42), turn: 0, last: -1, line: [], win: null }; phase = "play"; }
+  else if (t === "p4") {
+    // le gagnant reste, le perdant passe en bout de file ; celui qui arrive commence (à deux sur un nul, on échange)
+    const pc = r.card && r.card.type === "p4" && r.card.q ? r.card : null;
+    let q = pc ? pc.q.filter(u => all.includes(u)) : all.slice(); all.forEach(u => q.includes(u) || q.push(u));
+    if (pc && pc.win != null && q.includes(pc.a) && q.includes(pc.b)) {
+      const w = pc.win >= 0 ? (pc.win ? pc.b : pc.a) : n === 2 ? pc.b : pc.a, l = w === pc.a ? pc.b : pc.a;
+      q = [w, ...q.filter(u => u !== w && u !== l), l];
+    }
+    card = { type: t, a: q[0], b: q[1], q, board: ".".repeat(42), turn: pc ? 1 : 0, last: -1, line: [], win: null }; phase = "play";
+  }
   else if (t === "uno") {
     const order = shuffle(all).slice(0, 10), pile = unoDeck().map(k => k.c + k.v), hands = {};
     order.forEach(u => { hands[u] = pile.splice(0, 7); });
@@ -6163,7 +6177,7 @@ function roomRender(r) {
     }
   });
 }
-// jeux ajoutés en ligne : Qui de nous deux, Duel réflexe, Puissance 4, Uno, Sans le dire
+// jeux ajoutés en ligne : Qui de nous deux, Duel réflexe, Aligne 4, Uno, Sans le dire
 const unoDec = s => ({ c: s[0], v: s.slice(1) });
 function p4Line(g, r, c) {
   const p = g[r * 7 + c];
@@ -6244,7 +6258,9 @@ function roomRenderX(r, h) {
       const v = g[y * 7 + x], i = y * 7 + x;
       return `<i class="${v !== "." ? "p" + v : ""}${line.includes(i) ? " hl" : ""}${c.last === i ? " drop" : ""}" style="--r:${y + 1}"></i>`;
     }).join("")}</button>`).join("")}</div>`;
-    const who = `<p class="hint muted" style="text-align:center;margin:0"><b class="p4c p0"></b>${N(c.a)} contre <b class="p4c p1"></b>${N(c.b)}</p>`;
+    const q = (c.q || []).filter(u => u !== c.a && u !== c.b), loser = c.win >= 0 ? (c.win ? c.a : c.b) : c.b;
+    const who = `<p class="hint muted" style="text-align:center;margin:0"><b class="p4c p0"></b>${N(c.a)} contre <b class="p4c p1"></b>${N(c.b)}</p>`
+      + (q.length ? `<p class="hint muted p4-next">${over ? (r.round < r.rounds ? `${N(loser)} laisse sa place à ${N(q[0])}.` : "") : p4Next(q.map(u => pname(r, u)))}</p>` : "");
     let acts = over ? h.nextBtn : ![c.a, c.b].includes(uid) ? `<p class="hint muted on-waiting">Tu regardes le match.</p>` : "";
     if (!over && h.host && !r.players[turnU]) acts = `<button class="btn white" id="abort">Arrêter le match</button>`;
     return view(`${h.top}${who}<p class="p4-msg">${msg}</p>${board}${over ? scores : ""}<div class="actions">${acts}</div>`, () => {
