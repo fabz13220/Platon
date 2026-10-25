@@ -1427,7 +1427,17 @@ const C = {
     [1,"piquer la place de {q} sur le canapé"],[1,"finir les frites de {q} sans demander"],[1,"oublier l'anniversaire de {q}"],
     [1,"se faire passer pour {q} au téléphone"],[1,"raconter la vie de {q} mieux que {q}"],[1,"partir en vacances avec la famille de {q}"],
     [2,"pécho le cousin ou la cousine de {q}"],[2,"balancer la pire honte de {q} à un mariage"],[2,"mytho sur {q} pour se sortir d'une galère"],
-    [2,"faire semblant d'être en couple avec {q} à un mariage"],[3,"sortir avec l'ex de {q}"],[3,"finir la soirée dans le lit de {q}"]
+    [2,"faire semblant d'être en couple avec {q} à un mariage"],[3,"sortir avec l'ex de {q}"],[3,"finir la soirée dans le lit de {q}"],
+    [1,"retourner le plateau en perdant à un jeu"],[1,"passer 10 heures par jour sur son téléphone"],[1,"survivre le plus longtemps sur une île déserte"],
+    [1,"dépenser 200 € dans un truc qui sert à rien"],[1,"rire à ses propres blagues avant de les finir"],[1,"manger des chips dans son lit"],
+    [1,"mettre deux heures à se préparer"],[1,"chanter faux au karaoké sans aucune honte"],[1,"perdre ses clés trois fois dans la même semaine"],
+    [1,"répondre à un message trois jours après"],[1,"faire perdre toute l'équipe à un escape game"],[1,"commander toujours la même chose au resto"],
+    [1,"hurler pour une araignée"],[1,"faire un TikTok de tout et n'importe quoi"],[1,"gagner un concours de mauvaise foi"],[1,"dormir 14 heures d'affilée en vacances"],
+    [2,"faire une crise de jalousie pour un like"],[2,"mentir à ses parents sans cligner des yeux"],[2,"stalker les ex de son mec ou de sa meuf"],
+    [2,"draguer en soirée alors qu'il est en couple"],[2,"bouder trois jours pour une broutille"],[2,"dire « je t'aime » au bout d'une semaine"],
+    [2,"mentir sur son âge"],[2,"regarder encore les stories de son ex"],[2,"tout perdre au casino"],[2,"lâcher son meilleur pote pour 10 000 €"],
+    [2,"avoir l'historique de recherche le plus honteux"],
+    [3,"avoir le fantasme le plus inavouable"],[3,"être le plus bruyant au lit"],[3,"avoir le plus gros body count"]
   ],
   pref: [
     [1,"passer une nuit seul dans le désert du Sahara","passer une nuit seul au pôle Nord"],
@@ -1830,7 +1840,7 @@ store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => car
 const WHEEL = [
   { t: "jamais", min: 2, n: 3, short: "Je n'ai jamais", col: "#7B33F5" },
   { t: "av", min: 2, n: 3, short: "Action ou vérité", col: "#FFB21F" },
-  { t: "qui", min: 4, n: 3, short: "Qui pourrait", col: "#EE1F66" },
+  { t: "qui", min: 2, n: 3, short: "Qui pourrait", col: "#EE1F66" },
   { t: "pref", min: 2, n: 3, short: "Tu préfères", col: "#C51FB6" },
   { t: "menteur", min: 2, n: 1, short: "Le Menteur", col: "#2F6BFF" },
   { t: "imposteur", min: 4, n: 1, short: "L'Imposteur", col: "#13C9B4" },
@@ -1949,13 +1959,13 @@ function home() {
       ${rail("Votes et devinettes", ["classement", "radar"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
-      ${rail("Duels", ["deux", "reflexe", "test"], "", true)}
+      ${rail("Duels", ["reflexe", "test"], "", true)}
       ${multiHome()}` : `
       ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
       ${rail("En équipes", fit(["taboo", "imposteur", "menteur"])).replace('class="rail-box"', 'class="rail-box short"')}
-      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon", ...(n > 2 ? ["deux"] : [])]))}
+      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
       ${n > 1 ? rail("Jeux de société", ["p4", "uno"], "row-societe") : ""}
-      ${n <= 2 ? rail(n === 1 ? "En solo" : "Rien que vous deux", fit(["deux", "reflexe", "test"])) : ""}
+      ${n <= 2 ? rail(n === 1 ? "En solo" : "Rien que vous deux", fit(["reflexe", "test"])) : ""}
       ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
     <div class="tabbar-space"></div>
@@ -1987,8 +1997,7 @@ function home() {
     };
     $$(".tile:not([data-on])").forEach(b => b.onclick = () => {
       const m = b.dataset.mode;
-      if (m === "deux") { S.mode = "deux"; duoSetup(ambiance); }
-      else if (m === "p4") duoSetup(p4Start);
+      if (m === "p4") duoSetup(p4Start);
       else if (m === "uno") { S.mode = "uno"; playersScreen(); }
       else if (m === "reflexe") reflexMenu();
       else if (m === "test") testIntro();
@@ -2308,11 +2317,11 @@ function ambiance() {
     ${S.mode === "mix" ? `<div class="section-label">Durée</div><div class="seg" id="len"><button data-v="5">5 tours</button><button data-v="8">8 tours</button><button data-v="12">12 tours</button></div>` : ""}
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
-    $("#back").onclick = S.mode === "deux" ? () => duoSetup(ambiance) : playersScreen;
+    $("#back").onclick = playersScreen;
     $$(".opt").forEach(o => o.onclick = () => { S.level = +o.dataset.l; store.set("level", S.level); draw(); });
     $$("#hot button").forEach(b => b.onclick = () => { S.hot = b.dataset.v === "1"; store.set("hot", S.hot); draw(); });
     $$("#len button").forEach(b => b.onclick = () => { S.rounds = +b.dataset.v; store.set("rounds", S.rounds); draw(); });
-    $("#go").onclick = S.mode === "deux" ? startDeux : startGame;
+    $("#go").onclick = startGame;
     draw();
   });
 }
@@ -4374,7 +4383,6 @@ const TUTO = {
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
-  deux: "Lis la question. À trois, chacun montre l'un de vous deux du doigt. Swipe pour la suivante.",
   reflexe: "L'écran devient rouge d'un coup. Le premier qui touche gagne. Trop tôt, t'as perdu.",
   test: "Tu réponds oui ou non, personne voit. À la fin t'as ton score.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
@@ -4700,7 +4708,7 @@ function duoSetup(then) {
     ${tutoLink()}
     <div class="actions"><button class="btn red" id="next">Continuer</button></div>
   `, () => {
-    $("#back").onclick = home; bindTutoLink(then === p4Start ? "p4" : then === reflexDuo ? "reflexe" : "deux");
+    $("#back").onclick = home; bindTutoLink(then === p4Start ? "p4" : "reflexe");
     const go = () => {
       const a = $("#duo-a").value.trim(), b = $("#duo-b").value.trim();
       if (!a || !b) { toast("Il faut deux prénoms."); return; }
@@ -4735,69 +4743,6 @@ function miniUne(A) {
     <div class="stats">${A.stats.map(s => `<div><b>${s[0]}</b><span>${s[1]}</span></div>`).join("")}</div>
     <div class="foot">Joué sur Platoz</div>
   </div>`;
-}
-
-/* ---------- QUI DE NOUS DEUX ---------- */
-// comme Qui pourrait : un téléphone entre vous deux, sans points, on swipe de carte en carte jusqu'à « Terminer ».
-// Le 3, 2, 1 sur la carte est facultatif.
-function startDeux() {
-  if (tutoGate("deux", startDeux)) return;
-  stat("start", "deux", 2, "un");
-  const pick = () => DEUX.filter(q => q[0] <= S.level && (S.hot || !isHot([q[1]]))).map(q => ({ q, k: Math.random() + (q[0] === S.level ? .35 : 0) })).sort((x, y) => y.k - x.k).map(o => o.q[1]);
-  const st = { i: 0, qs: pick(), slid: false };
-  // cartes sans fin : quand le paquet est passé, il repart sans reprendre les dernières questions
-  const more = () => { const last = st.qs.slice(-10), p = pick(), f = p.filter(q => !last.includes(q)); st.qs.push(...(f.length ? f : p)); };
-  if (!st.qs.length) return home();
-  keepAwake();
-  const face = i => cardShell("deux", null, `
-      <p class="text">Qui de nous deux <b>${esc(st.qs[i])}</b> ?</p>
-      <button class="qcount">3, 2, 1</button>`, i % 2 === 1);
-  const show = () => {
-    if (st.i + 1 >= st.qs.length) more();
-    const slid = st.slid; st.slid = false;
-    view(`
-      <div class="topbar">${quitBtn()}<span class="progress">Carte ${st.i + 1}</span><span style="width:44px"></span></div>
-      <div class="stage jstack">${face(st.i + 1).replace('class="card ', 'class="card under ')}${face(st.i).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
-      bindQuit();
-      const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { st.i++; st.slid = true; show(); });
-      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $("#stop").onclick = () => endDeux(st.i + 1);
-      // compte à rebours facultatif : on peut swiper sans l'utiliser
-      const b = $(".jstack .top .qcount");
-      b.onclick = () => {
-        if (b.classList.contains("on")) return;
-        b.classList.add("on");
-        const tick = n => {
-          if (!b.isConnected) return;
-          b.textContent = n > 0 ? n : "Montrez !"; buzz(n > 0 ? 20 : 80);
-          if (n > 0) later(() => tick(n - 1), 750);
-          else later(() => { b.classList.remove("on"); b.textContent = "3, 2, 1"; }, 1600);
-        };
-        tick(3);
-      };
-    });
-  };
-  show();
-}
-function endDeux(n) {
-  stat("end", "deux", 2, "un");
-  try { wakeLock && wakeLock.release(); } catch (e) {}
-  S.inGame = false;
-  view(`
-    <div class="rank anim fin-jamais" style="flex:1">
-      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} carte${n > 1 ? "s" : ""}</span></div>
-      ${endBubbles(S.duo)}
-      <div class="confetti" id="confetti"></div>
-    </div>
-    <div class="actions">
-      <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
-    </div>
-  `, () => {
-    $("#again").onclick = startDeux;
-    $("#home").onclick = home;
-    bindBubbles(); party(); buzz([40, 30, 80]);
-  });
 }
 
 /* ---------- DUEL RÉFLEXE ---------- */
@@ -4956,7 +4901,7 @@ async function saveStory(A, btn, file) {
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const SITE = "https://fabz13220.github.io/Platon/";
-const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 3], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Puissance 4", 2], uno: ["Uno", 2] };
+const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 2], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Puissance 4", 2], uno: ["Uno", 2] };
 // jeux longs : une manche = une partie entière, jamais tirés par le Mix
 const LONG = ["p4", "uno", "taboo"], NEWG = ["deux", "reflexe", "p4", "uno", "taboo"];
 const roundOpts = g => ({ p4: [3, 5, 7], uno: [1, 2, 3], taboo: [4, 6, 8] })[g] || [4, 6, 10];

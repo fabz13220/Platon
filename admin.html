@@ -204,7 +204,7 @@ function viewStats() {
 
 // ---------- cartes ----------
 let game = "jamais", lvlF = 0, q = "";
-const keysCartes = () => [...Object.keys(DEF.cartes), "deux"];
+const keysCartes = () => Object.keys(DEF.cartes);
 const list = k => k === "deux" ? work.deux : work.cartes[k];
 function viewCartes() {
   if (!VOTES) { loadVotes().then(render); }
