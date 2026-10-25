@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="889dcd6a5c77">
+<meta name="build" content="14846c2a2394">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -3235,18 +3235,16 @@ function cClassSolo(c) {
   function rank() {
     view(`${header()}
       <div class="stage">${cardShell("classement", { label: "Classement secret de", name: r.name }, `
-        <div class="clsq" id="clsq"><b>${esc(cap(q))}</b><span>👆 Appuie pour voir la question</span></div>
+        <div class="clsq" id="clsq"><b>${esc(cap(q))}</b><span>👆 Touche pour voir la question</span></div>
         <p class="sub" style="margin:0">Touche les prénoms du 1er au dernier.</p>
         <div id="order"></div>
         ${chipsHtml()}
         <p style="text-align:center;margin:0"><button class="linkbtn" id="redo">Recommencer</button></p>`, alt()).replace('class="card ', 'class="card clsc ')}</div>
       <div class="actions"><button class="btn red" id="lock" disabled></button></div>`, () => {
       bindHeader(); clsSkip();
-      // la question reste floutée : nette seulement tant qu'on appuie dessus
+      // la question est floutée : un toucher l'affiche, un autre la cache
       const qb = $("#clsq");
-      qb.addEventListener("pointerdown", e => { e.preventDefault(); qb.classList.add("on"); buzz(10); });
-      ["pointerup", "pointercancel", "pointerleave"].forEach(t => qb.addEventListener(t, () => qb.classList.remove("on")));
-      qb.addEventListener("contextmenu", e => e.preventDefault());
+      qb.onclick = () => { qb.classList.toggle("on"); buzz(10); };
       const draw = () => {
         // le dernier se place tout seul
         if (order.length === S.players.length - 1) order.push(S.players.find(p => !order.includes(p)));
