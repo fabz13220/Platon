@@ -707,6 +707,7 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .impx.vote { --gl: rgba(255,224,74,.34); --bd: #FFE04A; }
 .impx.miss { --gl: rgba(110,140,255,.38); --bd: #6E8CFF; }
 .impx.und { --gl: rgba(166,107,255,.5); --bd: #A66BFF; }
+.impx.wht { --gl: rgba(255,255,255,.42); --bd: #F2F0FF; }
 .impx.inf { --gl: rgba(255,59,110,.5); --bd: #FF3B6E; }
 .impx.civ { --gl: rgba(46,230,160,.5); --bd: #2EE6A0; }
 .impx .kick { font: 900 13px var(--body); letter-spacing: .18em; text-transform: uppercase; opacity: .8; }
@@ -2012,7 +2013,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 8)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 25 octobre (L'Imposteur 9)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2972,29 +2973,45 @@ const underOf = x => x.data[3] || UNDER[x.data[2]];
 const impNorm = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/^(les|le|la|des|une|un)\s+|^l['’]\s*/, "").replace(/[^a-z0-9]/g, "").replace(/(s|x)$/, "");
 const impSame = (a, b) => !!impNorm(a) && impNorm(a) === impNorm(b);
 // écrans de L'Imposteur : fond de nuit, lueur de la couleur du camp, gros emoji, titres qui claquent
-const IMP_EMO = { civ: "😇", und: "🎭", imp: "🕵️" };
-const IMP_ROLE = { civ: "Civil", und: "Undercover", imp: "L'imposteur" };
+const IMP_EMO = { civ: "😇", und: "🎭", imp: "🕵️", white: "🎩" };
+const IMP_ROLE = { civ: "Civil", und: "Undercover", imp: "L'imposteur", white: "Mr. White" };
+// l'imposteur et Mr. White n'ont pas de mot : ils ne commencent jamais, et une fois éliminés ils tentent le mot
+const impBlind = ro => ro === "imp" || ro === "white";
+const impFace = (ro, cat, w) => ro === "imp"
+  ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w" style="color:var(--red)">L'imposteur</span><p>Thème : « ${esc(cat)} ». Pas de mot, bluffe.</p>`
+  : ro === "white" ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w">Mr. White</span><p>Aucun indice, même pas le thème. Écoute et bluffe.</p>`
+  : `<span class="eyebrow" style="color:var(--paper)">Ton mot</span><span class="mast imp-w">${esc(w)}</span><p>Ne le dis pas à voix haute.</p>`;
+// combien d'intrus de chaque sorte : au moins 1 intrus, au moins 2 civils (on retire Mr. White, puis les undercovers, puis les imposteurs)
+function impCount(n, imp, und, wh) {
+  imp = Math.max(0, imp | 0); und = Math.max(0, und | 0); wh = Math.max(0, wh | 0);
+  const max = Math.max(1, n - 2);
+  while (imp + und + wh > max) { if (wh) wh--; else if (und) und--; else imp--; }
+  if (imp + und + wh < 1) imp = 1;
+  return { imp, und, wh };
+}
 const impScene = (cls, inner) => `<div class="impx ${cls}">${inner}</div>`;
 const impTalk = (name, left) => impScene("talk", `<span class="kick">Commence</span><span class="nm">${esc(name)}</span><span class="big">🎤</span>
   <p class="ln">Chacun dit <b>un mot</b> sur son mot secret.<br>Puis on vote.</p><p class="sm">${left} encore en jeu</p>`);
 const impVote = chips => impScene("vote", `<span class="big">🗳️</span><span class="ttl">Qui on élimine ?</span><div class="chips imp-picks">${chips}</div>`);
 // ro : rôle de l'éliminé ; extra : la ligne du dessous
-const impOut = (name, ro, extra) => impScene(ro === "civ" ? "miss" : ro === "und" ? "und" : "inf", `<span class="kick">Éliminé</span><span class="nm">${esc(name)}</span>
+const impOut = (name, ro, extra) => impScene(ro === "civ" ? "miss" : ro === "und" ? "und" : ro === "white" ? "wht" : "inf", `<span class="kick">Éliminé</span><span class="nm">${esc(name)}</span>
   <span class="big">${IMP_EMO[ro]}</span><span class="ttl">${ro === "civ" ? "Innocent" : IMP_ROLE[ro]}</span><p class="ln">${extra}</p>`);
 const impTie = () => impScene("miss", `<span class="big">🤝</span><span class="ttl">Égalité</span><p class="ln">Personne ne sort.</p>`);
 // ins : [[nom, rôle]] des intrus ; g : le mot tapé par l'imposteur
 function impEnd(w, ins, word, uw, g) {
-  const onlyImp = ins.every(x => x[1] === "imp"), one = ins.length === 1;
-  const title = w === "civ" ? "Les civils gagnent" : onlyImp ? (one ? "L'imposteur gagne" : "Les imposteurs gagnent") : (one ? "L'undercover gagne" : "Les intrus gagnent");
+  const kind = ins.every(x => x[1] === ins[0][1]) ? ins[0][1] : "", one = ins.length === 1;
+  const title = w === "civ" ? "Les civils gagnent" : !one && kind !== "imp" ? "Les intrus gagnent"
+    : ({ imp: one ? "L'imposteur gagne" : "Les imposteurs gagnent", und: "L'undercover gagne", white: "Mr. White gagne" })[kind];
+  const onlyImp = kind === "imp" || kind === "white";
   return impScene("end " + (w === "civ" ? "civ" : "inf"), `<span class="kick">Fin de la manche</span>
-    <span class="big">${g && g.ok ? "🤯" : w === "civ" ? "🏆" : onlyImp ? "🕵️" : "🎭"}</span>
+    <span class="big">${g && g.ok ? "🤯" : w === "civ" ? "🏆" : onlyImp ? IMP_EMO[kind] : "🎭"}</span>
     <span class="ttl">${title}</span>
     ${g ? `<p class="ln">${esc(g.by)} a tapé « ${esc(g.v)} »… ${g.ok ? "<b>bingo !</b>" : "raté !"}</p>` : ""}
     <p class="ln">Le mot : <b>${esc(word)}</b>${uw ? `<br>Undercover : <b>${esc(uw)}</b>` : ""}</p>
     <div class="roles">${ins.map(([n, r]) => `<span>${IMP_EMO[r]} ${esc(n)}<i>${IMP_ROLE[r]}</i></span>`).join("")}</div>`);
 }
 // la police des titres (Unbounded) est très large : on calcule la taille pour que le mot le plus long tienne dans la carte
-const impWords = () => [...new Set([...C.imposteur.map(c => c[2]), ...C.imposteur.map(c => c[3]).filter(Boolean), ...Object.values(UNDER), "L'imposteur"].flatMap(x => String(x).split(/\s+/)))]; // un mot composé peut passer à la ligne entre ses mots
+const impWords = () => [...new Set([...C.imposteur.map(c => c[2]), ...C.imposteur.map(c => c[3]).filter(Boolean), ...Object.values(UNDER), "L'imposteur", "Mr. White"].flatMap(x => String(x).split(/\s+/)))]; // un mot composé peut passer à la ligne entre ses mots
 // pad : marge du calque où le mot s'affiche (le mot secret est dans un calque posé sur toute la carte) ; sinon la marge de la boîte
 function impFitSize(box, words, max, cls, pad) {
   const cs = getComputedStyle(box), avail = box.clientWidth - (pad != null ? pad * 2 : parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
@@ -3019,16 +3036,14 @@ function impFit() {
 addEventListener("resize", () => { if ($(".imphold, .impx")) impFit(); });
 const impGuessBox = () => `<div class="field imp-guess"><input id="guess" maxlength="30" placeholder="Le mot secret" autocomplete="off" autocapitalize="off" enterkeyhint="send" aria-label="Le mot secret"><button class="btn red" type="button" id="try">Valider</button></div>`;
 const bindGuess = go => { const i = $("#guess"), t = $("#try"); if (!i) return; const send = () => { const v = i.value.trim(); if (!v) return i.focus(); t.disabled = true; go(v); }; t.onclick = send; i.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); send(); } }; };
-const IMP_SET = () => ({ imp: store.get("impN", 1), und: store.get("undN", 0) });
+const IMP_SET = () => ({ imp: store.get("impN", 1), und: store.get("undN", 0), wh: store.get("whN", 0) });
 function impSetup() {
   const n = S.names.length, max = Math.max(1, n - 2); // il reste toujours au moins 2 civils
   const draw = () => {
-    let { imp, und } = IMP_SET();
-    if (imp + und > max) { und = Math.max(0, max - imp); if (imp + und > max) imp = max; }
-    if (imp + und < 1) imp = 1;
-    store.set("impN", imp); store.set("undN", und);
-    $$("#impn button").forEach(b => { const v = +b.dataset.v; b.setAttribute("aria-pressed", v === imp); b.disabled = v + und > max || v + und < 1; });
-    $$("#undn button").forEach(b => { const v = +b.dataset.v; b.setAttribute("aria-pressed", v === und); b.disabled = v + imp > max || v + imp < 1; });
+    const s0 = IMP_SET(), { imp, und, wh } = impCount(n, s0.imp, s0.und, s0.wh);
+    store.set("impN", imp); store.set("undN", und); store.set("whN", wh);
+    [["impn", imp, und + wh], ["undn", und, imp + wh], ["whn", wh, imp + und]].forEach(([id, cur, rest]) =>
+      $$(`#${id} button`).forEach(b => { const v = +b.dataset.v; b.setAttribute("aria-pressed", v === cur); b.disabled = v + rest > max || v + rest < 1; }));
   };
   const seg = (id, from) => `<div class="seg" id="${id}">${[0, 1, 2, 3].filter(v => v >= from).map(v => `<button data-v="${v}">${v}</button>`).join("")}</div>`;
   view(`
@@ -3039,11 +3054,15 @@ function impSetup() {
     <div class="section-label">Undercovers</div>
     ${seg("undn", 0)}
     <p class="hint muted">Ils ont un mot proche du vrai, et ils ne savent pas qu'ils sont undercover.</p>
+    <div class="section-label">Mr. White</div>
+    <div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}">${v}</button>`).join("")}</div>
+    <p class="hint muted">Il n'a rien, même pas le thème. S'il est éliminé, il tente le mot.</p>
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
     $("#back").onclick = playersScreen;
     $$("#impn button").forEach(b => b.onclick = () => { store.set("impN", +b.dataset.v); draw(); });
     $$("#undn button").forEach(b => b.onclick = () => { store.set("undN", +b.dataset.v); draw(); });
+    $$("#whn button").forEach(b => b.onclick = () => { store.set("whN", +b.dataset.v); draw(); });
     $("#go").onclick = startGame;
     draw();
   });
@@ -3051,9 +3070,8 @@ function impSetup() {
 // cartes de L'Imposteur : mots jamais coupés au milieu (« Undercover », « L'imposteur »)
 const impShell = (...a) => cardShell(...a).replace('class="card ', 'class="card impc ');
 function cImpSolo(c) {
-  let { imp: nImp, und: nUnd } = IMP_SET();
-  if (nImp + nUnd > S.players.length - 2) { nUnd = Math.max(0, S.players.length - 2 - nImp); nImp = Math.min(nImp, S.players.length - 2); }
-  if (nImp + nUnd < 1) nImp = 1;
+  const s0 = IMP_SET();
+  let { imp: nImp, und: nUnd, wh: nWh } = impCount(S.players.length, s0.imp, s0.und, s0.wh);
   // avec des undercovers, il faut un mot qui a un mot proche
   if (nUnd && !underOf(c)) {
     const alt = pool("imposteur").find(x => underOf(x) && !S.deck.includes(x));
@@ -3061,13 +3079,11 @@ function cImpSolo(c) {
   }
   const [, cat, word] = c.data, uw = underOf(c);
   const order = shuffle(S.players), role = new Map();
-  shuffle(S.players).forEach((p, i) => role.set(p, i < nImp ? "imp" : i < nImp + nUnd ? "und" : "civ"));
+  shuffle(S.players).forEach((p, i) => role.set(p, i < nImp ? "imp" : i < nImp + nUnd ? "und" : i < nImp + nUnd + nWh ? "white" : "civ"));
   const alive = new Set(S.players);
   const isIn = p => role.get(p) !== "civ";
   const top = eye => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span class="progress">Manche ${S.idx + 1}</span>${eye ? `<button class="iconbtn" id="eye" aria-label="Revoir son mot">👁️</button>` : `<span style="width:44px"></span>`}</div>`;
-  const face = p => role.get(p) === "imp"
-    ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w" style="color:var(--red)">L'imposteur</span><p>Thème : « ${esc(cat)} ». Pas de mot, bluffe.</p>`
-    : `<span class="eyebrow" style="color:var(--paper)">Ton mot</span><span class="mast imp-w">${esc(role.get(p) === "und" ? uw : word)}</span><p>Ne le dis pas à voix haute.</p>`;
+  const face = p => impFace(role.get(p), cat, role.get(p) === "und" ? uw : word);
   // carte qu'on garde appuyée ; le bouton du bas est toujours là, actif une fois le mot vu
   const hold = (p, eyebrow, btn, onBtn, ready) => view(`${top(false)}
     <div class="stage"><div class="secret imphold" id="hold">
@@ -3100,8 +3116,8 @@ function cImpSolo(c) {
   };
   const talk = () => {
     here = talk;
-    const live = S.players.filter(p => alive.has(p)), safe = live.filter(p => role.get(p) !== "imp");
-    const first = rnd(safe.length ? safe : live); // l'imposteur ne commence jamais
+    const live = S.players.filter(p => alive.has(p)), safe = live.filter(p => !impBlind(role.get(p)));
+    const first = rnd(safe.length ? safe : live); // l'imposteur et Mr. White ne commencent jamais
     view(`${top(true)}
       <div class="stage">${impTalk(first.name, live.length)}</div>
       <div class="actions"><button class="btn red" id="vote">Voter</button></div>`, () => { bindHeader(); bindEye(); impFit(); $("#vote").onclick = vote; });
@@ -3123,11 +3139,11 @@ function cImpSolo(c) {
     const after = () => inf === 0 ? end("civ") : civ <= 1 ? end("inf") : talk();
     here = null;
     view(`${top(false)}
-      <div class="stage">${impOut(p.name, r, r === "imp" ? `Bien vu ! Dernière chance, ${esc(p.name)} : <b>tape le mot</b>. Si c'est le bon, les intrus gagnent.`
+      <div class="stage">${impOut(p.name, r, impBlind(r) ? `Bien vu ! Dernière chance, ${esc(p.name)} : <b>tape le mot</b>. Si c'est le bon, les intrus gagnent.`
         : (r === "civ" ? "Raté, c'était un civil. " : "Bien vu ! ") + (inf === 0 ? "Plus aucun intrus." : civ <= 1 ? "Il ne reste qu'un civil…" : `Encore ${inf} intrus caché${inf > 1 ? "s" : ""}.`))}</div>
-      <div class="actions">${r === "imp" ? impGuessBox() : `<button class="btn red" id="ok">${inf === 0 || civ <= 1 ? "Voir la fin" : "Tour suivant"}</button>`}</div>`, () => {
+      <div class="actions">${impBlind(r) ? impGuessBox() : `<button class="btn red" id="ok">${inf === 0 || civ <= 1 ? "Voir la fin" : "Tour suivant"}</button>`}</div>`, () => {
       $("#pause").onclick = pauseMenu; impFit();
-      if (r === "imp") bindGuess(v => {
+      if (impBlind(r)) bindGuess(v => {
         const g = { by: p.name, v, ok: impSame(v, word) };
         if (g.ok) return end("inf", g);
         stamp("Raté", ""); buzz([80, 40, 80]);
@@ -4310,7 +4326,7 @@ const TUTO = {
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille.",
-  imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
+  imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir, Mr. White n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
@@ -5267,7 +5283,7 @@ async function roomOpen(code) {
     if (ON.ctx.pub !== pub) { ON.ctx.pub = pub; F.setDoc(F.doc(db, "users", uid), { room: pub }, { merge: true }).catch(() => {}); }
     ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
     if (r.host === uid) hostTick(r);
-    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und]) : "",
+    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und, r.white]) : "",
       r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue, c && LONG.includes(c.type) ? JSON.stringify(c) : ""].join("|");
     if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
     else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
@@ -5304,7 +5320,7 @@ async function roomNext(r) {
   const turnOf = all[r.round % n], pl = u => S.players[all.indexOf(u)];
   let card, phase = "vote";
   if (t === "imposteur" && r.game === "imposteur") {
-    const roles = impRoles(all, r.imp == null ? 1 : r.imp, r.und || 0), und = Object.values(roles).includes("und");
+    const roles = impRoles(all, r.imp == null ? 1 : r.imp, r.und || 0, r.white || 0), und = Object.values(roles).includes("und");
     const cc = und && !underOf(c) ? pool("imposteur").find(x => underOf(x)) || c : c;
     card = { type: t, cat: cc.data[1], word: cc.data[2], uw: underOf(cc) || "", roles, out: [] }; card.first = impFirst(card); phase = "word";
   }
@@ -5339,12 +5355,9 @@ async function roomNext(r) {
   return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase });
 }
 // L'Imposteur sur plusieurs téléphones, façon Undercover : chacun voit son mot chez lui, chacun vote pour éliminer, sans points
-function impRoles(all, nImp, nUnd) {
-  nImp = Math.max(0, nImp | 0); nUnd = Math.max(0, nUnd | 0);
-  if (nImp + nUnd > all.length - 2) { nUnd = Math.max(0, all.length - 2 - nImp); nImp = Math.min(nImp, all.length - 2); }
-  if (nImp + nUnd < 1) nImp = 1;
-  const roles = {};
-  shuffle(all).forEach((u, i) => { roles[u] = i < nImp ? "imp" : i < nImp + nUnd ? "und" : "civ"; });
+function impRoles(all, i0, u0, w0) {
+  const { imp: nImp, und: nUnd, wh: nWh } = impCount(all.length, i0, u0, w0), roles = {};
+  shuffle(all).forEach((u, i) => { roles[u] = i < nImp ? "imp" : i < nImp + nUnd ? "und" : i < nImp + nUnd + nWh ? "white" : "civ"; });
   return roles;
 }
 // qui gagne avec ces éliminés : "civ", "inf" ou rien
@@ -5353,14 +5366,12 @@ function impWin(c) {
   const inf = left.filter(u => c.roles[u] !== "civ").length, civ = left.length - inf;
   return inf === 0 ? "civ" : civ <= 1 ? "inf" : "";
 }
-const impFirst = c => { const left = Object.keys(c.roles).filter(u => !(c.out || []).includes(u)), safe = left.filter(u => c.roles[u] !== "imp"); return rnd(safe.length ? safe : left); };
+const impFirst = c => { const left = Object.keys(c.roles).filter(u => !(c.out || []).includes(u)), safe = left.filter(u => !impBlind(c.roles[u])); return rnd(safe.length ? safe : left); };
 function roomImp(r, h) {
   const uid = ON.ctx.N.uid, c = r.card, out = c.out || [], me = c.roles[uid], dead = out.includes(uid), res = r.res || {};
   const alive = ids(r).filter(u => c.roles[u] && !out.includes(u));
   const N = u => esc(pname(r, u)), host = h.host, hostName = esc(pname(r, r.host));
-  const face = me === "imp"
-    ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w" style="color:var(--red)">L'imposteur</span><p>Thème : « ${esc(c.cat)} ». Pas de mot, bluffe.</p>`
-    : `<span class="eyebrow" style="color:var(--paper)">Ton mot</span><span class="mast imp-w">${esc(me === "und" ? c.uw : c.word)}</span><p>Ne le dis pas à voix haute.</p>`;
+  const face = impFace(me, c.cat, me === "und" ? c.uw : c.word);
   const peek = big => me ? `<div class="secret imphold${big ? "" : " impmini"}" id="hold"><span class="eyebrow" style="color:var(--paper)">${dead ? "Éliminé" : "Ton mot"}</span><p class="imp-cue">Garde le doigt ici pour ${big ? "voir ton mot" : "le revoir"}.</p><div class="imp-face">${face}</div></div>` : "";
   const wait = t => `<p class="hint muted on-waiting">${t}</p>`;
   let stage = "", acts = "";
@@ -5378,12 +5389,12 @@ function roomImp(r, h) {
   } else if (r.phase === "out") {
     const u = res.out, ro = u ? c.roles[u] : "";
     stage = res.tie ? impTie()
-      : impOut(pname(r, u), ro, ro === "imp" ? (u === uid ? "Grillé ! Dernière chance : <b>tape le mot</b>. Si c'est le bon, les intrus gagnent." : `Bien vu ! Dernière chance : ${N(u)} tape le mot sur son téléphone…`)
+      : impOut(pname(r, u), ro, impBlind(ro) ? (u === uid ? "Grillé ! Dernière chance : <b>tape le mot</b>. Si c'est le bon, les intrus gagnent." : `Bien vu ! Dernière chance : ${N(u)} tape le mot sur son téléphone…`)
         : ro === "civ" ? "Raté, c'était un civil." : "Bien vu !");
-    acts = ro === "imp" && u === uid && !res.tie ? impGuessBox()
-      : !host ? wait(ro === "imp" ? `On attend le mot de ${N(u)}.` : `${hostName} lance la suite.`)
+    acts = impBlind(ro) && u === uid && !res.tie ? impGuessBox()
+      : !host ? wait(impBlind(ro) ? `On attend le mot de ${N(u)}.` : `${hostName} lance la suite.`)
       : res.tie ? `<div class="row"><button class="btn white" id="imp-next">Tour suivant</button><button class="btn red" id="imp-revote">Revoter</button></div>`
-      : ro === "imp" ? `<button class="btn white" id="imp-miss">Passer (il ne répond pas)</button>`
+      : impBlind(ro) ? `<button class="btn white" id="imp-miss">Passer (il ne répond pas)</button>`
       : `<button class="btn red" id="imp-next">${impWin(c) ? "Voir la fin" : "Tour suivant"}</button>`;
   } else {
     const ins = Object.keys(c.roles).filter(u => c.roles[u] !== "civ");
@@ -5896,8 +5907,9 @@ function lobbyView(r, host) {
       <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>
       ${r.game === "imposteur" ? `<div class="section-label">Imposteurs</div><div class="seg" id="impn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.imp == null ? 1 : r.imp)}">${v}</button>`).join("")}</div>
       <div class="section-label">Undercovers</div><div class="seg" id="undn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.und || 0)}">${v}</button>`).join("")}</div>
-      <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Il reste toujours au moins 2 civils.</p>` : ""}`
-      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}.` : ""}</p>`}
+      <div class="section-label">Mr. White</div><div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}" aria-pressed="${v === (r.white || 0)}">${v}</button>`).join("")}</div>
+      <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Mr. White n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}`
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
     <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
@@ -5907,8 +5919,9 @@ function lobbyView(r, host) {
     bindBubbles(); // une bulle par joueur, qu'on peut lancer comme en fin de partie
     $$("#g button").forEach(b => b.onclick = () => { const g = b.dataset.v, o = roundOpts(g); upd({ game: g, rounds: o.includes(ON.r.rounds) ? ON.r.rounds : o[1] }); });
     $$("#nr button").forEach(b => b.onclick = () => upd({ rounds: +b.dataset.v }));
-    $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
-    $$("#undn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i < 1 ? { und: v, imp: 1 } : { und: v }); });
+    $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) + (ON.r.white || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
+    $$("#undn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.white || 0) < 1 ? { und: v, imp: 1 } : { und: v }); });
+    $$("#whn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.und || 0) < 1 ? { white: v, imp: 1 } : { white: v }); });
     const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; upd(Object.assign({ round: 0, card: null, tb0: 0, tb1: 0 }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
     try {
       const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => ({ id: d.id, ...d.data() }));
