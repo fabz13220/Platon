@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="398a081493a1">
+<meta name="build" content="e28f1362e69d">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -2015,7 +2015,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 7, AV)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 23 octobre (L'Imposteur 8)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2960,10 +2960,10 @@ const UNDER = {
   "Raclette": "Fondue", "Fondue": "Raclette", "Pizza": "Lasagnes", "Kebab": "Tacos", "Tacos": "Burrito", "Sushi": "Ramen", "Crêpe": "Gaufre",
   "Burger": "Hot-dog", "Couscous": "Tajine", "Nutella": "Confiture",
   "Aéroport": "Gare", "Piscine": "Plage", "Plage": "Piscine", "Hôpital": "Pharmacie", "Boîte de nuit": "Bar", "Supermarché": "Marché",
-  "Salle de sport": "Piscine", "Cinéma": "Théâtre", "Zoo": "Ferme", "Prison": "Commissariat", "Stade": "Patinoire",
+  "Salle de sport": "Piscine", "Cinéma": "Théâtre", "Zoo": "Ferme", "Prison": "Garde à vue", "Stade": "Patinoire",
   "Pompier": "Policier", "Policier": "Gendarme", "Dentiste": "Médecin", "Influenceur": "Youtubeur", "Prof": "Directeur", "Chirurgien": "Infirmier", "Coiffeur": "Barbier",
   "Pingouin": "Phoque", "Moustique": "Mouche", "Requin": "Dauphin", "Girafe": "Zèbre", "Chat": "Chien",
-  "Brosse à dents": "Dentifrice", "Parapluie": "Imperméable", "Tire-bouchon": "Décapsuleur", "Chargeur": "Batterie", "Miroir": "Fenêtre",
+  "Brosse à dents": "Dentifrice", "Parapluie": "Ciré", "Tire-bouchon": "Décapsuleur", "Chargeur": "Batterie", "Miroir": "Fenêtre",
   "Titanic": "Avatar", "Harry Potter": "Narnia", "Le Roi Lion": "Madagascar", "Friends": "The Office",
   "Pétanque": "Bowling", "Ski": "Snowboard", "Foot": "Rugby", "Boxe": "Judo",
   "Gueule de bois": "Mal de tête", "TikTok": "Instagram", "Tinder": "Meetic", "Snapchat": "WhatsApp",
@@ -2996,6 +2996,30 @@ function impEnd(w, ins, word, uw, g) {
     <p class="ln">Le mot : <b>${esc(word)}</b>${uw ? `<br>Undercover : <b>${esc(uw)}</b>` : ""}</p>
     <div class="roles">${ins.map(([n, r]) => `<span>${IMP_EMO[r]} ${esc(n)}<i>${IMP_ROLE[r]}</i></span>`).join("")}</div>`);
 }
+// la police des titres (Unbounded) est très large : on calcule la taille pour que le mot le plus long tienne dans la carte
+const impWords = () => [...new Set([...C.imposteur.map(c => c[2]), ...C.imposteur.map(c => c[3]).filter(Boolean), ...Object.values(UNDER), "L'imposteur"].flatMap(x => String(x).split(/\s+/)))]; // un mot composé peut passer à la ligne entre ses mots
+// pad : marge du calque où le mot s'affiche (le mot secret est dans un calque posé sur toute la carte) ; sinon la marge de la boîte
+function impFitSize(box, words, max, cls, pad) {
+  const cs = getComputedStyle(box), avail = box.clientWidth - (pad != null ? pad * 2 : parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
+  const m = document.createElement("span"); m.className = cls; m.style.cssText = "position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap;font-size:100px;animation:none";
+  box.appendChild(m); let w = 1;
+  words.forEach(x => { m.textContent = x; w = Math.max(w, m.offsetWidth); /* offsetWidth : sans l'animation d'entrée (scale) qui fausserait la mesure */ }); m.remove();
+  return Math.max(14, Math.min(max, Math.floor(avail / w * 100 * .94)));
+}
+function impFit() {
+  // le mot secret : même taille pour toutes les cartes, calée sur le mot le plus long du jeu
+  $$(".imphold").forEach(h => {
+    const big = !h.classList.contains("impmini"), sz = impFitSize(h, impWords(), big ? 44 : 28, "mast", big ? 24 : 12);
+    $$(".imp-w", h).forEach(el => { el.style.fontSize = sz + "px"; });
+    const nm = $(":scope > .mast", h); if (nm) nm.style.fontSize = impFitSize(h, nm.textContent.split(/\s+/), parseFloat(getComputedStyle(nm).fontSize), "mast") + "px";
+  });
+  // titres des scènes : aucun mot ne dépasse
+  $$(".impx .ttl, .impx .nm").forEach(el => {
+    const box = el.closest(".impx"), max = parseFloat(getComputedStyle(el).fontSize);
+    el.style.fontSize = impFitSize(box, el.textContent.split(/\s+/).filter(Boolean), max, el.className) + "px";
+  });
+}
+addEventListener("resize", () => { if ($(".imphold, .impx")) impFit(); });
 const impGuessBox = () => `<div class="field imp-guess"><input id="guess" maxlength="30" placeholder="Le mot secret" autocomplete="off" autocapitalize="off" enterkeyhint="send" aria-label="Le mot secret"><button class="btn red" type="button" id="try">Valider</button></div>`;
 const bindGuess = go => { const i = $("#guess"), t = $("#try"); if (!i) return; const send = () => { const v = i.value.trim(); if (!v) return i.focus(); t.disabled = true; go(v); }; t.onclick = send; i.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); send(); } }; };
 const IMP_SET = () => ({ imp: store.get("impN", 1), und: store.get("undN", 0) });
@@ -3055,7 +3079,7 @@ function cImpSolo(c) {
       <div class="imp-face">${face(p)}</div>
     </div></div>
     <div class="actions"><button class="btn red" id="pass" ${ready ? "" : "disabled"}>${btn}</button></div>`, () => {
-    $("#pause").onclick = pauseMenu;
+    $("#pause").onclick = pauseMenu; impFit();
     const h = $("#hold"), b = $("#pass");
     const show = e => { e.preventDefault(); h.classList.add("on"); buzz(15); };
     const hide = () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); b.disabled = false; };
@@ -3083,14 +3107,14 @@ function cImpSolo(c) {
     const first = rnd(safe.length ? safe : live); // l'imposteur ne commence jamais
     view(`${top(true)}
       <div class="stage">${impTalk(first.name, live.length)}</div>
-      <div class="actions"><button class="btn red" id="vote">Voter</button></div>`, () => { bindHeader(); bindEye(); $("#vote").onclick = vote; });
+      <div class="actions"><button class="btn red" id="vote">Voter</button></div>`, () => { bindHeader(); bindEye(); impFit(); $("#vote").onclick = vote; });
   };
   const vote = () => {
     here = vote;
     view(`${top(true)}
       <div class="stage">${impVote(S.players.filter(p => alive.has(p)).map(p => `<button class="chip pick" data-i="${S.players.indexOf(p)}">${esc(p.name)}</button>`).join(""))}</div>
       <div class="actions"><button class="btn white" id="back">Encore un tour avant</button></div>`, () => {
-      bindHeader(); bindEye();
+      bindHeader(); bindEye(); impFit();
       $("#back").onclick = talk;
       $$(".chip.pick").forEach(b => b.onclick = () => out(S.players[+b.dataset.i]));
     });
@@ -3105,7 +3129,7 @@ function cImpSolo(c) {
       <div class="stage">${impOut(p.name, r, r === "imp" ? `Bien vu ! Dernière chance, ${esc(p.name)} : <b>tape le mot</b>. Si c'est le bon, les intrus gagnent.`
         : (r === "civ" ? "Raté, c'était un civil. " : "Bien vu ! ") + (inf === 0 ? "Plus aucun intrus." : civ <= 1 ? "Il ne reste qu'un civil…" : `Encore ${inf} intrus caché${inf > 1 ? "s" : ""}.`))}</div>
       <div class="actions">${r === "imp" ? impGuessBox() : `<button class="btn red" id="ok">${inf === 0 || civ <= 1 ? "Voir la fin" : "Tour suivant"}</button>`}</div>`, () => {
-      $("#pause").onclick = pauseMenu;
+      $("#pause").onclick = pauseMenu; impFit();
       if (r === "imp") bindGuess(v => {
         const g = { by: p.name, v, ok: impSame(v, word) };
         if (g.ok) return end("inf", g);
@@ -3121,7 +3145,7 @@ function cImpSolo(c) {
     later(() => view(`${top(false)}
       <div class="stage">${impEnd(w, ins.map(p => [p.name, role.get(p)]), word, nUnd ? uw : "", g)}</div><div class="confetti" id="confetti"></div>
       <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Manche suivante</button></div></div>`, () => {
-      bindHeader(); party();
+      bindHeader(); party(); impFit();
       $("#ok").onclick = next;
       $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     }), 900);
@@ -5334,6 +5358,7 @@ function roomImp(r, h) {
       if (Date.now() - ON.leaveArmed < 2500) return roomLeave();
       ON.leaveArmed = Date.now(); toast("Touche encore × pour quitter la partie.");
     };
+    impFit();
     const hd = $("#hold");
     if (hd) {
       const show = e => { e.preventDefault(); hd.classList.add("on"); buzz(15); };
