@@ -1171,8 +1171,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .card .avgroupe { margin: -4px 0 0; font-weight: 800; }
 .card.show-v .avk[data-k="a"], .card.show-a .avk[data-k="v"] { display: none; }
 .jstack > .card.under.avq .avother { visibility: visible; }
-/* la question du dessous reste cachée tant qu'on ne tire pas la carte : elle ne transparaît pas pendant l'arrivée de la carte du dessus */
-.jstack > .card.under.avq:not(.peek) .avk, .jstack > .card.under.avq:not(.peek) .avother { visibility: hidden; }
+/* la carte de la question, dessous, reste entièrement cachée tant qu'on ne tire pas : rien ne transparaît pendant l'arrivée de la carte du dessus */
+.jstack > .card.under.avq:not(.peek) { visibility: hidden; }
 .card .avpick button:active, .card .avother:active { transform: scale(.96); }
 .card .avfor { margin: 0; padding: 0 22px; font-size: 16px; font-weight: 800; opacity: .95; }
 .card .avfor b { font-family: var(--display); font-size: 22px; }
