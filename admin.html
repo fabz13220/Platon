@@ -96,6 +96,7 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
       <button role="tab" data-t="cartes" aria-selected="false">Cartes</button>
       <button role="tab" data-t="textes" aria-selected="false">Textes</button>
       <button role="tab" data-t="props" aria-selected="false">Propositions</button>
+      <button role="tab" data-t="comptes" aria-selected="false">Comptes</button>
     </div>
     <div id="view" style="display:flex;flex-direction:column;gap:14px;margin-top:14px"></div>
   </div>
@@ -281,13 +282,71 @@ function bindProps() {
 
 // ---------- affichage ----------
 function render() {
-  const V = { stats: viewStats, cartes: viewCartes, textes: viewTextes, props: viewProps }[tab];
+  const V = { stats: viewStats, cartes: viewCartes, textes: viewTextes, props: viewProps, comptes: viewComptes }[tab];
   $("#view").innerHTML = V();
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.t === tab)));
   if (tab === "stats" && STATS) { $("#period").onchange = e => { period = +e.target.value; render(); }; $("#reload").onclick = () => { STATS = null; render(); }; }
   if (tab === "cartes") bindCartes();
   if (tab === "textes") bindTextes();
   if (tab === "props" && PROPS) bindProps();
+  if (tab === "comptes") bindComptes();
+}
+// ---------- comptes : remettre un ancien compte (pseudo, amis) sur le compte d'aujourd'hui, par exemple après avoir réinstallé l'appli ----------
+let USERS = null;
+const dateFr = t => t ? new Date(t).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "jamais";
+function viewComptes() {
+  if (!USERS) return `<p class="muted">Chargement des comptes…</p>`;
+  const opt = u => `<option value="${esc(u.id)}">${esc(u.name || "?")} · ${esc(u.code || "")} · vu ${esc(dateFr(u.seen || u.at))}</option>`;
+  const list = USERS.filter(u => !u.movedTo);
+  return `<section class="panel"><h2>Récupérer un ancien compte</h2>
+    <p class="muted">Si tu as perdu ton compte de joueur (appli réinstallée, nouveau téléphone) : crée un pseudo dans l'appli, puis choisis ici l'ancien compte et le nouveau. Le nouveau reprend le pseudo et les amis de l'ancien, et l'ancien code ami mène au nouveau compte. L'ancien compte n'est pas supprimé.</p>
+    <label>Ancien compte, à récupérer<select id="old">${list.map(opt).join("")}</select></label>
+    <label>Nouveau compte, celui de ton téléphone aujourd'hui<select id="new">${list.map(opt).join("")}</select></label>
+    <p class="muted" id="amis-old"></p>
+    <div class="row"><button class="btn pink" id="merge" style="flex:0 0 auto">Remettre l'ancien compte sur le nouveau</button></div>
+    <p id="merge-msg"></p></section>
+    <section class="panel"><h2>Tous les comptes (${USERS.length})</h2>
+    <table><tr><th>Pseudo</th><th>Code ami</th><th>Vu</th></tr>${USERS.map(u => `<tr><td>${esc(u.name || "?")}${u.movedTo ? ` <span class="tag">récupéré</span>` : ""}</td><td>${esc(u.code || "")}</td><td>${esc(dateFr(u.seen || u.at))}</td></tr>`).join("")}</table></section>`;
+}
+async function loadUsers() {
+  const s = await F.getDocs(F.collection(db, "users"));
+  USERS = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.seen || b.at || 0) - (a.seen || a.at || 0));
+}
+function bindComptes() {
+  if (!USERS) { loadUsers().then(render).catch(e => { $("#view").innerHTML = `<p class="err">Impossible de lire les comptes (${esc(e.code || e.message)}).</p>`; }); return; }
+  const O = $("#old"), N = $("#new"); if (!O) return;
+  if (O.options.length > 1) O.selectedIndex = 1; // le plus récent est sans doute le nouveau
+  const showFriends = async () => {
+    const el = $("#amis-old"); el.textContent = "";
+    try { const f = await F.getDocs(F.collection(db, "users", O.value, "friends")); el.textContent = f.size ? "Amis de l'ancien compte : " + f.docs.map(d => d.data().name).join(", ") : "L'ancien compte n'a pas d'amis."; }
+    catch (e) { el.textContent = ""; }
+  };
+  O.onchange = showFriends; showFriends();
+  $("#merge").onclick = async () => {
+    const msg = $("#merge-msg"), o = USERS.find(u => u.id === O.value), n = USERS.find(u => u.id === N.value);
+    if (!o || !n || o.id === n.id) { msg.className = "err"; msg.textContent = "Choisis deux comptes différents."; return; }
+    if (!confirm(`« ${n.name} » (${n.code}) devient « ${o.name} », avec les amis de l'ancien compte. Les amis verront le nouveau compte à la place de l'ancien. Continuer ?`)) return;
+    $("#merge").disabled = true; msg.className = "muted"; msg.textContent = "En cours…";
+    try {
+      const fr = await F.getDocs(F.collection(db, "users", o.id, "friends"));
+      for (const d of fr.docs) {
+        if (d.id === n.id) continue;
+        await F.setDoc(F.doc(db, "users", n.id, "friends", d.id), d.data());
+        // chez l'ami : l'ancien compte est remplacé par le nouveau, avec le même pseudo
+        await F.setDoc(F.doc(db, "users", d.id, "friends", n.id), { name: o.name, code: n.code, at: Date.now() });
+        await F.deleteDoc(F.doc(db, "users", d.id, "friends", o.id)).catch(() => {});
+      }
+      await F.setDoc(F.doc(db, "users", n.id), { name: o.name }, { merge: true });
+      if (o.code) await F.setDoc(F.doc(db, "codes", o.code), { uid: n.id }); // l'ancien code ami mène aussi au nouveau compte
+      await F.setDoc(F.doc(db, "users", o.id), { movedTo: n.id }, { merge: true });
+      const ok = `C'est fait : « ${o.name} » est revenu, avec ${fr.size} ami${fr.size > 1 ? "s" : ""}. Ferme puis rouvre l'appli sur ton téléphone.`;
+      await loadUsers().catch(() => {}); render(); $("#merge-msg").textContent = ok; toast("Compte récupéré.");
+    } catch (e) {
+      $("#merge").disabled = false;
+      if (String(e.code || "").includes("permission")) { msg.className = "err"; msg.textContent = "La base refuse : colle d'abord les nouvelles règles (cadre jaune en haut), puis recommence."; $("#rule").textContent = RULES(auth.currentUser.uid); $("#setup").hidden = false; scrollTo(0, 0); }
+      else { msg.className = "err"; msg.textContent = "Erreur : " + (e.code || e.message); }
+    }
+  };
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; render(); scrollTo(0, 0); });
 $("#pub").onclick = publish;
@@ -298,18 +357,20 @@ $("#undo").onclick = () => { if (!confirm("Annuler toutes les modifications pas 
 const RULES = uid => `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function admin() { return request.auth != null && request.auth.uid == "${uid}"; }
     match /votes/{id} { allow read, create, update: if true; }
     match /propositions/{id} { allow read, create: if true; }
     match /codes/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if admin();
     }
     match /users/{uid} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid || admin();
       match /friends/{fid} {
-        allow read: if request.auth != null && request.auth.uid == uid;
-        allow write: if request.auth != null && (request.auth.uid == uid || request.auth.uid == fid);
+        allow read: if request.auth != null && request.auth.uid == uid || admin();
+        allow write: if request.auth != null && (request.auth.uid == uid || request.auth.uid == fid) || admin();
       }
       match /invites/{room} {
         allow read, delete: if request.auth != null && request.auth.uid == uid;

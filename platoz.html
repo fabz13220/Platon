@@ -4963,9 +4963,16 @@ function seenTxt(t) {
 let beatT = null;
 function heartbeat() {
   if (!hasProfile()) return;
-  const beat = () => { if (document.visibilityState !== "hidden") net().then(({ F, db, uid }) => F.setDoc(F.doc(db, "users", uid), { seen: Date.now() }, { merge: true })).catch(() => {}); };
+  const beat = () => { if (document.visibilityState !== "hidden") net().then(({ F, db, uid }) => F.setDoc(F.doc(db, "users", uid), { seen: Date.now() }, { merge: true }).then(() => syncMe(F, db, uid))).catch(() => {}); };
   if (!beatT) { beatT = setInterval(beat, 60e3); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") beat(); }); }
   beat();
+}
+// le pseudo peut changer ailleurs (page admin, compte récupéré) : on reprend celui de la base
+let meSynced = false;
+async function syncMe(F, db, uid) {
+  if (meSynced) return; meSynced = true;
+  const d = await F.getDoc(F.doc(db, "users", uid)), me = store.get("me", {});
+  if (d.exists() && d.data().name && d.data().name !== me.name) { me.name = d.data().name; store.set("me", me); }
 }
 // accueil en mode « chacun le sien » : jeux jouables à plusieurs téléphones
 function multiHome() {

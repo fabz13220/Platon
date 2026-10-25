@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="d2fdd5fdb363">
+<meta name="build" content="b42dc6215931">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -4991,9 +4991,16 @@ function seenTxt(t) {
 let beatT = null;
 function heartbeat() {
   if (!hasProfile()) return;
-  const beat = () => { if (document.visibilityState !== "hidden") net().then(({ F, db, uid }) => F.setDoc(F.doc(db, "users", uid), { seen: Date.now() }, { merge: true })).catch(() => {}); };
+  const beat = () => { if (document.visibilityState !== "hidden") net().then(({ F, db, uid }) => F.setDoc(F.doc(db, "users", uid), { seen: Date.now() }, { merge: true }).then(() => syncMe(F, db, uid))).catch(() => {}); };
   if (!beatT) { beatT = setInterval(beat, 60e3); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") beat(); }); }
   beat();
+}
+// le pseudo peut changer ailleurs (page admin, compte récupéré) : on reprend celui de la base
+let meSynced = false;
+async function syncMe(F, db, uid) {
+  if (meSynced) return; meSynced = true;
+  const d = await F.getDoc(F.doc(db, "users", uid)), me = store.get("me", {});
+  if (d.exists() && d.data().name && d.data().name !== me.name) { me.name = d.data().name; store.set("me", me); }
 }
 // accueil en mode « chacun le sien » : jeux jouables à plusieurs téléphones
 function multiHome() {
