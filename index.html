@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="e28f1362e69d">
+<meta name="build" content="136d37d31fff">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1269,6 +1269,17 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .card .swipe-tag { position: absolute; top: 64px; z-index: 3; padding: 4px 14px; border: 4px solid; border-radius: 14px; font-family: var(--display); font-size: 34px; font-weight: 900; letter-spacing: .04em; opacity: 0; pointer-events: none; background: rgba(11,7,32,.35); }
 .card .swipe-tag.oui { left: 18px; color: #2EE6A0; border-color: #2EE6A0; transform: rotate(-12deg); }
 .card .swipe-tag.non { right: 18px; color: #FF5A82; border-color: #FF5A82; transform: rotate(12deg); }
+/* Qui de nous deux : zone de hauteur fixe sous la question, pour le texte, le décompte puis « Montrez ! » */
+.card.dx .dx-zone { margin-top: auto; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; }
+.card.dx .dx-zone .sub { margin: 0; text-align: center; }
+.card.dx .dx-zone .swipe-hint { align-self: stretch; }
+.card.dx .dx-n { font-family: var(--display); font-weight: 900; font-size: 88px; line-height: 1; color: #fff; text-shadow: 0 0 14px var(--red), 0 0 40px rgba(255,59,110,.7); animation: pop .4s cubic-bezier(.2,1.5,.4,1) both; }
+.card.dx .dx-n.dx-go { font-size: clamp(28px, 9.5vw, 44px); text-transform: uppercase; }
+.jstack > .card.dx.top:not(.swipe) { cursor: pointer; }
+.stage > .card.dx.tight .dx-zone { min-height: 96px; }
+.stage > .card.dx.tightest .dx-zone { min-height: 0; }
+.stage > .card.dx.tightest .dx-n:not(.dx-go) { font-size: 64px; }
+.stage > .card.dx.tightest .band { padding-top: 14px; }
 .card .swipe-hint { display: flex; justify-content: space-between; margin: 4px 0 0; padding: 0 22px; font-size: 17px; font-weight: 900; opacity: .85; }
 .actions.duo-btns { flex-direction: row; }
 .actions.duo-btns .btn { flex: 1; }
@@ -1756,7 +1767,7 @@ const C = {
   ]
 };
 /* contenu « ex et sexe » : masqué quand l'interrupteur est coupé */
-const HOT = /(^|[\s'’])ex([\s,.?!]|$)|sex|coquin|nude|plan cul|au lit|fantasme|érotique|orgasm|simul|couch|l'amour|plan à trois|(^|[\s'’])osée?|sensuel|tromp|capote|préservatif/i;
+const HOT = /(^|[\s'’])ex([\s,.?!]|$)|sex|coquin|nude|plan cul|au lit|fantasme|érotique|orgasm|simul|couch|l'amour|plan à trois|(^|[\s'’])osée?|sensuel|tromp|capote|préservatif|body count/i;
 const isHot = parts => HOT.test(parts.join(" "));
 const TYPES = {
   uno:       { label: "Uno", color: "var(--yellow)", dark: false, desc: "" },
@@ -1934,7 +1945,7 @@ function home() {
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
-  const maxOf = t => ({ p4: 2, deux: 2, reflexe: 2, test: 1, uno: 10 })[t] || 16;
+  const maxOf = t => ({ p4: 2, deux: 16, reflexe: 2, test: 1, uno: 10 })[t] || 16;
   const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de scandale", "T'es grave à quel point ?"] };
   const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
   const rail = (title, list, id, on) => (list = on ? list.filter(t => !ONE_PHONE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
@@ -1953,7 +1964,7 @@ function home() {
       ${multiHome()}` : `
       ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
       ${rail("En équipes", fit(["taboo", "imposteur", "menteur"])).replace('class="rail-box"', 'class="rail-box short"')}
-      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
+      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon", ...(n > 2 ? ["deux"] : [])]))}
       ${n > 1 ? rail("Jeux de société", ["p4", "uno"], "row-societe") : ""}
       ${n <= 2 ? rail(n === 1 ? "En solo" : "Rien que vous deux", fit(["deux", "reflexe", "test"])) : ""}
       ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
@@ -2493,7 +2504,7 @@ function next() {
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
 const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar", "classement"];
-const ONE_PHONE = [...SWIPE, "taboo"]; // jeux absents du mode plusieurs téléphones
+const ONE_PHONE = [...SWIPE, "taboo", "deux"]; // jeux absents du mode plusieurs téléphones
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
 const NOPTS = ["imposteur", "menteur"];
 const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
@@ -4280,7 +4291,7 @@ const TUTO = {
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
-  deux: "Tu lis la question. À trois, vous pointez l'un de vous deux. Même réponse : un point pour lui.",
+  deux: "Touche la carte. À trois, chacun montre l'un de vous deux du doigt. Vous avez montré la même personne : swipe à droite. Pas pareil : à gauche.",
   reflexe: "L'écran devient rouge d'un coup. Le premier qui touche gagne. Trop tôt, t'as perdu.",
   test: "Tu réponds oui ou non, personne voit. À la fin t'as ton score.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
@@ -4556,7 +4567,16 @@ const DEUX = [
   [2,"a fait le premier pas"],[2,"craque le plus vite après une dispute"],[2,"a le plus de secrets"],
   [2,"est le plus susceptible"],[2,"draguerait quelqu'un d'autre en soirée"],[2,"lirait les messages de l'autre en cachette"],
   [3,"a le plus d'imagination au lit"],[3,"prend le plus souvent l'initiative"],[3,"a le fantasme le plus inavouable"],
-  [3,"tromperait en premier"],[3,"a déjà simulé"],[3,"embrasse le mieux"]
+  [3,"tromperait en premier"],[3,"a déjà simulé"],[3,"embrasse le mieux"],
+  [1,"mange dans le lit"],[1,"vole les frites de l'autre"],[1,"met le plus de temps à se préparer"],[1,"s'endort en premier devant un film"],
+  [1,"chante le plus faux"],[1,"perd tout le temps ses clés"],[1,"répond le plus tard aux messages"],[1,"panique au moindre bruit la nuit"],
+  [1,"serait le pire à un escape game"],[1,"se ferait arnaquer en vacances"],[1,"commande toujours la même chose au resto"],[1,"a le plus de vêtements jamais portés"],
+  [1,"pleurerait pour une araignée"],[1,"raconte les pires blagues"],[1,"ferait un TikTok de tout"],[1,"gagnerait un concours de mauvaise foi"],
+  [1,"oublie le plus vite ce qu'on lui a dit"],[1,"dort le plus en vacances"],
+  [2,"boude le plus longtemps"],[2,"dit « je t'aime » en premier"],[2,"a le plus de dossiers sur ses potes"],[2,"ramène toujours la dispute sur le tapis"],
+  [2,"a déjà menti sur son âge"],[2,"se fait le plus draguer en soirée"],[2,"regarde encore les stories de son ex"],[2,"dépenserait tout au casino"],
+  [2,"lâcherait l'autre pour 10 000 €"],[2,"a le plus honteux historique de recherche"],
+  [3,"a le plus de body count"],[3,"enverrait une photo osée en premier"],[3,"est le plus bruyant au lit"],[3,"a déjà pensé à quelqu'un d'autre au lit"]
 ];
 const TEST = [
   ["T'as déjà menti sur ton âge ?","a menti sur son âge"],
@@ -4635,72 +4655,88 @@ function miniUne(A) {
 }
 
 /* ---------- QUI DE NOUS DEUX ---------- */
+// un téléphone entre vous deux, sans points : on touche la carte, 3, 2, 1, chacun montre quelqu'un du doigt,
+// puis swipe à droite si vous avez montré la même personne, à gauche sinon. À la fin : le % d'accords.
 function startDeux() {
   if (tutoGate("deux", startDeux)) return;
   stat("start", "deux", 2, "un");
-  const lv = S.level;
-  const qs = DEUX.filter(q => q[0] <= lv && (S.hot || !isHot([q[1]]))).map(q => ({ q, k: Math.random() + (q[0] === lv ? .35 : 0) })).sort((a, b) => b.k - a.k).slice(0, 15).map(o => o.q[1]);
-  const st = { i: 0, ok: 0, qs, pts: { [S.duo[0]]: 0, [S.duo[1]]: 0 } };
+  const pick = () => DEUX.filter(q => q[0] <= S.level && (S.hot || !isHot([q[1]]))).map(q => ({ q, k: Math.random() + (q[0] === S.level ? .35 : 0) })).sort((x, y) => y.k - x.k).map(o => o.q[1]);
+  const st = { i: 0, n: 0, ok: 0, qs: pick(), slid: false };
+  // cartes sans fin : quand le paquet est passé, il repart sans reprendre les dernières questions
+  const more = () => { const last = st.qs.slice(-10), p = pick(), f = p.filter(q => !last.includes(q)); st.qs.push(...(f.length ? f : p)); };
+  if (!st.qs.length) return home();
   keepAwake();
-  const ask = () => {
-    if (st.i >= st.qs.length) return resultDeux(st);
+  const face = (i, cls) => cardShell("deux", null, `
+      <p class="text">Qui de nous deux <b>${esc(st.qs[i])}</b> ?</p>
+      <div class="dx-zone"><p class="sub">Touche la carte. À trois, chacun montre quelqu'un du doigt.</p></div>`, i % 2 === 1).replace('class="card ', `class="card dx ${cls} `);
+  const show = () => {
+    if (st.i + 1 >= st.qs.length) more();
+    const slid = st.slid; st.slid = false;
     view(`
-      <div class="topbar">${quitBtn()}<span class="progress">Question ${st.i + 1} / ${st.qs.length}</span><span style="width:44px"></span></div>
-      <div class="stage">${cardShell("deux", null, `
-        <p class="text">Qui de nous deux <b>${esc(st.qs[st.i])}</b> ?</p>
-        <p class="sub">Au signal, chacun pointe en même temps ${esc(S.duo[0])} ou ${esc(S.duo[1])}.</p>`, st.i % 2)}</div>
-      <div class="actions"><button class="btn red" id="go">3, 2, 1… Désignez !</button></div>`, () => {
+      <div class="topbar">${quitBtn()}<span class="progress">Carte ${st.i + 1}</span><button class="changebtn" id="skip" aria-label="Changer de carte">⟳ Changer</button></div>
+      <div class="stage jstack">${face(st.i + 1, "under")}${face(st.i, "top" + (slid ? " still" : ""))}</div>
+      <div class="actions"><div class="row" id="dx-row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="go">3, 2, 1…</button></div></div>`, () => {
       bindQuit();
-      $("#go").onclick = () => {
+      const top = $(".jstack .top"), zone = $(".dx-zone", top);
+      // fitStage ne regarde que la première carte (celle du dessous) : on resserre les deux pareil tant que l'écran défile
+      const T = ["tight", "tighter", "tightest"];
+      const fit = () => { for (const k of T) if (document.body.scrollHeight > document.body.clientHeight + 1) $$(".jstack > .card").forEach(c => c.classList.add(k)); };
+      fit();
+      // fitStage vient ensuite retirer ces classes à la carte du dessous : elle reprend celles du dessus, pour ne pas changer de taille en passant dessus
+      requestAnimationFrame(() => { const u = $(".jstack .under"); if (u) T.forEach(k => u.classList.toggle(k, top.classList.contains(k))); });
+      let phase = "ask";
+      $("#skip").onclick = () => { if (phase !== "ask") return; buzz(10); st.qs.splice(st.i, 1); st.slid = true; show(); };
+      $("#stop").onclick = () => endDeux(st);
+      const judge = () => {
+        phase = "judge";
+        zone.innerHTML = `<span class="dx-n dx-go">Montrez !</span><p class="swipe-hint"><span>← Pas pareil</span><span>Pareil →</span></p>`;
+        $("#dx-row").innerHTML = `<button class="btn white" id="no">Pas pareil</button><button class="btn green" id="yes">Pareil !</button>`;
+        $("#dx-row").style.visibility = "";
+        fit();
+        const fly = swipeNext(top, $(".jstack .under"), () => {
+          const same = parseFloat(top.style.transform.slice(12)) > 0;
+          st.n++; if (same) st.ok++;
+          st.i++; st.slid = true; show();
+        });
+        $("#no").onclick = () => fly(-1); $("#yes").onclick = () => fly(1);
+      };
+      const count = () => {
+        if (phase !== "ask") return;
+        phase = "count"; $("#skip").disabled = true;
+        $("#dx-row").style.visibility = "hidden"; // la place reste : rien ne saute sous la carte
         let n = 3;
-        $(".actions").innerHTML = "";
         const tick = () => {
-          $(".stage").innerHTML = `<div class="big-count">${n > 0 ? n : "Pointez !"}</div>`;
-          if (n <= 0) { $(".big-count").style.fontSize = "72px"; buzz(80); later(judge, 800); return; }
-          buzz(20); n--; later(tick, 700);
+          if (n <= 0) { buzz(80); return judge(); }
+          zone.innerHTML = `<span class="dx-n">${n}</span>`; buzz(20); n--; later(tick, 650);
         };
         tick();
       };
+      top.onclick = count; $("#go").onclick = count;
     });
   };
-  const judge = () => {
-    $(".stage").innerHTML = cardShell("deux", null, `<p class="text">Vous avez désigné la même personne ?</p>`, st.i % 2);
-    $(".actions").innerHTML = `<div class="row"><button class="btn white" id="no">Non</button><button class="btn green" id="yes">Oui</button></div>`;
-    $("#yes").onclick = () => {
-      $(".stage").innerHTML = cardShell("deux", null, `<p class="text">Qui était-ce ?</p>
-        <div class="row" style="padding:0 18px">${S.duo.map((n, i) => `<button class="btn white" data-i="${i}">${esc(n)}</button>`).join("")}</div>`, st.i % 2);
-      $(".actions").innerHTML = "";
-      $$(".stage [data-i]").forEach(b => b.onclick = () => { st.ok++; st.pts[S.duo[+b.dataset.i]]++; stamp("Complices", "green"); st.i++; later(ask, 900); });
-    };
-    $("#no").onclick = () => {
-      stamp("Désaccord");
-      later(() => {
-        $(".stage").innerHTML = cardShell("deux", null, `<p class="text">Chacun a 20 secondes pour défendre sa version.</p>`, st.i % 2);
-        $(".actions").innerHTML = `<button class="btn red" id="ok">Question suivante</button>`;
-        $("#ok").onclick = () => { st.i++; ask(); };
-      }, 900);
-    };
-  };
-  ask();
+  show();
 }
-function resultDeux(st) {
+function endDeux(st) {
   stat("end", "deux", 2, "un");
-  const pct = Math.round(st.ok / st.qs.length * 100);
-  const [a, b] = S.duo;
-  const title = pct >= 80 ? "Âmes sœurs, ou complices du crime" : pct >= 60 ? "Un duo solide" : pct >= 40 ? "Ça se discute" : "Vous vous connaissez vraiment ?";
-  const lead = st.pts[a] === st.pts[b] ? null : (st.pts[a] > st.pts[b] ? a : b);
-  const A = {
-    kicker: "Qui de nous deux",
-    headline: `${a} et ${b} : complices à ${pct} %`,
-    deck: title + ".",
-    items: [
-      { title: "Le plus désigné", name: lead || "Égalité", desc: lead ? `${Math.max(st.pts[a], st.pts[b])} fois sur ${st.ok} accords` : "Personne ne prend tout" },
-      { title: "Verdict", name: pct >= 60 ? "Validé" : "À revoir", desc: `${st.ok} réponses communes sur ${st.qs.length}` }
-    ],
-    stats: [[st.qs.length, "questions"], [st.ok, "accords"], [st.qs.length - st.ok, "désaccords"]]
-  };
+  try { wakeLock && wakeLock.release(); } catch (e) {}
   S.inGame = false;
-  view(`${miniUne(A)}${resultActions()}`, () => { stamp(pct + " %", "blue"); bindResult(A, startDeux, "qui-de-nous-deux"); });
+  if (!st.n) return home();
+  const pct = Math.round(st.ok / st.n * 100);
+  view(`
+    <div class="rank anim fin-jamais" style="flex:1">
+      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${st.n} carte${st.n > 1 ? "s" : ""}</span></div>
+      <p class="mbest"><span>💞 Complices à</span><b>${pct} %</b><small>${st.ok ? `D'accord ${st.ok} fois sur ${st.n}` : "Pas d'accord une seule fois"}</small></p>
+      ${endBubbles(S.duo)}
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <div class="actions">
+      <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
+    </div>
+  `, () => {
+    $("#again").onclick = startDeux;
+    $("#home").onclick = home;
+    bindBubbles(); if (pct >= 50) party(); buzz([40, 30, 80]);
+  });
 }
 
 /* ---------- DUEL RÉFLEXE ---------- */
