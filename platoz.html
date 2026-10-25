@@ -870,6 +870,10 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .rx-list .top b { color: #7DFFC4; }
 .rx-list .bad b { color: #FF6A90; }
 .rx-list .slow b { color: #FFC24A; }
+.rx-list .out { opacity: .55; text-decoration: line-through; text-decoration-color: rgba(255,255,255,.5); }
+.mbest.rx-out { border-color: #8A8AA8; background: rgba(140,140,170,.14); box-shadow: 0 0 40px -10px rgba(140,140,170,.5); }
+.mbest.rx-out b { color: #fff; text-shadow: none; }
+.section-label small { text-transform: none; letter-spacing: 0; font-weight: 700; opacity: .7; margin-left: 4px; }
 @media (max-height: 620px) { .rx-fin { gap: 12px; } .rx-fin .rank-head .mast { font-size: 30px; } .rx-fin .mbest { padding: 6px 18px; } .rx-fin .mbest b { font-size: 26px; } }
 .pad.early { background: var(--g-gold); color: var(--ink); animation: shake .2s ease-in-out; }
 @keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-10px); } 50% { transform: translateX(9px); } 75% { transform: translateX(-5px); } }
@@ -2115,7 +2119,7 @@ function playersScreen() {
     <div class="field"><input id="name-input" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom du joueur"><button class="btn" type="button" id="add">Ajouter</button></div>
     <div class="chips" id="chips"></div>
     <div id="bubbles"></div>
-    ${S.mode === "reflexe" ? rxSeg() : ""}
+    ${S.mode === "reflexe" ? rxSeg(true) : ""}
     ${tutoLink()}
     <div class="actions"><button class="btn red" id="next"></button></div>
   `, () => {
@@ -4460,7 +4464,7 @@ const TUTO = {
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
-  reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel.",
+  reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Tu réponds oui ou non, personne voit. À la fin t'as ton score.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
 };
@@ -4825,8 +4829,10 @@ function miniUne(A) {
 /* ---------- DUEL RÉFLEXE ---------- */
 // un téléphone : seul (5 essais), à deux (face à face, premier à 3) ou en groupe (on se passe le tel, un essai chacun par manche)
 const rxTraps = () => store.get("reflexTraps", true);
-const rxSeg = () => `<div class="section-label">Pièges</div><div class="seg" id="rx-traps"><button data-v="1" aria-pressed="${rxTraps()}">Activés</button><button data-v="0" aria-pressed="${!rxTraps()}">Désactivés</button></div>`;
-const bindRxSeg = () => $$("#rx-traps button").forEach(b => b.onclick = () => { store.set("reflexTraps", b.dataset.v === "1"); buzz(10); $$("#rx-traps button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+const rxElim = () => store.get("reflexElim", true);
+const rxSeg = group => `<div class="section-label">Pièges</div><div class="seg" id="rx-traps"><button data-v="1" aria-pressed="${rxTraps()}">Activés</button><button data-v="0" aria-pressed="${!rxTraps()}">Désactivés</button></div>
+  ${group ? `<div class="section-label">Élimination <small>à 3 et plus</small></div><div class="seg" id="rx-elim"><button data-v="1" aria-pressed="${rxElim()}">Activée</button><button data-v="0" aria-pressed="${!rxElim()}">Désactivée</button></div>` : ""}`;
+const bindRxSeg = () => [["#rx-traps", "reflexTraps"], ["#rx-elim", "reflexElim"]].forEach(([id, k]) => $$(id + " button").forEach(b => b.onclick = () => { store.set(k, b.dataset.v === "1"); buzz(10); $$(id + " button").forEach(x => x.setAttribute("aria-pressed", x === b)); }));
 const RX_TRAP = ["trap", "t-red", "t-blue", "t-violet", "t-pink"];
 const rxTrapCls = (els, c) => els.forEach(el => { el.classList.remove(...RX_TRAP); if (c) el.classList.add("trap", "t-" + c); });
 // attente avant le vert ; avec les pièges, l'écran passe parfois d'abord à une autre couleur
@@ -4948,13 +4954,14 @@ function reflexDuo() {
   });
 }
 // en groupe : on se passe le téléphone, un essai chacun par manche, sans points ; on garde le meilleur temps de chacun
+// élimination (réglable) : à chaque manche, les faux départs sortent, sinon le plus lent, jusqu'au dernier
 function reflexGroup() {
   stat("start", "reflexe", S.players.length, "un");
-  S.rx = { round: 0, best: {} }; keepAwake();
+  S.rx = { round: 0, best: {}, elim: rxElim(), out: [] }; keepAwake();
   rxManche();
 }
 function rxManche() {
-  const all = S.players.map(p => p.name), sh = S.rx.round % all.length, P = [...all.slice(sh), ...all.slice(0, sh)], res = [];
+  const all = S.players.map(p => p.name).filter(n => !S.rx.out.includes(n)), sh = S.rx.round % all.length, P = [...all.slice(sh), ...all.slice(0, sh)], res = [];
   let k = 0, state = "ready", stop = () => {}, t0 = 0, trapped = false;
   S.rx.round++; S.inGame = true;
   view(`<div class="pad idle" id="pad"><span class="pad-name" id="nm"></span><span class="pad-big" id="big"></span><span class="pad-small" id="small"></span></div>
@@ -4984,20 +4991,35 @@ function rxManche() {
 function rxResult(res) {
   const ok = res.filter(r => r.ms < 99999).sort((a, b) => a.ms - b.ms), bad = res.filter(r => r.ms >= 99999), list = [...ok, ...bad];
   const slow = !bad.length && ok.length > 1 ? ok[ok.length - 1] : null;
+  // élimination : les faux départs sortent, sinon le plus lent ; si tout le monde a fait un faux départ, personne ne sort
+  const out = !S.rx.elim ? [] : bad.length ? (ok.length ? bad : []) : slow ? [slow] : [];
+  out.forEach(r => S.rx.out.push(r.name));
+  const left = S.players.length - S.rx.out.length, won = S.rx.elim && left <= 1;
+  const names = l => l.length > 1 ? l.slice(0, -1).join(", ") + " et " + l[l.length - 1] : l[0];
+  const head = !S.rx.elim
+    ? `<p class="mbest"><span>⚡ Le plus rapide</span><b>${ok[0] ? esc(ok[0].name) : "Personne"}</b><small>${ok[0] ? ok[0].ms + " ms" : "Que des faux départs"}</small></p>`
+    : out.length ? `<p class="mbest rx-out"><span>💀 Éliminé${out.length > 1 ? "s" : ""}</span><b>${esc(names(out.map(r => r.name)))}</b><small>${bad.length ? "Faux départ" : "Le plus lent"}${won ? "" : ` · encore ${left} en jeu`}</small></p>`
+    : `<p class="mbest"><span>💀 Personne ne sort</span><b>On rejoue</b><small>Que des faux départs</small></p>`;
   view(`
     <div class="topbar">${quitBtn()}<span class="progress">Manche ${S.rx.round}</span><span style="width:44px"></span></div>
     <div class="rx-res">
-      <p class="mbest"><span>⚡ Le plus rapide</span><b>${ok[0] ? esc(ok[0].name) : "Personne"}</b><small>${ok[0] ? ok[0].ms + " ms" : "Que des faux départs"}</small></p>
-      <div class="rx-list${list.length > 6 ? " two" : ""}">${list.map(r => `<div class="${r.ms >= 99999 ? "bad" : r === ok[0] ? "top" : r === slow ? "slow" : ""}"><span>${esc(r.name)}</span><b>${r.ms >= 99999 ? "Faux départ" : (r === slow ? "🐢 " : "") + r.ms + " ms"}</b></div>`).join("")}</div>
+      ${head}
+      <div class="rx-list${list.length > 6 ? " two" : ""}">${list.map(r => `<div class="${out.includes(r) ? "out " : ""}${r.ms >= 99999 ? "bad" : r === ok[0] ? "top" : r === slow ? "slow" : ""}"><span>${out.includes(r) ? "💀 " : ""}${esc(r.name)}</span><b>${r.ms >= 99999 ? "Faux départ" : (r === slow && !out.includes(r) ? "🐢 " : "") + r.ms + " ms"}</b></div>`).join("")}</div>
     </div>
-    <div class="actions"><div class="row"><button class="btn white" id="end">Terminer</button><button class="btn red" id="more">Encore une</button></div></div>
-  `, () => { bindQuit(); $("#end").onclick = rxEnd; $("#more").onclick = rxManche; buzz(20); });
+    <div class="actions">${won ? `<button class="btn red" id="end">Voir le gagnant</button>` : `<div class="row"><button class="btn white" id="end">Terminer</button><button class="btn red" id="more">${S.rx.elim ? "Manche suivante" : "Encore une"}</button></div>`}</div>
+  `, () => { bindQuit(); $("#end").onclick = rxEnd; if ($("#more")) $("#more").onclick = rxManche; buzz(out.length ? [60, 40, 60] : 20); });
 }
 function rxEnd() {
   stat("end", "reflexe", S.players.length, "un");
-  const B = S.rx.best, P = S.players.map(p => p.name).sort((x, y) => (B[x] == null ? 1e9 : B[x]) - (B[y] == null ? 1e9 : B[y])), fast = B[P[0]] != null ? P[0] : null;
-  rxFin(`${S.rx.round} manche${S.rx.round > 1 ? "s" : ""}`, fast ? `<p class="mbest"><span>⚡ Le plus rapide</span><b>${esc(fast)}</b><small>${B[fast]} ms</small></p>` : "",
-    [P, P.map(n => B[n] != null ? B[n] + " ms" : "Faux départ")], () => { S.players = shuffle(S.players); reflexGroup(); });
+  const B = S.rx.best, O = S.rx.out, t = n => B[n] == null ? 1e9 : B[n], o = n => O.includes(n) ? O.indexOf(n) : 1e6;
+  // avec l'élimination : les survivants d'abord, puis du dernier sorti au premier
+  const P = S.players.map(p => p.name).sort((x, y) => S.rx.elim ? (o(y) - o(x)) || t(x) - t(y) : t(x) - t(y));
+  const alive = P.filter(n => !O.includes(n)), fast = B[P.slice().sort((x, y) => t(x) - t(y))[0]] != null ? P.slice().sort((x, y) => t(x) - t(y))[0] : null;
+  const best = S.rx.elim && alive.length === 1
+    ? `<p class="mbest"><span>🏆 Dernier survivant</span><b>${esc(alive[0])}</b><small>${fast ? `⚡ Le plus rapide : ${esc(fast)}, ${B[fast]} ms` : ""}</small></p>`
+    : fast ? `<p class="mbest"><span>⚡ Le plus rapide</span><b>${esc(fast)}</b><small>${B[fast]} ms</small></p>` : "";
+  rxFin(`${S.rx.round} manche${S.rx.round > 1 ? "s" : ""}`, best,
+    [P, P.map(n => S.rx.elim && alive.length === 1 && n === alive[0] ? "🏆" : B[n] != null ? B[n] + " ms" : "Faux départ")], () => { S.players = shuffle(S.players); reflexGroup(); });
 }
 
 /* ---------- TEST DE SCANDALE ---------- */
