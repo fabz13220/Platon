@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Platoz">
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="14846c2a2394">
+<meta name="build" content="b0628db53d19">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1074,6 +1074,35 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .tb-forbid small { flex-basis: 100%; }
 .tb-forbid span { line-height: 1.15; font-size: 18px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.14); }
 .tb-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#app > .tb-btns { grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: auto; }
+#app > .tb-btns .btn { padding-left: 6px; padding-right: 6px; font-size: 16px; white-space: nowrap; }
+.tb-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tb-name { border: 0; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font: inherit; font-weight: 800; font-size: 15px; box-shadow: inset 0 0 0 1.5px var(--tc); cursor: pointer; }
+.tb-name:active { transform: scale(.94); }
+.tb-teams.tbfit1 .tb-team { padding: 10px 12px; } .tb-teams.tbfit1 .tb-names { gap: 5px; margin-top: 6px; } .tb-teams.tbfit1 .tb-name { padding: 5px 10px; font-size: 14px; }
+.hint.tbfit2 { display: none; }
+.tb-teams.tbfit3 .tb-name { padding: 4px 8px; font-size: 13px; } .seg.tbfit3 button { min-height: 40px; }
+.stage.tbfit1 .secret p { font-size: 18px; } .stage.tbfit2 .secret .mast { font-size: 38px; } .stage.tbfit3 .secret p { font-size: 15px; }
+.card.tb-card::before, .card.tb-end::before { display: none; } /* le grand symbole décoratif passait sur les mots */
+.tb-end .tb-score span { background: rgba(0,0,0,.3); box-shadow: inset 0 0 0 1.5px var(--tc); }
+.tb-end .tb-score b { color: #fff; }
+.tb-row .btn { white-space: nowrap; font-size: 17px; padding-left: 8px; padding-right: 8px; }
+.stage.tbfit1 .tb-end .mast { font-size: 24px; } .stage.tbfit1 .tb-w { padding: 5px 9px; font-size: 13.5px; }
+.stage.tbfit2 .tb-fix { display: none; } .stage.tbfit2 .tb-words { gap: 4px; } .stage.tbfit2 .tb-w { padding: 4px 7px; font-size: 12.5px; } .stage.tbfit2 .tb-w b { font-size: 10.5px; }
+.stage.tbfit3 .tb-end { gap: 8px; } .stage.tbfit3 .tb-w { padding: 3px 6px; font-size: 11.5px; }
+.end-bubbles.tbfit1 { gap: 10px 8px; } .end-bubbles.tbfit1 .bubble { min-width: 72px; min-height: 72px; padding: 8px 12px; font-size: 14px; }
+.end-bubbles.tbfit2 .bubble { min-width: 58px; min-height: 58px; padding: 6px 10px; font-size: 12.5px; }
+.end-bubbles.tbfit3 { min-height: 0; gap: 6px; }
+.tb-card .tb-word { overflow-wrap: normal; word-break: normal; }
+.stage > .card.tb-end { min-height: 0; flex: 0 1 auto; gap: 12px; padding-bottom: 16px; }
+.tb-fix { margin: 0 20px; font-weight: 700; font-size: 14px; opacity: .8; text-align: center; }
+.tb-words { margin: 0 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.tb-w { border: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 12px; font: inherit; font-weight: 900; font-size: 15px; color: #fff; background: rgba(255,255,255,.12); cursor: pointer; }
+.tb-w b { font-size: 12px; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,.25); }
+.tb-w.ok { background: rgba(46,230,160,.22); box-shadow: inset 0 0 0 1.5px #2EE6A0; }
+.tb-w.no { background: rgba(255,59,110,.22); box-shadow: inset 0 0 0 1.5px #FF3B6E; }
+.tb-w.pass span { opacity: .7; }
+
 .tb-no { --bg: rgba(255,59,110,.18) !important; box-shadow: inset 0 0 0 1.5px #FF3B6E !important; }
 .count-seg { margin-top: -4px; }
 /* sensation d'appli : pas de sélection de texte ni de loupe au toucher, sauf dans les champs */
@@ -1622,7 +1651,74 @@ const C = {
     [3, "Strip-tease", "danser", "enlever", "habits", "sexy", "nu"],
     [3, "Préservatif", "capote", "protection", "sexe", "pharmacie", "latex"],
     [3, "Plan cul", "sexe", "relation", "amis", "sérieux", "coucher"],
-    [3, "Lingerie", "sous-vêtements", "dentelle", "soutien-gorge", "sexy", "culotte"]
+    [3, "Lingerie", "sous-vêtements", "dentelle", "soutien-gorge", "sexy", "culotte"],
+    [1, "Bowling", "boule", "quilles", "strike", "piste", "chaussures"],
+    [1, "Burger", "steak", "pain", "frites", "fast-food", "sauce"],
+    [1, "Ski", "neige", "montagne", "piste", "descendre", "hiver"],
+    [1, "Halloween", "citrouille", "déguisement", "bonbons", "peur", "octobre"],
+    [1, "Permis de conduire", "voiture", "examen", "code", "moniteur", "conduire"],
+    [1, "Bac", "examen", "lycée", "diplôme", "mention", "réviser"],
+    [1, "Coiffeur", "cheveux", "couper", "ciseaux", "salon", "coupe"],
+    [1, "Frigo", "froid", "cuisine", "manger", "porte", "congélateur"],
+    [1, "Parapluie", "pluie", "ouvrir", "mouillé", "protéger", "temps"],
+    [1, "Nutella", "chocolat", "noisette", "pot", "tartine", "pâte"],
+    [1, "Tacos", "viande", "frites", "sauce", "galette", "fromage"],
+    [1, "Crêpe", "farine", "Bretagne", "poêle", "sucre", "Nutella"],
+    [1, "Fondue", "fromage", "pain", "caquelon", "montagne", "Savoie"],
+    [1, "Wifi", "internet", "réseau", "code", "connexion", "box"],
+    [1, "Chargeur", "batterie", "téléphone", "câble", "prise", "brancher"],
+    [1, "Snapchat", "photo", "fantôme", "flamme", "story", "appli"],
+    [1, "TikTok", "vidéo", "danse", "appli", "scroller", "trend"],
+    [1, "Uber", "taxi", "chauffeur", "appli", "voiture", "course"],
+    [1, "Métro", "Paris", "ligne", "station", "rame", "souterrain"],
+    [1, "Ascenseur", "étage", "monter", "bouton", "descendre", "coincé"],
+    [1, "Pyjama", "dormir", "nuit", "lit", "habit", "pantalon"],
+    [1, "Canapé", "salon", "assis", "coussin", "télé", "dormir"],
+    [1, "Hamster", "rongeur", "cage", "roue", "petit", "animal"],
+    [1, "Chat", "miauler", "animal", "croquettes", "griffes", "poils"],
+    [1, "Serpent", "reptile", "venin", "ramper", "siffler", "long"],
+    [1, "Dinosaure", "préhistoire", "T-Rex", "disparu", "fossile", "Jurassic"],
+    [1, "Pingouin", "banquise", "noir", "blanc", "oiseau", "froid"],
+    [1, "Abeille", "miel", "piquer", "ruche", "insecte", "jaune"],
+    [1, "Volcan", "lave", "éruption", "montagne", "chaud", "cratère"],
+    [1, "Tempête", "vent", "pluie", "orage", "météo", "arbres"],
+    [1, "Neige", "blanc", "froid", "hiver", "bonhomme", "flocon"],
+    [1, "Lune", "nuit", "ciel", "astronaute", "croissant", "pleine"],
+    [1, "Supermarché", "courses", "caddie", "caisse", "rayon", "acheter"],
+    [1, "Boulangerie", "pain", "baguette", "croissant", "boulanger", "matin"],
+    [1, "Pharmacie", "médicaments", "croix", "verte", "ordonnance", "malade"],
+    [1, "Zoo", "animaux", "cage", "lion", "visiter", "girafe"],
+    [1, "Clown", "nez", "rouge", "rire", "cirque", "maquillage"],
+    [1, "Sorcière", "balai", "chapeau", "magie", "potion", "Halloween"],
+    [1, "Père Noël", "barbe", "cadeaux", "rouge", "traîneau", "cheminée"],
+    [1, "Cendrillon", "pantoufle", "verre", "princesse", "minuit", "citrouille"],
+    [1, "Harry Potter", "sorcier", "baguette", "Poudlard", "lunettes", "magie"],
+    [1, "Mario", "Nintendo", "plombier", "moustache", "Luigi", "jeu"],
+    [1, "Pokémon", "Pikachu", "attraper", "dresseur", "carte", "Sacha"],
+    [1, "Pâtes", "Italie", "eau", "bouillir", "spaghetti", "sauce"],
+    [1, "Chips", "paquet", "croustillant", "apéro", "pomme de terre", "sel"],
+    [1, "Apéro", "boire", "chips", "soirée", "verre", "avant"],
+    [1, "Tennis", "raquette", "balle", "filet", "Nadal", "court"],
+    [1, "Basket", "panier", "ballon", "NBA", "dribbler", "grand"],
+    [1, "Vélo", "pédaler", "roues", "Tour de France", "guidon", "casque"],
+    [1, "Salle de sport", "muscles", "machine", "abonnement", "soulever", "coach"],
+    [1, "Régime", "maigrir", "manger", "kilos", "poids", "salade"],
+    [1, "Hoquet", "respirer", "boire", "bruit", "peur", "arrêter"],
+    [1, "Ronfler", "dormir", "bruit", "nez", "nuit", "lit"],
+    [1, "Sosie", "ressembler", "pareil", "célèbre", "double", "copie"],
+    [1, "Radar", "vitesse", "flash", "route", "amende", "photo"],
+    [2, "Bière", "alcool", "boire", "mousse", "blonde", "pression"],
+    [2, "Shot", "verre", "petit", "alcool", "cul sec", "tequila"],
+    [2, "Retard", "heure", "attendre", "en avance", "excuse", "rendez-vous"],
+    [2, "Friendzone", "ami", "amour", "crush", "copain", "refus"],
+    [2, "Laisser en vu", "message", "lire", "répondre", "ignorer", "notification"],
+    [2, "Cougar", "femme", "âgée", "jeune", "draguer", "mère"],
+    [2, "Gendarme", "police", "képi", "amende", "uniforme", "arrêter"],
+    [3, "Ex", "couple", "ancien", "rupture", "copain", "copine"],
+    [3, "Tromper", "couple", "infidèle", "cocu", "mentir", "copain"],
+    [3, "Suçon", "cou", "bisou", "marque", "peau", "rouge"],
+    [3, "Menottes", "police", "poignets", "attacher", "prison", "lit"],
+    [3, "Plan à trois", "trois", "personnes", "sexe", "couple", "lit"]
   ],
   imposteur: [
     [1,"Nourriture","Raclette"],[1,"Nourriture","Pizza"],[1,"Nourriture","Kebab"],[1,"Nourriture","Sushi"],[1,"Nourriture","Crêpe"],[1,"Nourriture","Tacos"],[1,"Nourriture","Fondue"],
@@ -1793,7 +1889,7 @@ function home() {
   const maxOf = t => ({ p4: 2, deux: 2, reflexe: 2, test: 1, uno: 10 })[t] || 16;
   const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de scandale", "T'es grave à quel point ?"] };
   const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
-  const rail = (title, list, id, on) => (list = on ? list.filter(t => !SWIPE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
+  const rail = (title, list, id, on) => (list = on ? list.filter(t => !ONE_PHONE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
   view(`
     <header class="home-head">
@@ -2349,6 +2445,7 @@ function next() {
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
 const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar", "classement"];
+const ONE_PHONE = [...SWIPE, "taboo"]; // jeux absents du mode plusieurs téléphones
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
 const NOPTS = ["imposteur", "menteur"];
 const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
@@ -3784,106 +3881,140 @@ function proposeTool() {
   });
 }
 
-/* -------- SANS LE DIRE : faire deviner un mot à son équipe sans dire les mots interdits -------- */
-const TB = { teams: [[], []], score: [0, 0], turns: 0, max: 4, secs: 60, giver: [0, 0] };
+/* -------- SANS LE DIRE : un téléphone, deux équipes, on fait deviner un mot sans dire les mots interdits -------- */
+const TB = { teams: [[], []], score: [0, 0], turns: 0, secs: 60, giver: [0, 0] };
 const TB_NAMES = ["Équipe Feu", "Équipe Glace"], TB_COLS = ["#FF3B6E", "#4D8BFF"];
+const tbOf = i => TB_NAMES[i].replace("Équipe", "équipe");
 function tabooSetup() {
   if (!TB.teams[0].length || TB.teams.flat().length !== S.names.length || TB.teams.flat().some(n => !S.names.includes(n))) tabooSplit();
   const draw = () => {
-    $("#teams").innerHTML = TB.teams.map((t, i) => `<div class="tb-team" style="--tc:${TB_COLS[i]}"><b>${TB_NAMES[i]}</b><p>${t.map(esc).join(" · ")}</p></div>`).join("");
-    $$("#tbturns button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === TB.max));
+    $("#teams").innerHTML = TB.teams.map((t, i) => `<div class="tb-team" style="--tc:${TB_COLS[i]}"><b>${TB_NAMES[i]}</b><div class="tb-names">${t.map(n => `<button class="tb-name" data-n="${esc(n)}">${esc(n)}</button>`).join("")}</div></div>`).join("");
+    // toucher un prénom le fait passer dans l'autre équipe
+    $$("#teams .tb-name").forEach(b => b.onclick = () => {
+      const n = b.dataset.n, i = TB.teams[0].includes(n) ? 0 : 1;
+      if (TB.teams[i].length <= 2) return toast("Il faut au moins 2 joueurs par équipe.");
+      TB.teams[i] = TB.teams[i].filter(x => x !== n); TB.teams[1 - i].push(n); buzz(10); draw();
+    });
     $$("#tbsecs button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === TB.secs));
   };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Sans le dire</span><span style="width:44px"></span></div>
-    <p class="hint muted" style="text-align:center;margin:0">Fais deviner le mot à ton équipe sans dire le mot ni les mots interdits. Pas de gestes. Un joueur de l'autre équipe regarde l'écran avec toi et appuie sur « Interdit » s'il t'attrape.</p>
+    <p class="hint muted" style="text-align:center;margin:0">Fais deviner le mot à ton équipe sans dire les mots interdits. Pas de gestes. Touche un prénom pour le changer d'équipe.</p>
     <div id="teams" class="tb-teams"></div>
     <p style="text-align:center;margin:0"><button class="linkbtn" id="mix">Refaire les équipes</button></p>
-    <div class="section-label">Tours par équipe</div>
-    <div class="seg" id="tbturns"><button data-v="3">3</button><button data-v="4">4</button><button data-v="6">6</button></div>
-    <div class="section-label">Temps par tour</div>
+    <div class="section-label">Temps par manche</div>
     <div class="seg" id="tbsecs"><button data-v="45">45 s</button><button data-v="60">1 min</button><button data-v="90">1 min 30</button></div>
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
     $("#back").onclick = ambiance;
     $("#mix").onclick = () => { tabooSplit(); buzz(10); draw(); };
-    $$("#tbturns button").forEach(b => b.onclick = () => { TB.max = +b.dataset.v; draw(); });
     $$("#tbsecs button").forEach(b => b.onclick = () => { TB.secs = +b.dataset.v; draw(); });
     $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.deck = shuffle(pool("taboo")); S.inGame = true; keepAwake(); tabooTurn(); };
     draw();
+    tbFit();
   });
 }
 function tabooSplit() { const n = shuffle(S.names); TB.teams = [n.filter((_, i) => i % 2 === 0), n.filter((_, i) => i % 2 === 1)]; }
 const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(pool("taboo")); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
 const tbBoard = cur => `<div class="tb-score">${TB_NAMES.map((n, i) => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${n.replace("Équipe ", "")} <b>${TB.score[i]}</b></span>`).join("")}</div>`;
+const tbNet = log => log.reduce((a, x) => a + (x.r === "ok" ? 1 : x.r === "no" ? -1 : 0), 0);
+const tbSign = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
 function tabooTurn() {
-  const t = TB.turns % 2, team = TB.teams[t], g = team[TB.giver[t] % team.length], other = TB_NAMES[1 - t];
+  const t = TB.turns % 2, team = TB.teams[t], g = team[TB.giver[t] % team.length];
   view(`
-    <div class="topbar">${quitBtn()}<span class="progress">Tour ${Math.floor(TB.turns / 2) + 1} / ${TB.max}</span><span style="width:44px"></span></div>
+    <div class="topbar">${quitBtn()}<span class="progress">Manche ${TB.turns + 1}</span><span style="width:44px"></span></div>
     ${tbBoard(t)}
     <div class="stage"><div class="secret" style="--c:${TB_COLS[t]}"><span class="eyebrow" style="color:var(--paper)">${TB_NAMES[t]} · passe le téléphone à</span><span class="mast">${esc(g)}</span>
-      <p>Ton équipe devine : ${team.filter(n => n !== g).map(esc).join(", ")}.<br>Un joueur de l'${other.replace("Équipe", "équipe")} se met à côté de toi pour surveiller.</p></div></div>
-    <div class="actions"><button class="btn red" id="go">Lancer le chrono (${TB.secs} s)</button></div>
-  `, () => { bindQuit(); $("#go").onclick = () => tabooPlay(t, g); });
+      <p>Ton équipe devine : ${team.filter(n => n !== g).map(esc).join(", ")}.<br>Quelqu'un de l'${tbOf(1 - t)} regarde l'écran avec toi.</p></div></div>
+    <div class="actions"><button class="btn red" id="go">Lancer le chrono</button></div>
+  `, () => { bindQuit(); tbFit(); $("#go").onclick = () => tabooPlay(t, g); });
 }
+// pendant le chrono : la carte seule ; swipe à droite = trouvé, à gauche = passé, « Interdit » = −1
 function tabooPlay(t, g) {
-  let left = TB.secs, c = tbCard(), passes = 0, over = false;
+  let left = TB.secs, c = tbCard(), over = false, fly = () => {};
   const log = [];
   view(`
-    <div class="topbar">${quitBtn()}<span class="tb-timer" id="timer">${left}</span><span class="progress" id="pts">+0</span></div>
+    <div class="topbar">${quitBtn()}<span class="tb-timer" id="timer">${left}</span><span class="progress tb-net" id="pts">0</span></div>
     <div class="stage" id="stage"></div>
     <div class="tb-btns">
-      <button class="btn white" id="pass">Passer <small id="pl">3 restants</small></button>
-      <button class="btn ink tb-no" id="no">Interdit !</button>
+      <button class="btn white" id="pass">← Passer</button>
+      <button class="btn ink tb-no" id="no">Interdit</button>
+      <button class="btn green" id="ok">Trouvé →</button>
     </div>
-    <div class="actions"><button class="btn green" id="ok">Trouvé ✓</button></div>
   `, () => {
     bindQuit();
+    const act = (r, id) => {
+      if (over || id !== c.id) return; // un double toucher ne compte qu'une fois
+      log.push({ w: c.data[1], r });
+      if (r === "ok") buzz(20); else if (r === "no") { buzz([80, 40, 80]); stamp("Interdit"); }
+      c = tbCard(); show();
+    };
     const show = () => {
-      const d = c.data;
-      $("#stage").innerHTML = `<div class="card tb-card" style="--c:var(--taboo)">
+      const d = c.data, id = c.id;
+      $("#stage").innerHTML = `<div class="card tb-card" id="tbc" style="--c:var(--taboo)">
         <div class="band"><span class="mast">Fais deviner</span></div>
         <p class="tb-word">${esc(d[1])}</p>
         <div class="tb-forbid"><small>Interdit de dire</small>${d.slice(2).map(w => `<span>${esc(w)}</span>`).join("")}</div>
       </div>`;
-      const net = log.reduce((a, x) => a + (x.r === "ok" ? 1 : x.r === "no" ? -1 : 0), 0);
-      $("#pts").textContent = (net >= 0 ? "+" : "") + net;
-      $("#pl").textContent = passes >= 3 ? "plus de passe" : `${3 - passes} restant${3 - passes > 1 ? "s" : ""}`;
-      $("#pass").disabled = passes >= 3;
+      const el = $("#tbc");
+      fly = swipeCard(el, v => act(v === "oui" ? "ok" : "pass", id));
+      el.querySelector(".swipe-tag.oui").textContent = "TROUVÉ"; el.querySelector(".swipe-tag.non").textContent = "PASSE";
+      tbFitWord(el);
+      $("#pts").textContent = tbSign(tbNet(log));
+      $("#no").onclick = () => act("no", id);
     };
-    const act = r => {
-      if (over) return;
-      log.push({ w: c.data[1], r });
-      if (r === "ok") { buzz(20); TB.score[t]++; }
-      else if (r === "no") { buzz([80, 40, 80]); stamp("Interdit"); TB.score[t]--; }
-      else passes++;
-      c = tbCard(); show();
-    };
-    $("#ok").onclick = () => act("ok"); $("#no").onclick = () => act("no"); $("#pass").onclick = () => act("pass");
+    $("#ok").onclick = () => fly("oui"); $("#pass").onclick = () => fly("non");
     show();
     const tick = setInterval(() => {
       left--; const el = $("#timer"); if (!el) return clearInterval(tick);
-      el.textContent = left; el.classList.toggle("hot", left <= 10);
+      el.textContent = Math.max(0, left); el.classList.toggle("hot", left <= 10);
       if (left <= 10 && left > 0) buzz(8);
       if (left <= 0) { clearInterval(tick); over = true; buzz([200, 80, 200]); stamp("Temps écoulé"); later(() => tabooEnd(t, g, log), 900); }
     }, 1000);
     timers.push(tick);
   });
 }
+// un mot long ne se coupe jamais : on réduit la taille jusqu'à ce qu'il tienne sur la largeur
+function tbFitWord(card) {
+  const w = card.querySelector(".tb-word"); if (!w) return;
+  let f = parseFloat(getComputedStyle(w).fontSize);
+  while ((w.scrollWidth > w.clientWidth + 1 || w.getBoundingClientRect().height > f * 2.3) && f > 20) w.style.fontSize = (f -= 2) + "px";
+}
+// fin de manche : la liste des mots ; toucher un mot le corrige (trouvé → passé → interdit → trouvé)
 function tabooEnd(t, g, log) {
-  const ok = log.filter(x => x.r === "ok").length, no = log.filter(x => x.r === "no").length, net = ok - no;
-  TB.giver[t]++; TB.turns++;
-  const done = TB.turns >= TB.max * 2;
+  const NEXT = { ok: "pass", pass: "no", no: "ok" }, LBL = { ok: "+1", no: "−1", pass: "passé" };
   view(`
-    <div class="topbar">${quitBtn()}<span class="progress">${TB_NAMES[t]}</span><span style="width:44px"></span></div>
-    ${tbBoard(-1)}
-    <div class="stage"><div class="card" style="--c:var(--taboo)">
-      <div class="band"><span class="mast">${net >= 0 ? "+" : ""}${net} point${Math.abs(net) > 1 ? "s" : ""}</span><span class="eyebrow">${esc(g)}</span></div>
-      <p class="sub" style="margin:0 22px">${ok} trouvé${ok > 1 ? "s" : ""}, ${no} interdit${no > 1 ? "s" : ""}.</p>
-      <div class="radar-res">${log.map(x => `<div><i style="background:${x.r === "ok" ? "#2EE6A0" : x.r === "no" ? "#FF3B6E" : "rgba(255,255,255,.3)"}"></i><span>${esc(x.w)}</span><b>${x.r === "ok" ? "+1" : x.r === "no" ? "−1" : "passé"}</b></div>`).join("") || `<div><span>Aucun mot</span></div>`}</div>
+    <div class="topbar">${quitBtn()}<span class="progress">Manche ${TB.turns + 1}</span><span style="width:44px"></span></div>
+    <div class="stage"><div class="card tb-end" style="--c:${TB_COLS[t]}">
+      <div class="band"><span class="mast" id="net"></span></div>
+      <p class="tb-fix">${log.length ? "Une erreur ? Touche le mot pour corriger." : "Aucun mot cette fois."}</p>
+      <div class="tb-words" id="words"></div>
+      <div id="board"></div>
     </div></div>
-    <div class="actions"><button class="btn red" id="next">${done ? "Voir le résultat" : "Au tour de l'" + TB_NAMES[1 - t].replace("Équipe", "équipe")}</button></div>
-  `, () => { bindQuit(); $("#next").onclick = done ? tabooFinal : tabooTurn; });
+    <div class="actions"><div class="row tb-row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="next">Équipe suivante</button></div></div>
+  `, () => {
+    bindQuit();
+    const draw = () => {
+      const n = tbNet(log);
+      $("#net").textContent = `${tbSign(n)} point${Math.abs(n) > 1 ? "s" : ""}`;
+      $("#words").innerHTML = log.map((x, i) => `<button class="tb-w ${x.r}" data-i="${i}"><span>${esc(x.w)}</span><b>${LBL[x.r]}</b></button>`).join("");
+      $$("#words .tb-w").forEach(b => b.onclick = () => { const x = log[+b.dataset.i]; x.r = NEXT[x.r]; buzz(10); draw(); });
+      const sc = TB.score.slice(); sc[t] += n;
+      $("#board").innerHTML = `<div class="tb-score">${TB_NAMES.map((nm, i) => `<span style="--tc:${TB_COLS[i]}">${nm.replace("Équipe ", "")} <b>${sc[i]}</b></span>`).join("")}</div>`;
+      tbFit();
+    };
+    const close = go => { TB.score[t] += tbNet(log); TB.giver[t]++; TB.turns++; go(); };
+    $("#next").onclick = () => close(tabooTurn);
+    $("#stop").onclick = () => close(tabooFinal);
+    draw();
+  });
+}
+const tbOver = () => document.body.scrollHeight > document.body.clientHeight + 1 || [...$$(".actions .btn")].some(b => b.getBoundingClientRect().bottom > innerHeight + 1);
+// beaucoup de joueurs, beaucoup de mots ou petit écran : on resserre par paliers tant que l'écran défile
+function tbFit() {
+  const els = [...app.children], cls = ["tbfit1", "tbfit2", "tbfit3"];
+  els.forEach(e => e.classList.remove(...cls));
+  for (let k = 0; k < 3 && tbOver(); k++) els.forEach(e => e.classList.add(cls[k]));
 }
 function tabooFinal() {
   stat("end", "taboo", S.names.length, "un");
@@ -3892,12 +4023,12 @@ function tabooFinal() {
   buzz([60, 40, 140]);
   view(`
     <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Sans le dire</span></div>
-      <p class="rank-say">${w < 0 ? "Égalité parfaite" : "Victoire de l'" + TB_NAMES[w].replace("Équipe", "équipe")}</p>
-      <ol class="rank-list">${[0, 1].sort((x, y) => TB.score[y] - TB.score[x]).map((i, k) => `<li class="up"><span class="rk">${w < 0 ? 1 : k + 1}</span><span class="nm">${TB_NAMES[i]}<small style="display:block;font-weight:700;opacity:.75">${TB.teams[i].map(esc).join(", ")}</small></span><b>${TB.score[i]} pt${Math.abs(TB.score[i]) > 1 ? "s" : ""}</b></li>`).join("")}</ol>
+      <p class="rank-say">${w < 0 ? "Égalité parfaite" : "Victoire de l'" + tbOf(w)}</p>
+      <ol class="rank-list">${[0, 1].sort((x, y) => TB.score[y] - TB.score[x]).map((i, k) => `<li class="up"><span class="rk">${w < 0 ? 1 : k + 1}</span><span class="nm">${TB_NAMES[i]}</span><b>${TB.score[i]} pt${Math.abs(TB.score[i]) > 1 ? "s" : ""}</b></li>`).join("")}</ol>
       <div class="confetti" id="confetti"></div></div>
     ${endBubbles(S.names)}
     <div class="actions"><div class="row"><button class="btn red" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div></div>
-  `, () => { party(); $("#again").onclick = tabooSetup; $("#home").onclick = home; bindBubbles(); });
+  `, () => { tbFit(); party(); $("#again").onclick = tabooSetup; $("#home").onclick = home; bindBubbles(); });
 }
 
 /* -------- PUISSANCE 4 : deux joueurs sur le même écran -------- */
@@ -4072,7 +4203,7 @@ const TUTO = {
   classement: "Celui qui a le tel voit une question en secret et classe tout le monde, lui compris. Les autres regardent le classement et se mettent d'accord pour retrouver la question.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
-  taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Quelqu'un de l'autre équipe te surveille.",
+  taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer. Quelqu'un de l'autre équipe te surveille.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
@@ -4973,7 +5104,7 @@ const needers = r => r.card && r.card.type === "deux" ? r.card.pair.filter(u => 
   : ids(r).filter(u => u !== solo(r.card));
 const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
 async function roomCreate(game = "mix") {
-  if (SWIPE.includes(game)) game = "mix"; // les jeux qui se jouent sur un seul téléphone ne passent pas en ligne
+  if (ONE_PHONE.includes(game)) game = "mix"; // les jeux qui se jouent sur un seul téléphone ne passent pas en ligne
   try {
     const { F, db, uid } = await net(), me = store.get("me");
     let code = genCode(4, "ABCDEFGHJKLMNPQRSTUVWXYZ");
@@ -5057,7 +5188,7 @@ async function roomNext(r) {
   const all = ids(r), n = all.length;
   if (r.round >= r.rounds) { stat("end", r.game, n, "multi"); return upd({ status: "end" }); }
   if (!r.round) stat("start", r.game, n, "multi");
-  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && !SWIPE.includes(t) && !LONG.includes(t) && ON_GAMES[t][1] <= n);
+  const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && !ONE_PHONE.includes(t) && !LONG.includes(t) && ON_GAMES[t][1] <= n);
   const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
   const c = t === "av" || NEWG.includes(t) ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
   S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
@@ -5650,7 +5781,7 @@ function lobbyView(r, host) {
     <div class="section-label">Joueurs (${n})</div>
     ${endBubbles(all.map(u => r.players[u].name + (u === r.host ? " ★" : ""))).replace('class="end-bubbles', 'class="end-bubbles lobby-bubbles')}
     ${host ? `<div class="section-label">Jeu</div>
-      <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => !SWIPE.includes(k)).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
+      <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => !ONE_PHONE.includes(k)).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
       <div class="section-label">Manches</div>
       <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>
       ${r.game === "imposteur" ? `<div class="section-label">Imposteurs</div><div class="seg" id="impn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.imp == null ? 1 : r.imp)}">${v}</button>`).join("")}</div>
