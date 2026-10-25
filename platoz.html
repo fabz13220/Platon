@@ -1725,7 +1725,15 @@ function view(html, after) {
   clearTimers(); $$(".sheet-wrap").forEach(s => s.remove()); $$(".tool-wrap").forEach(s => s.remove());
   app.innerHTML = html; window.scrollTo(0, 0); document.body.scrollTop = 0;
   if (after) after();
-  fitStage();
+  fitStage(); fitWords();
+}
+// un prénom ou un mot trop long ne se coupe jamais au milieu : on réduit la taille du texte jusqu'à ce qu'il tienne
+function fitWords() {
+  $$(".secret .mast, .card .who").forEach(el => {
+    el.style.overflowWrap = "normal"; el.style.wordBreak = "normal";
+    let f = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollWidth > el.clientWidth + 1 && f > 18) el.style.fontSize = (f -= 2) + "px";
+  });
 }
 // la carte doit tenir dans l'écran avec ses boutons : sinon les boutons passent sous le bas de l'iPhone
 function fitStage() {
@@ -3144,6 +3152,8 @@ function classBest() {
   if (!n) return `<p class="mbest">🏆 Pas une seule question trouvée.</p>`;
   return `<p class="mbest"><span>🏆 Questions trouvées</span><b>${n} sur ${m}</b></p>`;
 }
+// « Changer » autant de fois qu'on veut avant de classer
+const clsSkip = () => { const k = $("#skip"); if (k) { k.disabled = false; k.onclick = () => skipCard("Autre question.", true); } };
 // après le classement, on ne change plus la carte
 const noSkip = () => { const k = $("#skip"); if (k) k.replaceWith(Object.assign(document.createElement("span"), { style: "width:44px" })); };
 // tout doit tenir sur un écran : on resserre la carte par paliers tant que ça dépasse
@@ -3176,7 +3186,7 @@ function cClassSolo(c) {
     ["pointerup", "pointercancel", "pointerleave"].forEach(t => h.addEventListener(t, () => { if (!h.classList.contains("on")) return; h.classList.remove("on"); b.disabled = false; }));
     h.addEventListener("contextmenu", e => e.preventDefault());
     b.onclick = rank;
-    $("#skip").onclick = skipCard;
+    clsSkip();
   });
   function rank() {
     view(`${header()}
@@ -3186,7 +3196,7 @@ function cClassSolo(c) {
         ${chipsHtml()}
         <p style="text-align:center;margin:0"><button class="linkbtn" id="redo">Recommencer</button></p>`, alt()).replace('class="card ', 'class="card clsc ')}</div>
       <div class="actions"><button class="btn red" id="lock" disabled></button></div>`, () => {
-      bindHeader();
+      bindHeader(); clsSkip();
       const draw = () => {
         // le dernier se place tout seul
         if (order.length === S.players.length - 1) order.push(S.players.find(p => !order.includes(p)));
