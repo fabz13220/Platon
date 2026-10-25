@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="29cddaa57281">
+<meta name="build" content="f5924a42c260">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -327,6 +327,18 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .mbest span { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .mbest b { font-family: var(--display); font-size: min(9vw, 36px); line-height: 1.1; color: #FF6A90; text-shadow: 0 0 24px rgba(255,59,110,.6); }
 .mbest small { font-size: 13px; opacity: .7; }
+/* fin du Mix : les records en tuiles, deux par ligne */
+.mix-recs { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: dense; gap: 8px; width: 100%; max-width: 440px; margin: 0 auto; }
+.mix-recs.n1 { grid-template-columns: 1fr; }
+.mix-recs.n3 > :last-child, .mix-recs .mbest.wide { grid-column: 1 / -1; }
+.mix-recs .mbest { margin: 0; padding: 8px 10px; border-radius: 18px; min-width: 0; justify-content: center; }
+.mix-recs .mbest span { font-size: 11px; letter-spacing: .06em; }
+.mix-recs .mbest b { font-size: 22px; max-width: 100%; }
+.mix-recs .mbest b i { font-style: normal; }
+.mix-recs .mbest small { font-size: 12px; }
+.mixfit { gap: 8px; } .mixfit .rank-head .mast { font-size: 30px; }
+.mixfit .mix-recs .mbest { padding: 4px 8px; gap: 0; } .mixfit .mix-recs .mbest b { font-size: 18px; } .mixfit .mix-recs .mbest small { display: none; }
+.mixfit2 { gap: 4px; } .mixfit2 .rank-date { display: none; } .mixfit2 .mix-recs { gap: 5px; } .mixfit2 .mix-recs .mbest span { font-size: 10px; letter-spacing: 0; }
 /* Test de pureté */
 .pur-themes { justify-content: center; }
 .pur-themes .chip.pick { padding: 10px 16px; min-height: 48px; font-size: 17px; }
@@ -2006,15 +2018,16 @@ const cardId = (type, c) => type + ":" + c.slice(1).join("|");
 // cartes proposées sur ce téléphone : jouables tout de suite
 store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => cardId(o.type, c) === cardId(o.type, o.card))) C[o.type].push(o.card); });
 
-/* jeux de la roue : nombre minimum de joueurs et cartes jouées par tour */
+/* jeux de la roue : nombre minimum de joueurs et cartes jouées par tour (chaque jeu dans sa version à lui, sans points) */
 const WHEEL = [
-  { t: "jamais", min: 2, n: 3, short: "Je n'ai jamais", col: "#7B33F5" },
+  { t: "jamais", min: 2, n: 5, short: "Je n'ai jamais", col: "#7B33F5" },
   { t: "av", min: 2, n: 3, short: "Action ou vérité", col: "#FFB21F" },
   { t: "qui", min: 2, n: 3, short: "Qui pourrait", col: "#EE1F66" },
   { t: "pref", min: 2, n: 3, short: "Tu préfères", col: "#C51FB6" },
-  { t: "menteur", min: 2, n: 1, short: "Le Menteur", col: "#2F6BFF" },
+  { t: "menteur", min: 2, n: 2, short: "Le Menteur", col: "#2F6BFF" },
   { t: "imposteur", min: 4, n: 1, short: "L'Imposteur", col: "#13C9B4" },
-  { t: "radar", min: 2, n: 2, short: "Le Radar", col: "#5B5CF0" },
+  { t: "radar", min: 2, n: 1, short: "Le Radar", col: "#5B5CF0" },
+  { t: "reflexe", min: 2, n: 1, short: "Duel réflexe", col: "#22B55E" },
   { t: "classement", min: 3, n: 1, short: "Classement", col: "#FF8A1F" },
   { t: "ouinon", min: 3, n: 3, short: "Oui ou non", col: "#14B8A6" }
 ];
@@ -2028,8 +2041,6 @@ function fill(t, p) {
   return t.replace(/\b(de|que) \{p\}/g, (m, w) => el(w, p ? p.name : "")).replace(/\b(de|que) \{q\}/g, (m, w) => el(w, q))
     .replace(/\{p\}/g, p ? p.name : "").replace(/\{q\}/g, q);
 }
-function score(p, n) { p.pts += n; }
-function plus(n) { stamp("+" + n, "green"); }
 
 /* -------- construction du paquet -------- */
 function pool(type) {
@@ -2049,9 +2060,6 @@ function deckOf(type, n) {
   if (type === "av") return Array.from({ length: n }, () => ({ type: "av" }));
   return pool(type).slice(0, n);
 }
-// tour de rôle équitable pour le joueur visé
-let turn = 0;
-function nextPlayer() { const p = S.players[turn % S.players.length]; turn++; return p; }
 
 /* =====================================================================
    RENDU
@@ -2077,10 +2085,11 @@ function fitPage(reset) {
 }
 // un prénom ou un mot trop long ne se coupe jamais au milieu : on réduit la taille du texte jusqu'à ce qu'il tienne
 function fitWords() {
-  $$(".secret .mast, .card .who").forEach(el => {
+  $$(".secret .mast, .card .who, .mix-recs b").forEach(el => {
     el.style.overflowWrap = "normal"; el.style.wordBreak = "normal";
     let f = parseFloat(getComputedStyle(el).fontSize);
-    while (el.scrollWidth > el.clientWidth + 1 && f > 18) el.style.fontSize = (f -= 2) + "px";
+    const min = el.closest(".mix-recs") ? 14 : 18;
+    while (el.scrollWidth > el.clientWidth + 1 && f > min) el.style.fontSize = (f -= 2) + "px";
   });
 }
 // la carte doit tenir dans l'écran avec ses boutons : sinon les boutons passent sous le bas de l'iPhone
@@ -2110,6 +2119,7 @@ function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "lon
 
 /* -------- ACCUEIL -------- */
 function home() {
+  S.mix = null;
   S.inGame = false; onStop(); ON.ctx = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
@@ -2195,7 +2205,7 @@ function settingsSheet() {
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 25 octobre (L'Imposteur 9)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 25 octobre (Mix)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -2531,28 +2541,24 @@ function startGame() {
   if (tutoGate(S.mode, startGame)) return;
   stat("start", S.mode, S.names.length, "un");
   S.players = shuffle(S.names).map(n => ({ name: n, pts: 0 }));
-  S.idx = 0; S.round = 0; S.lastGame = null; turn = 0; S.inGame = true; S.changed = false;
+  S.idx = 0; S.round = 0; S.lastGame = null; S.inGame = true; S.changed = false;
   keepAwake();
   if (S.mode === "taboo") return tabooSetup();
-  if (S.mode === "mix") return wheel();
+  S.mix = null;
+  if (S.mode === "mix") {
+    // le Mix : tours de rôle et petits records gardés d'un jeu à l'autre
+    S.mix = { played: 0, seen: [] };
+    S.mBag = S.mLast = S.avBag = S.avLast = null; S.rHit = S.rMille = S.cHit = S.cN = 0;
+    S.rx = { round: 0, best: {}, elim: false, out: [] };
+    return wheel();
+  }
   S.deck = deckOf(S.mode, ["imposteur", "menteur", "radar", "classement"].includes(S.mode) ? 12 : 40);
   card();
 }
 
-/* passe le téléphone, révélation secrète */
-const pauseBar = () => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span></span><button class="changebtn" id="skip" aria-label="Changer de carte" ${S.changed ? "disabled" : ""}>⟳ Changer</button></div>`;
-const bindPause = () => { const b = $("#pause"); if (b) b.onclick = pauseMenu; const s = $("#skip"); if (s) s.onclick = skipCard; };
-function passPhone(name, title, onReveal) {
-  view(`${pauseBar()}
-    <div class="stage">
-      <div class="secret"><span class="eyebrow" style="color:var(--paper)">Passe le téléphone à</span><span class="mast">${esc(name)}</span><p>Les autres, regardez ailleurs.</p></div>
-    </div>
-    <div class="actions"><button class="btn" id="show">Je suis ${esc(name)}, ${esc(title)}</button></div>
-  `, () => { bindPause(); $("#show").onclick = onReveal; });
-}
-
 /* -------- LA ROUE (mode Mix) -------- */
 function wheel(auto) {
+  S.mode = "mix";
   const games = WHEEL.filter(g => g.min <= S.players.length);
   const n = games.length, seg = 360 / n, R = 140, C0 = 150;
   const pt = (a, r) => { const t = (a - 90) * Math.PI / 180; return [C0 + r * Math.cos(t), C0 + r * Math.sin(t)]; };
@@ -2589,9 +2595,13 @@ function wheel(auto) {
       later(() => {
         buzz([40, 30, 60]);
         $("#res").innerHTML = `<small>On joue à</small>${esc(TYPES[g.t].label)}`;
-        $(".actions").innerHTML = `<div class="row"><button class="btn white" id="respin">Relancer</button><button class="btn red" id="play">Jouer ${g.n > 1 ? `<small>${g.n} cartes</small>` : ""}</button></div>`;
+        $(".actions").innerHTML = `<div class="row"><button class="btn white" id="respin">Relancer</button><button class="btn red" id="play">Jouer ${g.n > 1 ? `<small>${g.n} ${g.t === "av" || g.t === "menteur" ? "joueurs" : "cartes"}</small>` : ""}</button></div>`;
         $("#respin").onclick = () => { S.lastGame = g.t; wheel(true); };
-        $("#play").onclick = () => { S.changed = false; S.lastGame = g.t; S.deck = deckOf(g.t, g.n); S.idx = 0; if (!S.deck.length) return afterRound(); card(); };
+        $("#play").onclick = () => {
+          S.changed = false; S.lastGame = g.t; S.mode = g.t; S.mix.played++; if (!S.mix.seen.includes(g.t)) S.mix.seen.push(g.t);
+          if (g.t === "reflexe") return mixReflex();
+          S.deck = deckOf(g.t, g.n); S.idx = 0; S.jSlid = false; if (!S.deck.length) return afterRound(); card();
+        };
       }, 3700);
     };
     $("#spin").onclick = spin; $("#wheel").onclick = spin;
@@ -2627,16 +2637,56 @@ function soloWheel() {
   });
 }
 function afterRound() {
+  S.mode = "mix";
   S.round++;
   if (S.round >= S.rounds) return ranking();
   wheel();
+}
+
+const mixTour = () => `Tour ${S.round + 1} / ${S.rounds}`;
+// dans le Mix, la dernière carte d'un tour ramène à la roue
+const mixNext = () => S.round + 1 >= S.rounds ? "Voir la fin" : "Jeu suivant";
+const nextTxt = (t = "Suivante") => !S.mix || S.idx + 1 < S.deck.length ? t : mixNext();
+// fin du Mix : sans points, les bulles et les petits records des jeux joués
+function mixEnd() {
+  clearTimers();
+  stat("end", "mix", (S.players || []).length, "un");
+  S.inGame = false; S.mode = "mix";
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  finJamais(S.mix.played);
+}
+// Duel réflexe dans le Mix : à deux, un face à face en 3 points ; à plus, une manche où chacun tape une fois, sans élimination
+function mixReflex() {
+  keepAwake();
+  if (S.players.length === 2) { S.duo = S.players.map(p => p.name); return reflexDuo(); }
+  rxManche();
+}
+// tout doit tenir sur l'écran : on resserre les bulles, puis les records, tant que ça dépasse
+function mixFit() {
+  // un prénom trop long pour une demi-tuile : la tuile prend toute la ligne
+  $$(".mix-recs b").forEach(b => { if (b.scrollWidth > b.clientWidth + 1) { b.parentNode.classList.add("wide"); b.style.fontSize = ""; } });
+  fitWords();
+  const over = () => document.body.scrollHeight > innerHeight + 1, eb = $(".end-bubbles");
+  ["tbfit1", "tbfit2", "tbfit3"].forEach(k => { if (over()) eb.classList.add(k); });
+  ["mixfit", "mixfit2"].forEach(k => { if (over()) $(".fin-jamais").classList.add(k); });
+}
+// les records des jeux joués, en petites tuiles, seulement quand il s'est passé quelque chose
+function mixRecs() {
+  const nm = n => `<i class="nw">${esc(n)}</i>`; // un prénom ne passe jamais à la ligne, même avec un tiret
+  const R = [], seen = S.mix.seen, P = S.players, and = l => l.length > 1 ? l.slice(0, -1).map(nm).join(", ") + " et " + nm(l[l.length - 1]) : nm(l[0]);
+  const fool = Math.max(0, ...P.map(p => p.fool || 0)), B = S.rx.best, fast = Object.keys(B).sort((a, b) => B[a] - B[b])[0];
+  if (seen.includes("menteur") && fool) R.push(["🤥 Meilleur mytho", and(P.filter(p => (p.fool || 0) === fool).map(p => p.name)), fool + " fois"]);
+  if (seen.includes("radar") && S.rHit) R.push(["🎯 Cibles touchées", S.rHit, S.rMille ? `dont ${S.rMille} dans le mille` : ""]);
+  if (seen.includes("classement") && S.cHit) R.push(["🏆 Questions trouvées", `${S.cHit} sur ${S.cN}`, ""]);
+  if (seen.includes("reflexe") && fast) R.push(["⚡ Le plus rapide", nm(fast), B[fast] + " ms"]);
+  return R.length ? `<div class="mix-recs n${R.length}">${R.map(([t, v, x]) => `<p class="mbest"><span>${t}</span><b>${v}</b>${x ? `<small>${x}</small>` : ""}</p>`).join("")}</div>` : "";
 }
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
 const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar"];
 function header() {
-  const label = S.mode === "mix" ? `Tour ${S.round + 1} / ${S.rounds}` : (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
+  const label = S.mix ? mixTour() : (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
   return `
     <div class="topbar">
       <button class="iconbtn" id="pause" aria-label="Pause">II</button>
@@ -2686,7 +2736,6 @@ function skipCard(msg, force) {
   S.changed = true;
   if (S.avPick && S.avRedo) { const r = S.avRedo; S.avPick = null; toast("Nouvelle carte."); return r(); }
   S.avPick = null; S.avRedo = null;
-  if (S.turnAt != null) turn = S.turnAt;
   const c = S.deck[S.idx], rep = c && c.type !== "av" ? pool(c.type).find(x => x.id !== c.id && !S.deck.some(d => d.id === x.id)) : (c ? { type: "av" } : null);
   if (rep) S.deck.splice(S.idx, 1, rep); else S.deck.splice(S.idx, 1);
   if (S.idx >= S.deck.length) return endDeck();
@@ -2704,15 +2753,16 @@ function next() {
 const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar", "classement"];
 const ONE_PHONE = [...SWIPE, "taboo", "deux"]; // jeux absents du mode plusieurs téléphones
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
-const NOPTS = ["imposteur", "menteur"];
-const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
+const NOPTS = ["imposteur", "menteur", "mix"];
+const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : !!S.mix || SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
 function endDeck() {
-  if (S.mode === "mix") return afterRound();
+  if (S.mix) return afterRound();
   if (noPts() && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
   ranking();
 }
 // quand tout le paquet est passé, il repart sans reprendre les 20 dernières cartes
 function jamaisRefill() {
+  if (S.mix) return false; // dans le Mix, le tour s'arrête à la dernière carte
   const recent = S.deck.slice(-20).map(d => d.id), all = deckOf(S.mode, 999);
   const more = all.filter(c => !recent.includes(c.id));
   S.deck.push(...(more.length ? more : all).slice(0, 40));
@@ -2721,49 +2771,28 @@ function jamaisRefill() {
 function card() {
   const c = S.deck[S.idx];
   if (!c) return endDeck();
-  S.turnAt = turn;
-  ({ jamais: cJamais, av: cAv, qui: cQui, pref: cPref, imposteur: cImposteur, menteur: cMenteur, radar: cRadar, classement: cClassement, ouinon: cOuinon })[c.type](c);
+  ({ jamais: cJamais, av: cAvSwipe, qui: cQui, pref: cPref, imposteur: cImpSolo, menteur: cMentSolo, radar: cRadarSolo, classement: cClassSolo, ouinon: cOuiSwipe })[c.type](c);
 }
 const alt = () => S.idx % 2 === 1;
 const chipsHtml = () => `<div class="chips" style="padding:0 18px">${S.players.map((p, i) => `<button class="chip pick" data-i="${i}" aria-pressed="false">${esc(p.name)}</button>`).join("")}</div>`;
 
 function cJamais(c) {
-  // en partie Je n'ai jamais seule : pas de points, on swipe de carte en carte ; dans le Mix, +1 comme avant
-  const seul = S.mode === "jamais";
-  if (seul) {
-    // la carte suivante est déjà posée en dessous : elle apparaît quand on jette celle du dessus
-    if (S.idx + 1 >= S.deck.length) jamaisRefill();
-    const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
-    const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
-    const face = (x, i) => cardShell("jamais", null, `
-      <p class="text">Je n'ai jamais <b>${esc(txt(x))}</b>.</p>
-      <p class="sub">${i < 2 ? "Swipe pour la suivante." : "&nbsp;"}</p>
-    `, i % 2 === 1);
-    return view(`${header()}
-      <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
-      bindHeader();
-      const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
-      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1); // au bouton, la carte part au hasard à gauche ou à droite
-      $("#stop").onclick = ranking;
-    });
-  }
-  const text = fill(c.data[1]);
-  view(`${header()}
-    <div class="stage">${cardShell("jamais", null, `
-      <p class="text">Je n'ai jamais <b>${esc(text)}</b>.</p>
-      <p class="sub">Ceux qui l'ont fait se balancent : touchez leurs prénoms.</p>
-      ${chipsHtml()}
-      ${rulePts("+1 point pour chaque personne qui l'a fait")}
-    `, alt())}</div>
-    <div class="actions"><button class="btn red" id="ok">Valider</button></div>`, () => {
+  // pas de points, on swipe de carte en carte
+  // la carte suivante est déjà posée en dessous : elle apparaît quand on jette celle du dessus
+  if (S.idx + 1 >= S.deck.length) jamaisRefill();
+  const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+  const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
+  const face = (x, i) => cardShell("jamais", null, `
+    <p class="text">Je n'ai jamais <b>${esc(txt(x))}</b>.</p>
+    <p class="sub">${i < 2 ? "Swipe pour la suivante." : "&nbsp;"}</p>
+  `, i % 2 === 1);
+  return view(`${header()}
+    <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
     bindHeader();
-    $$(".chip.pick").forEach(b => b.onclick = () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"));
-    $("#ok").onclick = () => {
-      const picked = $$(".chip.pick[aria-pressed=true]").map(b => S.players[+b.dataset.i]);
-      picked.forEach(p => score(p, 1));
-      if (picked.length) { plus(1); later(next, 700); } else next();
-    };
+    const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+    $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1); // au bouton, la carte part au hasard à gauche ou à droite
+    $("#stop").onclick = ranking;
   });
 }
 // carte qu'on jette d'un geste, à gauche ou à droite, pour passer à la suivante ; un petit coup sec suffit.
@@ -2813,8 +2842,10 @@ function swipeNext(el, under, onNext, onFly) {
 }
 // Le Menteur : celui qui a eu le groupe le plus souvent
 function mythoBest() {
-  if ((ON.ctx ? ON.r && ON.r.game : S.mode) !== "menteur") return "";
+  const g = ON.ctx ? ON.r && ON.r.game : S.mode;
+  if (g !== "menteur" && g !== "mix") return "";
   const max = Math.max(0, ...S.players.map(p => p.fool || 0)), w = S.players.filter(p => (p.fool || 0) === max).map(p => esc(p.name));
+  if (!max && g === "mix") return ""; // Mix en ligne : seulement si quelqu'un a eu le groupe
   if (!max) return `<p class="mbest">🤥 Personne n'a réussi à vous mytho.</p>`;
   return `<p class="mbest"><span>🤥 Meilleur mytho</span><b>${w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0]}</b><small>${max} fois</small></p>`;
 }
@@ -2826,11 +2857,11 @@ function radarBest() {
   return `<p class="mbest"><span>🎯 Cibles touchées</span><b>${n}</b>${m ? `<small>dont ${m} dans le mille</small>` : ""}</p>`;
 }
 function finJamais(n = S.idx) {
-  const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
+  const u = S.mix ? "tour" : S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} ${u}${n > 1 ? "s" : ""}</span></div>
-      ${mythoBest()}${radarBest()}${classBest()}
+      ${S.mix ? mixRecs() : mythoBest() + radarBest() + classBest()}
       ${endBubbles(S.players.map(p => p.name))}
       <div class="confetti" id="confetti"></div>
     </div>
@@ -2838,8 +2869,9 @@ function finJamais(n = S.idx) {
       <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
     </div>
   `, () => {
-    $("#again").onclick = () => { S.names = S.players.map(p => p.name); startGame(); };
+    $("#again").onclick = () => { S.names = S.players.map(p => p.name); if (S.mix) S.mode = "mix"; startGame(); };
     $("#home").onclick = home;
+    if (S.mix) mixFit();
     bindBubbles(); party(); buzz([40, 30, 80]);
   });
 }
@@ -2860,7 +2892,7 @@ function avWho(x) {
   return x.p = S.avLast = S.avBag.shift();
 }
 function cAvSwipe(c) {
-  if (S.idx === 0 && !c.p) { S.avBag = null; S.avLast = null; }
+  if (S.idx === 0 && !c.p && !S.mix) { S.avBag = null; S.avLast = null; }
   if (S.idx + 1 >= S.deck.length) jamaisRefill();
   const p = avWho(c), slid = S.jSlid; S.jSlid = false;
   // une vérité et une action sont tirées d'avance : la carte du dessous montre celle du côté où l'on tire
@@ -2893,7 +2925,7 @@ function cAvSwipe(c) {
     : qcard(["v", "a"]).replace('class="card ', 'class="card under avq show-a ');
   view(`${header()}
     <div class="stage jstack">${under}${top.replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
-    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
     bindHeader();
     $("#stop").onclick = ranking;
     const tEl = $(".jstack .top"), uEl = $(".jstack .under");
@@ -2922,99 +2954,41 @@ function cAvSwipe(c) {
     $("#ok").onclick = next; // personne ne choisit : joueur suivant
   });
 }
-function cAv(c) {
-  if (S.mode === "av") return cAvSwipe(c);
-  const p = nextPlayer();
-  view(`${header()}
-    <div class="stage">${cardShell("av", { label: "Au tour de", name: p.name }, `
-      <p class="sub">Action ou vérité ?</p>
-      ${rulePts("Vérité réussie : +1 point · Action réussie : +2 points")}
-    `, alt())}</div>
-    <div class="actions"><div class="row"><button class="btn white" id="v">Vérité</button><button class="btn" id="a">Action</button></div></div>`, () => {
-    bindHeader();
-    const go = kind => {
-      const src = pool(kind === "v" ? "verite" : "action");
-      const pick = src[0];
-      used.add(pick.id); store.set("used", [...used]); S.avPick = pick; S.avRedo = () => go(kind);
-      const text = fill(pick.data[1], p), pts = kind === "v" ? 1 : 2;
-      view(`${header()}
-        <div class="stage">${cardShell("av", { label: kind === "v" ? "Vérité pour" : "Action pour", name: p.name }, `
-          <p class="text">${esc(text)}</p>
-          ${rulePts(`Réussi : +${pts} point${pts > 1 ? "s" : ""} · Refusé : 0`)}
-        `, alt())}</div>
-        <div class="actions"><div class="row"><button class="btn white" id="no">Je refuse</button><button class="btn green" id="yes">${kind === "v" ? "Répondu" : "Fait"}</button></div></div>`, () => {
-        bindHeader();
-        $("#yes").onclick = () => { score(p, pts); plus(pts); later(next, 700); };
-        $("#no").onclick = () => { stamp("Refusé"); later(next, 800); };
-      });
-    };
-    $("#v").onclick = () => go("v"); $("#a").onclick = () => go("a");
-  });
-}
 
 function cQui(c) {
-  if (S.mode === "qui") {
-    if (S.idx + 1 >= S.deck.length) jamaisRefill();
-    const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
-    const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
-    // carte duel : de temps en temps, dès 3 joueurs, la carte vise deux joueurs et tout le monde choisit entre eux
-    // (jamais dans les 2 premières, jamais deux de suite, jamais sur une carte qui contient déjà un prénom)
-    const duel = (x, i) => {
-      if (x.duel === undefined) { const pv = S.deck[i - 1]; x.duel = S.players.length >= 3 && i >= 2 && !(pv && pv.duel) && !x.data[1].includes("{q}") && Math.random() < .18 ? shuffle(S.players).slice(0, 2).map(p => p.name) : null; }
-      return x.duel;
-    };
-    const face = (x, i) => { const d = duel(x, i); return cardShell("qui", null, `
-      ${d ? `<p class="qduel"><span>Duel</span>${esc(d[0])} <i>ou</i> ${esc(d[1])}</p>` : ""}
-      <p class="text">Qui pourrait <b>${esc(txt(x))}</b> ?</p>
-      <button class="qcount">3, 2, 1</button>
-    `, i % 2 === 1); };
-    return view(`${header()}
-      <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
-      bindHeader();
-      const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
-      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $("#stop").onclick = ranking;
-      // compte à rebours facultatif : on peut swiper sans l'utiliser
-      const b = $(".jstack .top .qcount");
-      b.onclick = () => {
-        if (b.classList.contains("on")) return;
-        b.classList.add("on");
-        const tick = n => {
-          if (!b.isConnected) return;
-          b.textContent = n > 0 ? n : "Pointez !"; buzz(n > 0 ? 20 : 80);
-          if (n > 0) later(() => tick(n - 1), 750);
-          else later(() => { b.classList.remove("on"); b.textContent = "3, 2, 1"; }, 1600);
-        };
-        tick(3);
-      };
-    });
-  }
-  const text = fill(c.data[1]);
-  view(`${header()}
-    <div class="stage">${cardShell("qui", null, `
-      <p class="text">Qui pourrait <b>${esc(text)}</b> ?</p>
-      <p class="sub">Au signal, tout le monde pointe quelqu'un du doigt en même temps.</p>
-      ${rulePts("+1 point pour la personne la plus désignée")}
-    `, alt())}</div>
-    <div class="actions"><button class="btn red" id="go">3, 2, 1… Pointez !</button></div>`, () => {
+  if (S.idx + 1 >= S.deck.length) jamaisRefill();
+  const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+  const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
+  // carte duel : de temps en temps, dès 3 joueurs, la carte vise deux joueurs et tout le monde choisit entre eux
+  // (jamais dans les 2 premières, jamais deux de suite, jamais sur une carte qui contient déjà un prénom)
+  const duel = (x, i) => {
+    if (x.duel === undefined) { const pv = S.deck[i - 1]; x.duel = S.players.length >= 3 && i >= 2 && !(pv && pv.duel) && !x.data[1].includes("{q}") && Math.random() < .18 ? shuffle(S.players).slice(0, 2).map(p => p.name) : null; }
+    return x.duel;
+  };
+  const face = (x, i) => { const d = duel(x, i); return cardShell("qui", null, `
+    ${d ? `<p class="qduel"><span>Duel</span>${esc(d[0])} <i>ou</i> ${esc(d[1])}</p>` : ""}
+    <p class="text">Qui pourrait <b>${esc(txt(x))}</b> ?</p>
+    <button class="qcount">3, 2, 1</button>
+  `, i % 2 === 1); };
+  return view(`${header()}
+    <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
     bindHeader();
-    $("#go").onclick = () => {
-      let n = 3;
-      const tick = () => {
-        $(".stage").innerHTML = `<div class="big-count">${n > 0 ? n : "Pointez !"}</div>`;
-        if (n <= 0) { $(".big-count").style.fontSize = "72px"; buzz(80); later(choose, 900); return; }
-        buzz(20); n--; later(tick, 750);
+    const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+    $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+    $("#stop").onclick = ranking;
+    // compte à rebours facultatif : on peut swiper sans l'utiliser
+    const b = $(".jstack .top .qcount");
+    b.onclick = () => {
+      if (b.classList.contains("on")) return;
+      b.classList.add("on");
+      const tick = n => {
+        if (!b.isConnected) return;
+        b.textContent = n > 0 ? n : "Pointez !"; buzz(n > 0 ? 20 : 80);
+        if (n > 0) later(() => tick(n - 1), 750);
+        else later(() => { b.classList.remove("on"); b.textContent = "3, 2, 1"; }, 1600);
       };
-      $(".actions").innerHTML = ""; tick();
-    };
-    const choose = () => {
-      $(".stage").innerHTML = cardShell("qui", null, `
-        <p class="text">Qui a été le plus désigné ?</p>
-        ${chipsHtml()}`, alt());
-      $(".actions").innerHTML = `<button class="btn white" id="tie">Égalité, personne</button>`;
-      $("#tie").onclick = next;
-      $$(".chip.pick").forEach(b => b.onclick = () => { score(S.players[+b.dataset.i], 1); plus(1); later(next, 800); });
+      tick(3);
     };
   });
 }
@@ -3037,49 +3011,22 @@ function choixTap(c, top) {
   });
 }
 function cPref(c) {
-  if (S.mode === "pref") {
-    if (S.idx + 1 >= S.deck.length) jamaisRefill();
-    const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
-    const txt = x => x.txt || (x.txt = fill(x.data[1] + "\n" + x.data[2]).split("\n")); // même prénom des deux côtés, et il reste le même quand la carte passe dessus
-    const face = (x, i) => cardShell("pref", null, `
-      <div class="vs"><div class="opt-a" data-o="a"><span>${esc(txt(x)[0])}</span></div><div class="or">ou</div><div class="opt-b" data-o="b"><span>${esc(txt(x)[1])}</span></div></div>
-      <p class="sub">${i < 1 ? "Chacun choisit, on débat, et on swipe." : "&nbsp;"}</p>
-    `, i % 2 === 1);
-    return view(`${header()}
-      <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
-      bindHeader();
-      const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
-      $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $("#stop").onclick = ranking;
-      if (nx) choixGet(nx);
-      choixTap(c, $(".jstack .top"));
-    });
-  }
-  const q0 = S.players.length ? rnd(S.players).name : "quelqu'un", fq = t => t.replace(/\{q\}/g, q0); const a = fq(c.data[1]), b = fq(c.data[2]);
-  view(`${header()}
-    <div class="stage">${cardShell("pref", null, `
-      <p class="sub" style="font-weight:700;color:var(--ink)">Tu préfères…</p>
-      <div class="vs"><div class="opt-a">${esc(a)}</div><div class="or">ou</div><div class="opt-b">${esc(b)}</div></div>
-      <p class="sub">Tout le monde vote à main levée en même temps.</p>
-      ${rulePts("+1 point pour chaque personne de la majorité")}
-    `, alt())}</div>
-    <div class="actions"><button class="btn red" id="ok">On a voté</button></div>`, () => {
+  if (S.idx + 1 >= S.deck.length) jamaisRefill();
+  const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+  const txt = x => x.txt || (x.txt = fill(x.data[1] + "\n" + x.data[2]).split("\n")); // même prénom des deux côtés, et il reste le même quand la carte passe dessus
+  const face = (x, i) => cardShell("pref", null, `
+    <div class="vs"><div class="opt-a" data-o="a"><span>${esc(txt(x)[0])}</span></div><div class="or">ou</div><div class="opt-b" data-o="b"><span>${esc(txt(x)[1])}</span></div></div>
+    <p class="sub">${i < 1 ? "Chacun choisit, on débat, et on swipe." : "&nbsp;"}</p>
+  `, i % 2 === 1);
+  return view(`${header()}
+    <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
     bindHeader();
-    $("#ok").onclick = () => {
-      $(".stage").innerHTML = cardShell("pref", null, `
-        <p class="text" style="font-size:24px">Qui a choisi : <b>${esc(a)}</b> ?</p>
-        <p class="sub">Touchez leurs prénoms. Les autres ont choisi l'autre option.</p>
-        ${chipsHtml()}`, alt());
-      $(".actions").innerHTML = `<button class="btn red" id="val">Valider</button>`;
-      $$(".chip.pick").forEach(x => x.onclick = () => x.setAttribute("aria-pressed", x.getAttribute("aria-pressed") !== "true"));
-      $("#val").onclick = () => {
-        const A = $$(".chip.pick").filter(x => x.getAttribute("aria-pressed") === "true").map(x => S.players[+x.dataset.i]);
-        const B = S.players.filter(p => !A.includes(p));
-        if (A.length === B.length) { stamp("Égalité"); return later(next, 800); }
-        (A.length > B.length ? A : B).forEach(p => score(p, 1)); plus(1); later(next, 800);
-      };
-    };
+    const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+    $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+    $("#stop").onclick = ranking;
+    if (nx) choixGet(nx);
+    choixTap(c, $(".jstack .top"));
   });
 }
 
@@ -3098,7 +3045,7 @@ function mentWho() {
   return S.mLast = S.mBag.shift();
 }
 function cMentSolo(c) {
-  if (S.idx === 0) { S.mBag = null; S.mLast = null; }
+  if (S.idx === 0 && !S.mix) { S.mBag = null; S.mLast = null; }
   const p = mentWho(), q = fill(c.data[1], p), lie = Math.random() < .5;
   view(`${header()}
     <div class="stage"><div class="secret imphold" id="hold">
@@ -3128,51 +3075,13 @@ function cMentSolo(c) {
     buzz(fooled ? [60, 40, 60, 40, 160] : [30, 30, 60]);
     view(`${header()}
       <div class="stage">${mentReveal(p.name, lie, fooled)}</div>${fooled ? `<div class="confetti" id="confetti"></div>` : ""}
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
       bindHeader(); if (fooled) party();
       const fly = swipeNext($(".stage .impx"), null, next);
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
       $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     });
   };
-}
-function cMenteur(c) {
-  if (S.mode === "menteur") return cMentSolo(c);
-  const p = nextPlayer();
-  const q = fill(c.data[1], p);
-  const lie = Math.random() < .5;
-  passPhone(p.name, "voir ma consigne", () => {
-    view(`${pauseBar()}
-      <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">Consigne secrète</span><span class="mast" style="color:${lie ? "var(--red)" : "var(--yellow)"}">${lie ? "Mens" : "Dis la vérité"}</span><p>La question va s'afficher pour tout le monde. Réponds en restant crédible.</p></div></div>
-      <div class="actions"><button class="btn white" id="hide">Cacher et montrer la question</button></div>
-    `, () => {
-      bindPause();
-      $("#hide").onclick = () => {
-        view(`${header()}
-          <div class="stage">${cardShell("menteur", { label: "Interrogatoire de", name: p.name }, `
-            <p class="text">${esc(q)}</p>
-            <p class="sub">${esc(p.name)} répond. Le groupe peut poser 3 questions, puis vote : vérité ou mensonge ?</p>
-            ${rulePts(`Groupe trompé : +2 points pour ${esc(p.name)} · Bien vu : +1 point pour chacun des autres`)}
-          `, alt())}</div>
-          <div class="actions"><div class="row"><button class="btn green" id="t">Vérité</button><button class="btn red" id="l">Mensonge</button></div></div>`, () => {
-          bindHeader();
-          const judge = guessLie => {
-            const right = guessLie === lie;
-            if (right) others(p.name).forEach(o => score(o, 1)); else score(p, 2);
-            stamp(lie ? "Mensonge" : "Vérité", lie ? "" : "green");
-            later(() => {
-              $(".stage").innerHTML = cardShell("menteur", { label: right ? "Bien vu, le groupe" : "Le groupe s'est fait avoir", name: p.name }, `
-                <p class="text">${esc(p.name)} ${lie ? "mentait" : "disait la vérité"}.</p>
-                ${rulePts(right ? "+1 point pour chacun des autres" : `+2 points pour ${esc(p.name)}`)}`, alt());
-              $(".actions").innerHTML = `<button class="btn red" id="ok">Continuer</button>`;
-              $("#ok").onclick = next;
-            }, 1000);
-          };
-          $("#t").onclick = () => judge(false); $("#l").onclick = () => judge(true);
-        });
-      };
-    });
-  });
 }
 
 // L'Imposteur seul, façon Undercover : un téléphone qu'on se passe, sans points.
@@ -3305,7 +3214,7 @@ function cImpSolo(c) {
   shuffle(S.players).forEach((p, i) => role.set(p, i < nImp ? "imp" : i < nImp + nUnd ? "und" : i < nImp + nUnd + nWh ? "white" : "civ"));
   const alive = new Set(S.players);
   const isIn = p => role.get(p) !== "civ";
-  const top = eye => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span class="progress">Manche ${S.idx + 1}</span>${eye ? `<button class="iconbtn" id="eye" aria-label="Revoir son mot">👁️</button>` : `<span style="width:44px"></span>`}</div>`;
+  const top = eye => `<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span class="progress">${S.mix ? mixTour() : "Manche " + (S.idx + 1)}</span>${eye ? `<button class="iconbtn" id="eye" aria-label="Revoir son mot">👁️</button>` : `<span style="width:44px"></span>`}</div>`;
   const face = p => impFace(role.get(p), cat, role.get(p) === "und" ? uw : word);
   // carte qu'on garde appuyée ; le bouton du bas est toujours là, actif une fois le mot vu
   const hold = (p, eyebrow, btn, onBtn, ready) => view(`${top(false)}
@@ -3380,61 +3289,13 @@ function cImpSolo(c) {
     if (g && g.ok) { stamp("Trouvé !", ""); buzz([60, 40, 60, 40, 160]); } else stamp(w === "civ" ? "Civils" : "Intrus", w === "civ" ? "green" : "");
     later(() => view(`${top(false)}
       <div class="stage">${impEnd(w, ins.map(p => [p.name, role.get(p)]), word, nUnd ? uw : "", g)}</div><div class="confetti" id="confetti"></div>
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Manche suivante</button></div></div>`, () => {
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt("Manche suivante")}</button></div></div>`, () => {
       bindHeader(); party(); impFit();
       $("#ok").onclick = next;
       $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     }), 900);
   };
   reveal(0);
-}
-function cImposteur(c) {
-  if (S.mode === "imposteur") return cImpSolo(c);
-  const [, cat, word] = c.data;
-  const imp = rnd(S.players);
-  const order = S.players.slice();
-  const step = i => {
-    if (i >= order.length) return discuss();
-    const p = order[i];
-    passPhone(p.name, "voir mon mot", () => {
-      const isImp = p === imp;
-      view(`${pauseBar()}
-        <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">${isImp ? "Tu es" : "Ton mot"}</span><span class="mast" style="color:${isImp ? "var(--red)" : "var(--yellow)"}">${isImp ? "L'imposteur" : esc(word)}</span><p>${isImp ? "Le thème est « " + esc(cat) + " ». Bluffe pour ne pas te faire repérer." : "Ne le dis surtout pas à voix haute."}</p></div></div>
-        <div class="actions"><button class="btn white" id="hide">Cacher et passer</button></div>
-      `, () => { bindPause(); $("#hide").onclick = () => step(i + 1); });
-    });
-  };
-  const discuss = () => {
-    const first = rnd(S.players);
-    view(`${header()}
-      <div class="stage">${cardShell("imposteur", { label: "Commence", name: first.name }, `
-        <p class="text">Chacun dit un seul mot lié au mot secret, à tour de rôle.</p>
-        <p class="sub">Deux tours, puis tout le monde pointe l'imposteur du doigt. Thème : ${esc(cat)}.</p>
-        ${rulePts("Imposteur démasqué : +1 point pour chacun des autres · Raté : +3 points pour l'imposteur")}
-      `, alt())}</div>
-      <div class="actions"><button class="btn red" id="vote">Voter</button></div>`, () => {
-      bindHeader();
-      $("#vote").onclick = () => {
-        $(".stage").innerHTML = cardShell("imposteur", null, `
-          <p class="text">Qui a été désigné par le groupe ?</p>
-          ${chipsHtml()}`, alt());
-        $(".actions").innerHTML = "";
-        $$(".chip.pick").forEach(b => b.onclick = () => {
-          const caught = S.players[+b.dataset.i] === imp;
-          if (caught) others(imp.name).forEach(o => score(o, 1)); else score(imp, 3);
-          stamp(caught ? "Démasqué" : "Raté", caught ? "green" : "");
-          later(() => {
-            $(".stage").innerHTML = cardShell("imposteur", { label: "L'imposteur était", name: imp.name }, `
-              <p class="text">Le mot secret : <b>${esc(word)}</b>.</p>
-              ${rulePts(caught ? "+1 point pour chacun des autres" : `+3 points pour ${esc(imp.name)}`)}`, alt());
-            $(".actions").innerHTML = `<button class="btn red" id="ok">Continuer</button>`;
-            $("#ok").onclick = next;
-          }, 1000);
-        });
-      };
-    });
-  };
-  step(0);
 }
 
 
@@ -3470,7 +3331,7 @@ const RADAR_RES = [
   [42, "inf", "😬", "Loin du compte", ["Pas la même longueur d'onde.", "Vous l'avez pas suivi du tout.", "C'était l'indice ou vous ?"]],
   [101, "inf", "🙈", "À l'ouest", ["Complètement à côté.", "Vous parlez pas la même langue.", "Là, c'est un autre cadran."]]];
 function cRadarSolo(c) {
-  if (S.idx === 0) { S.mBag = null; S.mLast = null; S.rHit = 0; S.rMille = 0; }
+  if (S.idx === 0 && !S.mix) { S.mBag = null; S.mLast = null; S.rHit = 0; S.rMille = 0; }
   const g = mentWho(), target = 8 + Math.round(Math.random() * 84);
   view(`${header()}
     <div class="stage">${cardShell("radar", { label: "Cible secrète de", name: g.name }, `
@@ -3515,69 +3376,13 @@ function cRadarSolo(c) {
       <div class="stage">${impScene(cls + " radx", `<span class="kick">Indice de ${esc(g.name)}</span>
         <span class="big">${emo}</span><span class="ttl">${ttl}</span><p class="ln">${rnd(lines)}</p>
         ${dialBox(c, { target, needle: v })}`)}</div>${hit ? `<div class="confetti" id="confetti"></div>` : ""}
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
       bindHeader(); if (hit) party();
       const fly = swipeNext($(".stage .impx"), null, next);
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
       $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     });
   }
-}
-function cRadar(c) {
-  if (S.mode === "radar") return cRadarSolo(c);
-  const g = nextPlayer(), guessers = others(g.name);
-  const target = 8 + Math.round(Math.random() * 84);
-  const votes = [];
-  const rule = `Chacun marque selon sa flèche : 3, 2 ou 1 point. ${esc(g.name)} marque la moyenne des autres.`;
-  passPhone(g.name, "voir la cible", () => {
-    view(`${pauseBar()}
-      <div class="stage">${cardShell("radar", { label: "Cible secrète de", name: g.name }, `
-        ${dialBox(c, { target })}
-        <p class="sub">Trouve un indice (un mot, un film, une personne, une situation) qui tombe à cet endroit entre « ${esc(c.data[1])} » et « ${esc(c.data[2])} ». Dis-le à voix haute.</p>
-      `)}</div>
-      <div class="actions"><button class="btn white" id="hide">Cacher et donner mon indice</button></div>
-    `, () => { bindPause(); $("#hide").onclick = () => guess(0); });
-  });
-  const guess = i => {
-    if (i >= guessers.length) return reveal();
-    const p = guessers[i];
-    let v = 50;
-    view(`${header()}
-      <div class="stage">${cardShell("radar", { label: `Au tour de · ${i + 1} / ${guessers.length}`, name: p.name }, `
-        ${dialBox(c, { needle: v })}
-        <p class="sub">Indice de ${esc(g.name)}. Place ta flèche, sans montrer.</p>
-        ${rulePts(rule)}
-      `, i % 2 === 1)}</div>
-      <div class="actions"><button class="btn red" id="lock">${i + 1 < guessers.length ? "Valider et passer à " + esc(guessers[i + 1].name) : "Valider et voir le résultat"}</button></div>`, () => {
-      bindHeader();
-      const box = $("#dialbox");
-      const move = e => {
-        const svg = $("svg", box), b = svg.getBoundingClientRect();
-        const x = (e.clientX - b.left) / b.width * 300, y = (e.clientY - b.top) / b.height * 168;
-        let a = Math.atan2(152 - y, x - 150) * 180 / Math.PI; if (a < 0) a = x < 150 ? 180 : 0;
-        v = Math.max(0, Math.min(100, (180 - a) / 1.8));
-        svg.outerHTML = dial({ needle: v });
-      };
-      box.onpointerdown = e => { e.preventDefault(); box.setPointerCapture(e.pointerId); move(e); box.onpointermove = move; };
-      box.onpointerup = box.onpointercancel = () => { box.onpointermove = null; };
-      $("#lock").onclick = () => { votes.push({ p, v, col: NEEDLE_COLS[i % NEEDLE_COLS.length] }); guess(i + 1); };
-    });
-  };
-  const reveal = () => {
-    votes.forEach(o => { o.pts = zonePts(Math.abs(o.v - target)); if (o.pts) score(o.p, o.pts); });
-    const gp = Math.round(votes.reduce((a, o) => a + o.pts, 0) / Math.max(1, votes.length));
-    if (gp) score(g, gp);
-    const best = Math.max(...votes.map(o => o.pts));
-    stamp(best === 3 ? "En plein dans le mille" : best ? "Pas mal" : "Raté", best ? "green" : "");
-    view(`${header()}
-      <div class="stage">${cardShell("radar", { label: "Résultat · indice de", name: g.name }, `
-        ${dialBox(c, { target, needles: votes })}
-        <div class="radar-res">
-          ${votes.slice().sort((a, b) => b.pts - a.pts).map(o => `<div><i style="background:${o.col}"></i><span>${esc(o.p.name)}</span><b>${o.pts ? "+" + o.pts : "0"}</b></div>`).join("")}
-          <div class="guide"><i></i><span>${esc(g.name)} (indice)</span><b>${gp ? "+" + gp : "0"}</b></div>
-        </div>`)}</div>
-      <div class="actions"><button class="btn red" id="ok">Continuer</button></div>`, () => { bindHeader(); $("#ok").onclick = next; });
-  };
 }
 
 /* -------- LE CLASSEMENT : un joueur classe tout le monde, les autres retrouvent la question -------- */
@@ -3618,7 +3423,7 @@ function clsFit(el) {
   el.style.animation = an;
 }
 function cClassSolo(c) {
-  if (S.idx === 0 && !S.changed) { S.mBag = null; S.mLast = null; S.cHit = 0; S.cN = 0; }
+  if (S.idx === 0 && !S.changed && !S.mix) { S.mBag = null; S.mLast = null; S.cHit = 0; S.cN = 0; }
   // « Changer » garde le même joueur, avec une autre question
   const r = S.cR = S.changed && S.cR ? S.cR : mentWho(), q = c.data[1], cap = s => s.charAt(0).toUpperCase() + s.slice(1), order = [];
   const list = (o, cls) => `<div class="rank-order ${cls || ""}${S.players.length > 5 ? " two" : ""}">${o.map((p, i) => `<div><b>${i + 1}</b><span>${esc(p.name)}</span></div>`).join("")}</div>`;
@@ -3696,79 +3501,13 @@ function cClassSolo(c) {
         <p class="ln">C'était <b>${esc(q)}</b>.${ok ? "" : `<br><s>${esc(said)}</s>`}</p>
         <p class="ln" style="font-size:16px;opacity:.85">${rnd(CLASS_RES[ok ? "ok" : "ko"])}</p>
         ${list(order, "mini")}`)}</div>${ok ? `<div class="confetti" id="confetti"></div>` : ""}
-      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+      <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
       bindHeader(); noSkip(); clsFit($(".stage .impx")); if (ok) party();
       const fly = swipeNext($(".stage .impx"), null, next);
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
       $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     });
   }
-}
-function cClassement(c) {
-  if (S.mode === "classement") return cClassSolo(c);
-  const r = nextPlayer(), order = [];
-  const q = c.data[1], cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-  const rule = `Bonne question : +2 points pour toi, +1 point pour ${esc(r.name)}`;
-  passPhone(r.name, "voir la question", () => {
-    const draw = () => {
-      $("#order").innerHTML = order.length
-        ? order.map((p, i) => `<div><b>${i + 1}</b><span>${esc(p.name)}</span></div>`).join("")
-        : `<p class="sub" style="margin:0">Touche les prénoms dans l'ordre, du 1er au dernier.</p>`;
-      $$(".chip.pick").forEach(b => b.style.display = order.includes(S.players[+b.dataset.i]) ? "none" : "");
-      const done = order.length === S.players.length;
-      $("#lock").disabled = !done;
-      $("#lock").innerHTML = done ? "Valider et montrer aux autres" : `Encore ${S.players.length - order.length} à classer`;
-    };
-    view(`${pauseBar()}
-      <div class="stage">${cardShell("classement", { label: "Classement secret de", name: r.name }, `
-        <p class="text">Classe tout le monde, toi compris : <b>${esc(q)}</b>.</p>
-        <div class="rank-order" id="order"></div>
-        ${chipsHtml()}
-        <p style="text-align:center;margin:0"><button class="linkbtn" id="redo">Recommencer</button></p>
-      `)}</div>
-      <div class="actions"><button class="btn red" id="lock"></button></div>
-    `, () => {
-      bindPause();
-      $$(".chip.pick").forEach(b => b.onclick = () => { order.push(S.players[+b.dataset.i]); buzz(10); draw(); });
-      $("#redo").onclick = () => { order.length = 0; draw(); };
-      $("#lock").onclick = () => guess();
-      draw();
-    });
-  });
-  const guess = () => {
-    const decoys = shuffle(pool("classement").filter(x => x.data[1] !== q)).slice(0, 3).map(x => x.data[1]);
-    const opts = shuffle([q, ...decoys]), guessers = others(r.name), picks = [];
-    const ask = i => {
-      if (i >= guessers.length) return reveal();
-      const p = guessers[i];
-      passPhone(p.name, "deviner la question", () => view(`${header()}
-        <div class="stage">${cardShell("classement", { label: `Au tour de · ${i + 1} / ${guessers.length}`, name: p.name }, `
-          <p class="sub" style="margin-bottom:0">Le classement de ${esc(r.name)} :</p>
-          <div class="rank-order">${order.map((o, k) => `<div><b>${k + 1}</b><span>${esc(o.name)}</span></div>`).join("")}</div>
-          <p class="sub">C'était quoi la question ? Choisis en secret.</p>
-          <div class="rank-opts">${opts.map((o, k) => `<button class="btn white" data-i="${k}">${esc(cap(o))}</button>`).join("")}</div>
-          ${rulePts(rule)}
-        `, i % 2 === 1)}</div>
-        <div class="actions"></div>`, () => {
-        bindHeader();
-        $$(".rank-opts button").forEach(b => b.onclick = () => { picks.push({ p, ok: opts[+b.dataset.i] === q }); buzz(15); ask(i + 1); });
-      }));
-    };
-    const reveal = () => {
-      const found = picks.filter(x => x.ok);
-      found.forEach(x => score(x.p, 2)); if (found.length) score(r, found.length);
-      stamp(found.length ? found.length + " bonne" + (found.length > 1 ? "s" : "") + " réponse" + (found.length > 1 ? "s" : "") : "Personne", found.length ? "green" : "");
-      view(`${header()}
-        <div class="stage">${cardShell("classement", { label: "La question de", name: r.name }, `
-          <p class="text"><b>${esc(cap(q))}</b></p>
-          <div class="radar-res">
-            ${picks.map(x => `<div><i style="background:${x.ok ? "#2EE6A0" : "#FF3B6E"}"></i><span>${esc(x.p.name)}</span><b>${x.ok ? "+2" : "0"}</b></div>`).join("")}
-            <div class="guide"><i></i><span>${esc(r.name)} (classement)</span><b>${found.length ? "+" + found.length : "0"}</b></div>
-          </div>`, alt())}</div>
-        <div class="actions"><button class="btn red" id="ok">Continuer</button></div>`, () => { bindHeader(); $("#ok").onclick = next; });
-    };
-    ask(0);
-  };
 }
 
 /* -------- OUI OU NON : le téléphone tourne, chacun swipe en secret (droite = oui, gauche = non) -------- */
@@ -3815,7 +3554,7 @@ function cOuiSwipe(c) {
   `, i % 2 === 1);
   view(`${header()}
     <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
-    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${nextTxt()}</button></div></div>`, () => {
     bindHeader();
     const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
     $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
@@ -3823,35 +3562,6 @@ function cOuiSwipe(c) {
     if (nx) choixGet(nx);
     choixTap(c, $(".jstack .top"));
   });
-}
-function cOuinon(c) {
-  if (S.mode === "ouinon") return cOuiSwipe(c);
-  const text = fill(c.data[1]), P = S.players, votes = [];
-  const turn = i => view(`${header()}
-    <div class="stage">${cardShell("ouinon", { label: "À toi", name: P[i].name }, `
-      <p class="text">${esc(text)}</p>
-      <p class="swipe-hint"><span>← Non</span><span>Oui →</span></p>
-      ${rulePts(i === 0 ? "Le téléphone tourne, chacun répond en secret. +1 point pour la majorité" : `${i + 1} / ${P.length}`)}
-    `, alt())}</div>
-    <div class="actions duo-btns"><button class="btn white" id="no">👎 Non</button><button class="btn green" id="yes">👍 Oui</button></div>`, () => {
-    bindHeader();
-    const fly = swipeCard($(".stage .card"), v => { votes[i] = v; i + 1 < P.length ? turn(i + 1) : result(); });
-    $("#yes").onclick = () => fly("oui"); $("#no").onclick = () => fly("non");
-  });
-  const result = () => {
-    const A = P.filter((p, i) => votes[i] === "oui"), B = P.filter((p, i) => votes[i] === "non");
-    const win = A.length === B.length ? "" : A.length > B.length ? "Oui" : "Non";
-    (win === "Oui" ? A : win === "Non" ? B : []).forEach(p => score(p, 1));
-    const names = L => L.length ? L.map(p => esc(p.name)).join(", ") : "personne";
-    view(`${header()}
-      <div class="stage">${cardShell("ouinon", { label: "Résultat", name: win ? `${win} gagne (${Math.max(A.length, B.length)} contre ${Math.min(A.length, B.length)})` : "Égalité" }, `
-        <p class="text" style="font-size:24px">${esc(text)}</p>
-        <p class="sub"><b>👍 Oui</b> : ${names(A)}<br><b>👎 Non</b> : ${names(B)}</p>
-        ${rulePts(win ? `+1 point pour ceux qui ont dit ${win.toLowerCase()}` : "Égalité : personne ne marque")}
-      `, alt())}</div>
-      <div class="actions"><button class="btn red" id="ok">Suivante</button></div>`, () => { bindHeader(); buzz(40); $("#ok").onclick = next; });
-  };
-  turn(0);
 }
 
 /* -------- OUTILS : dé et chooser, ouverts par-dessus la partie -------- */
@@ -4854,7 +4564,7 @@ const TUTO = {
   uno: "Les règles du Uno. On se passe le tel, chacun cache sa main. Tu poses la même couleur ou le même chiffre, sinon tu pioches. Le premier qui n'a plus de cartes gagne. Avec le cumul, un +2 ou un +4 se renvoie au suivant, et celui qui peut pas renvoyer prend tout.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
-  mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
+  mix: "La roue choisit le jeu. Vous en jouez quelques cartes, puis elle tourne à nouveau. Pas de points, juste les meilleurs moments à la fin."
 };
 const tutoSession = new Set();
 // affiche les règles d'un jeu puis appelle then ; passe directement si déjà vu (force = rouvrir à la main)
@@ -4935,6 +4645,7 @@ function pauseMenu() {
 /* -------- CLASSEMENT -------- */
 let lastRank = null;
 function ranking() {
+  if (S.mix && !ON.ctx) return mixEnd();
   clearTimers();
   if (!ON.ctx) stat("end", S.mode, (S.players || []).length, "un");
   S.inGame = false;
@@ -5434,7 +5145,7 @@ function reflexSolo() {
   });
 }
 function reflexDuo() {
-  stat("start", "reflexe", 2, "un");
+  if (!S.mix) stat("start", "reflexe", 2, "un");
   const [a, b] = S.duo, score = [0, 0];
   let state = "wait", stop = () => {}, trapped = false;
   keepAwake(); S.inGame = true;
@@ -5463,6 +5174,12 @@ function reflexDuo() {
       else if (state === "wait") point(1 - i, "early");
     });
     const end = w => {
+      if (S.mix) return view(`<div class="topbar"><button class="iconbtn" id="pause" aria-label="Pause">II</button><span class="progress">${mixTour()}</span><span style="width:44px"></span></div>
+        <div class="stage">${impScene("civ", `<span class="kick">Duel réflexe</span><span class="big">⚡</span><span class="ttl">${esc(S.duo[w])}</span><p class="ln">Gagne ${score[w]} à ${score[1 - w]}.</p>`)}</div><div class="confetti" id="confetti"></div>
+        <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">${mixNext()}</button></div></div>`, () => {
+        $("#pause").onclick = pauseMenu; party(); buzz([40, 30, 80]);
+        $("#ok").onclick = afterRound; $("#stop").onclick = ranking;
+      });
       stat("end", "reflexe", 2, "un");
       const pt = n => n + " point" + (n > 1 ? "s" : "");
       rxFin(`${score[0] + score[1]} manches`, `<p class="mbest"><span>🏆 Victoire</span><b>${esc(S.duo[w])}</b><small>${score[w]} à ${score[1 - w]}</small></p>`,
@@ -5487,7 +5204,7 @@ function rxManche() {
     bindQuit();
     const pad = $("#pad"), nm = $("#nm"), big = $("#big"), small = $("#small");
     const set = (cls, a, b, c) => { pad.className = "pad " + cls; nm.textContent = a; big.textContent = b; small.textContent = c; };
-    const ready = () => { state = "ready"; set("idle", `Manche ${S.rx.round} · ${k + 1} / ${P.length}`, P[k], "Touche quand t'es prêt"); };
+    const ready = () => { state = "ready"; set("idle", `${S.mix ? "Duel réflexe" : "Manche " + S.rx.round} · ${k + 1} / ${P.length}`, P[k], "Touche quand t'es prêt"); };
     const next = (ms, cls, txt) => {
       const who = P[k]; res.push({ name: who, ms });
       if (ms < 99999 && !(S.rx.best[who] <= ms)) S.rx.best[who] = ms;
@@ -5519,13 +5236,17 @@ function rxResult(res) {
     : out.length ? `<p class="mbest rx-out"><span>💀 Éliminé${out.length > 1 ? "s" : ""}</span><b>${esc(names(out.map(r => r.name)))}</b><small>${bad.length ? "Faux départ" : "Le plus lent"}${won ? "" : ` · encore ${left} en jeu`}</small></p>`
     : `<p class="mbest"><span>💀 Personne ne sort</span><b>On rejoue</b><small>Que des faux départs</small></p>`;
   view(`
-    <div class="topbar">${quitBtn()}<span class="progress">Manche ${S.rx.round}</span><span style="width:44px"></span></div>
+    <div class="topbar">${S.mix ? `<button class="iconbtn" id="pause" aria-label="Pause">II</button>` : quitBtn()}<span class="progress">${S.mix ? mixTour() : "Manche " + S.rx.round}</span><span style="width:44px"></span></div>
     <div class="rx-res">
       ${head}
       <div class="rx-list${list.length > 6 ? " two" : ""}">${list.map(r => `<div class="${out.includes(r) ? "out " : ""}${r.ms >= 99999 ? "bad" : r === ok[0] ? "top" : r === slow ? "slow" : ""}"><span>${out.includes(r) ? "💀 " : ""}${esc(r.name)}</span><b>${r.ms >= 99999 ? "Faux départ" : (r === slow && !out.includes(r) ? "🐢 " : "") + r.ms + " ms"}</b></div>`).join("")}</div>
     </div>
-    <div class="actions">${won ? `<button class="btn red" id="end">Voir le gagnant</button>` : `<div class="row"><button class="btn white" id="end">Terminer</button><button class="btn red" id="more">${S.rx.elim ? "Manche suivante" : "Encore une"}</button></div>`}</div>
-  `, () => { bindQuit(); $("#end").onclick = rxEnd; if ($("#more")) $("#more").onclick = rxManche; buzz(out.length ? [60, 40, 60] : 20); });
+    <div class="actions">${won ? `<button class="btn red" id="end">Voir le gagnant</button>` : `<div class="row"><button class="btn white" id="end">Terminer</button><button class="btn red" id="more">${S.mix ? mixNext() : S.rx.elim ? "Manche suivante" : "Encore une"}</button></div>`}</div>
+  `, () => {
+    buzz(out.length ? [60, 40, 60] : 20);
+    if (S.mix) { $("#pause").onclick = pauseMenu; $("#end").onclick = ranking; $("#more").onclick = afterRound; return; }
+    bindQuit(); $("#end").onclick = rxEnd; if ($("#more")) $("#more").onclick = rxManche;
+  });
 }
 function rxEnd() {
   stat("end", "reflexe", S.players.length, "un");
@@ -6128,12 +5849,11 @@ async function roomNext(r) {
   const turnOf = all[r.round % n], pl = u => S.players[all.indexOf(u)];
   let card, phase = "vote";
   const more = {};
-  if (t === "imposteur" && r.game === "imposteur") {
+  if (t === "imposteur") {
     const roles = impRoles(all, r.imp == null ? 1 : r.imp, r.und || 0, r.white || 0), und = Object.values(roles).includes("und");
     const cc = und && !underOf(c) ? pool("imposteur").find(x => underOf(x)) || c : c;
     card = { type: t, cat: cc.data[1], word: cc.data[2], uw: underOf(cc) || "", roles, out: [] }; card.first = impFirst(card); phase = "word";
   }
-  else if (t === "imposteur") { card = { type: t, cat: c.data[1], word: c.data[2], imp: rnd(all), first: rnd(all) }; phase = "word"; }
   else if (t === "radar") { card = { type: t, a: c.data[1], b: c.data[2], giver: turnOf, target: 8 + Math.round(Math.random() * 84), clue: "" }; phase = "clue"; }
   else if (t === "pref") card = { type: t, a: fill(c.data[1]), b: fill(c.data[2]) };
   else if (t === "av") { card = { type: t, target: turnOf, kind: "", text: "" }; phase = "choose"; }
@@ -6291,8 +6011,7 @@ function roomResolve(r) {
   } else if (c.type === "menteur") {
     const voters = needers(r).filter(u => acts[u] != null), right = voters.filter(u => (acts[u] === "l") === c.lie);
     const fooled = right.length * 2 < voters.length; res = { right, wrong: voters.filter(u => !right.includes(u)), fooled };
-    if (r.game === "menteur") { if (fooled && r.players[c.target]) return upd({ phase: "reveal", res, [`players.${c.target}.fool`]: F.increment(1) }); } // sans points : on compte juste qui a eu le groupe
-    else { right.forEach(u => add(u, 1)); if (fooled) add(c.target, 2); }
+    if (fooled && r.players[c.target]) return upd({ phase: "reveal", res, [`players.${c.target}.fool`]: F.increment(1) }); // sans points : on compte juste qui a eu le groupe
   } else if (c.type === "classement") {
     const right = needers(r).filter(u => acts[u] != null && c.opts[+acts[u]] === c.q);
     right.forEach(u => add(u, 2)); add(c.ranker, right.length); res = { right, wrong: needers(r).filter(u => acts[u] != null && !right.includes(u)) };
@@ -6301,7 +6020,7 @@ function roomResolve(r) {
     if (same) add(acts[a], 1); res = { same, who: same ? acts[a] : "" };
   } else if (c.type === "reflexe") {
     const t = ids(r).filter(u => acts[u] != null).map(u => ({ u, ms: acts[u] })).sort((x, y) => x.ms - y.ms), fast = t.filter(o => o.ms < 99999);
-    if (fast[0]) add(fast[0].u, 2); if (fast[1] && ids(r).length > 2) add(fast[1].u, 1);
+    if (r.game !== "mix") { if (fast[0]) add(fast[0].u, 2); if (fast[1] && ids(r).length > 2) add(fast[1].u, 1); }
     res = { t };
   } else {
     const tally = {};
@@ -6350,19 +6069,12 @@ function roomRender(r) {
     if (T === "av") stage = cardShell(T, { label: c.kind === "v" ? "Vérité pour" : "Action pour", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
       ${isSolo ? `<p class="sub">Les autres valident sur leur téléphone si tu l'as fait.</p>${waitP}` : `<p class="sub">${soloName} l'a fait ?</p>${choices([["y", "Réussi", "green"], ["n", "Refusé"]])}${waitP}`}
       ${rulePts(`Réussi : +${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}`)}`);
-    if (T === "menteur" && r.game === "menteur") stage = isSolo
+    if (T === "menteur") stage = isSolo
       ? `<div class="secret"><span class="eyebrow" style="color:var(--paper)">Ta consigne secrète</span><span class="mast imp-w" style="color:${c.lie ? "var(--red)" : "var(--yellow)"}">${c.lie ? "Tu mens" : "Tu dis la vérité"}</span><p>${esc(c.text)}</p></div>
         <p class="sub on-sub">Réponds à voix haute. Les autres te cuisinent, puis disent sur leur téléphone : vrai ou mytho ?</p><p class="sub on-sub" id="wait">${waitTxt(r)}</p>`
       : cardShell(T, { label: "Interrogatoire de", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
         <p class="sub">${soloName} répond. Posez-lui toutes les questions que vous voulez, puis : vrai ou mytho ?</p>
         ${choices([["t", "😇 Vrai", "green"], ["l", "🤥 Mytho"]])}${waitP}`);
-    else if (T === "menteur") stage = isSolo
-      ? `<div class="secret"><span class="eyebrow" style="color:var(--paper)">Consigne secrète</span><span class="mast" style="color:${c.lie ? "var(--red)" : "var(--yellow)"}">${c.lie ? "Mens" : "Dis la vérité"}</span><p>${esc(c.text)}</p></div>
-        <p class="sub on-sub">Réponds à voix haute. Les autres peuvent te poser 3 questions, puis votent sur leur téléphone.</p><p class="sub on-sub" id="wait">${waitTxt(r)}</p>`
-      : cardShell(T, { label: "Interrogatoire de", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
-        <p class="sub">${soloName} répond. Posez 3 questions, puis votez : vérité ou mensonge ?</p>
-        ${choices([["t", "Vérité", "green"], ["l", "Mensonge"]])}${waitP}
-        ${rulePts(`Bien vu : +1 point · Groupe trompé : +2 points pour ${soloName}`)}`);
     acts = forceBtn;
   } else if (T === "av" && r.phase === "choose") {
     stage = cardShell(T, { label: "Au tour de", name: pname(r, c.target) }, isSolo
@@ -6393,11 +6105,8 @@ function roomRender(r) {
     }
     if (T === "av") stage = cardShell(T, { label: res.ok ? "Réussi par" : "Refusé par", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
       <p class="sub">${res.yes || 0} réussi · ${res.no || 0} refusé</p>${rulePts(res.ok ? `+${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}` : "Pas de point")}`);
-    if (T === "menteur" && r.game === "menteur") stage = mentReveal(pname(r, c.target), c.lie, res.fooled,
+    if (T === "menteur") stage = mentReveal(pname(r, c.target), c.lie, res.fooled,
       `<div class="roles">${[...(res.right || []).map(u => [u, c.lie]), ...(res.wrong || []).map(u => [u, !c.lie])].map(([u, l]) => `<span>${l ? "🤥" : "😇"} ${esc(pname(r, u))}<i>${l ? "Mytho" : "Vrai"}</i></span>`).join("")}</div>`) + (res.fooled ? `<div class="confetti" id="confetti"></div>` : "");
-    else if (T === "menteur") stage = cardShell(T, { label: res.fooled ? "Le groupe s'est fait avoir par" : "Bien vu, le groupe a démasqué", name: pname(r, c.target) }, `<p class="text">${soloName} ${c.lie ? "mentait" : "disait la vérité"}.</p>
-      ${rows([...(res.right || []).map(u => [u, "+1"]), ...(res.wrong || []).map(u => [u, "0"])], i => i < (res.right || []).length ? G : R)}
-      ${rulePts(res.fooled ? `+2 points pour ${soloName}` : "+1 point pour chaque bonne réponse")}`);
     if (T === "classement") stage = cardShell(T, { label: "La question de", name: pname(r, c.ranker) }, `<p class="text"><b>${esc(cap(c.q))}</b></p>
       ${rows([...(res.right || []).map(u => [u, "+2"]), ...(res.wrong || []).map(u => [u, "0"])], i => i < (res.right || []).length ? G : R)}
       <div class="radar-res"><div class="guide"><i></i><span>${soloName} (classement)</span><b>${(res.right || []).length ? "+" + res.right.length : "0"}</b></div></div>`);
@@ -6490,7 +6199,7 @@ function roomRender(r) {
       const res = r.res || {};
       if (T === "imposteur" && res.free) buzz([30, 30, 60]);
       else if (T === "imposteur") stamp(res.caught ? "Démasqué" : "Raté", res.caught ? "green" : "");
-      else if (T === "menteur" && r.game === "menteur") { if (res.fooled) party(); buzz(res.fooled ? [60, 40, 60, 40, 160] : [30, 30, 60]); }
+      else if (T === "menteur") { if (res.fooled) party(); buzz(res.fooled ? [60, 40, 60, 40, 160] : [30, 30, 60]); }
       else if (T === "radar") { const best = Math.max(0, ...(res.g || []).map(o => o.p)); stamp(best === 3 ? "En plein dans le mille" : best ? "Pas mal" : "Raté", best ? "green" : ""); }
     }
     if (b("send")) {
@@ -6581,10 +6290,10 @@ function roomRenderX(r, h) {
     });
     const t = (r.res && r.res.t) || [], fmt = ms => ms >= 99999 ? "Faux départ" : ms + " ms";
     if (!over) return show(cardShell(T, { label: "Ton temps", name: fmt(h.mine) }, `<p class="sub">On attend les autres.</p>${h.waitP}`), h.forceBtn);
-    const big = ids(r).length > 2;
+    const big = ids(r).length > 2, pts = r.game !== "mix";
     return show(cardShell(T, t[0] && t[0].ms < 99999 ? { label: "Le plus rapide", name: pname(r, t[0].u) } : { label: "Résultat", name: "Personne" }, `
-      ${h.rows(t.map((o, i) => [o.u, fmt(o.ms) + (o.ms < 99999 && i === 0 ? " · +2" : o.ms < 99999 && i === 1 && big ? " · +1" : "")]), i => t[i].ms >= 99999 ? R : i === 0 ? G : "#fff")}
-      ${rulePts(big ? "Le plus rapide : +2 points · Le deuxième : +1 point" : "Le plus rapide : +2 points")}`) + scores, h.nextBtn);
+      ${h.rows(t.map((o, i) => [o.u, fmt(o.ms) + (!pts ? "" : o.ms < 99999 && i === 0 ? " · +2" : o.ms < 99999 && i === 1 && big ? " · +1" : "")]), i => t[i].ms >= 99999 ? R : i === 0 ? G : "#fff")}
+      ${pts ? rulePts(big ? "Le plus rapide : +2 points · Le deuxième : +1 point" : "Le plus rapide : +2 points") : ""}`) + (pts ? scores : ""), h.nextBtn);
   }
 
   if (T === "p4") {
