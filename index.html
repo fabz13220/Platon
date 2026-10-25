@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="8b94415b7a99">
+<meta name="build" content="2fd3b5f8b813">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1272,6 +1272,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .jstack::after { left: 28px; right: 28px; bottom: -13px; background: rgba(255,255,255,.07); z-index: -2; }
 .jstack > .card.top { z-index: 1; }
 .card .qcount { margin: 4px auto 0; min-width: 120px; padding: 10px 22px; border-radius: 99px; border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: var(--paper); font: 900 18px Nunito, sans-serif; letter-spacing: .04em; cursor: pointer; transition: transform .15s; }
+/* Qui pourrait : carte duel, deux prénoms au-dessus de la question */
+.card .qduel { margin: 0 22px; align-self: flex-start; max-width: calc(100% - 44px); padding: 8px 16px 9px; border-radius: 18px; background: #fff; color: #EE1F66; font: 900 22px/1.15 var(--display), sans-serif; box-shadow: 0 10px 24px -12px rgba(30,0,60,.6); }
+.card .qduel span { display: block; font: 900 11.5px/1.3 Nunito, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #6A5F90; }
+.card .qduel i { font-style: normal; font-family: Nunito, sans-serif; font-size: 16px; color: #6A5F90; }
 .card .qcount.on { transform: scale(1.25); background: rgba(255,255,255,.95); color: #EE1F66; border-color: transparent; }
 .card.swipe, .card.swipe * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .jstack > .card.top.still { animation: none; }
@@ -1442,37 +1446,51 @@ const C = {
     [1, "Parle à {q} uniquement en chantant jusqu'à ton prochain tour."],[1, "Interviewe {q} comme une star qui vient de gagner la Coupe du monde."],[1, "Présente ce qui se passe ce soir comme le JT de 20 h. 30 secondes."],[1, "Raconte ta journée comme un film d'horreur. 30 secondes."],[1, "Fais rire {q} en 20 secondes sans toucher personne."],[1, "Fais une déclaration d'amour au dernier truc que t'as mangé."],[2, "Raconte ta pire honte comme si c'était un exploit."],[2, "Fais un discours de 30 secondes pour qu'on t'élise président. Le groupe vote."],[3, "Fais un câlin de 10 secondes à {q}, sans rien dire."],[3, "Dis à {q} ce que tu trouves le plus attirant chez cette personne."]
   ],
   qui: [
-    [1,"sortir avec quelqu'un juste parce qu'il est connu"],[1,"prendre ce jeu trop au sérieux"],[1,"tenir un an sans acheter de fringues"],
-    [1,"parler en dormant"],[1,"être en retard à son propre mariage"],[1,"danser seulement quand il est bourré"],[1,"ne jamais danser en soirée"],
-    [1,"trouver l'amour sur Tinder"],[1,"être le plus nul en drague"],[1,"avoir encore peur du noir"],[1,"monter sa boîte"],
-    [1,"devenir le meilleur pâtissier du groupe"],[1,"finir avec le plus de tatouages"],[1,"finir sur BFM pour une connerie"],
-    [1,"se faire avoir par un faux SMS de colis"],[1,"s'endormir sur le canapé avant minuit"],[1,"tenter sa chance avec le serveur avant le dessert"],
+    [1,"sortir avec quelqu'un juste parce qu'il est connu"],[1,"tenir un an sans acheter de fringues"],
+    [1,"être en retard à son propre mariage"],[1,"danser seulement quand il est bourré"],
+    [1,"trouver l'amour sur Tinder"],[1,"être le plus nul en drague"],
+    [1,"finir sur BFM pour une connerie"],
+    [1,"se faire avoir par un faux SMS de colis"],[1,"tenter sa chance avec le serveur avant le dessert"],
     [1,"se perdre même avec un GPS"],[1,"rater son avion"],[1,"finir dans une téléréalité"],[1,"claquer tout son salaire en un week-end"],
-    [1,"adopter trois chats d'un coup"],[1,"devenir millionnaire avant 30 ans"],[1,"partir vivre à l'autre bout du monde"],[1,"avoir 5 gosses"],
+    [1,"devenir millionnaire avant 30 ans"],
     [1,"perdre son téléphone ce soir"],[1,"devenir influenceur"],[1,"gagner à un jeu télé"],[1,"rire à un enterrement"],
     [1,"survivre le plus longtemps dans un film d'horreur"],[1,"finir les restes de tout le monde ce soir"],
     [2,"vomir dans son lit ce soir"],[2,"commander un truc sur le darknet"],[2,"finir la soirée en pleurant"],[2,"se marier bourré à Las Vegas"],
     [2,"avoir un compte Insta secret"],[2,"se faire virer pour une connerie"],[2,"mytho sur son CV"],[2,"avoir la pire gueule de bois demain"],
     [2,"balancer un secret du groupe sans faire exprès"],[2,"ghoster quelqu'un après trois dates"],[2,"se faire tatouer le prénom de son mec ou de sa meuf"],
-    [2,"vider le frigo de ses potes"],[2,"se faire refouler de boîte"],[2,"gonfler des capotes pour rigoler"],
+    [2,"se faire refouler de boîte"],[2,"gonfler des capotes pour rigoler"],
     [3,"avoir la vie sexuelle la plus agitée"],[3,"recoucher avec son ex ce mois-ci"],[3,"avoir une double vie"],
-    [3,"envoyer des nudes à la mauvaise personne"],[3,"tromper sans culpabiliser"],[3,"pécho quelqu'un ici avant la fin de la soirée"],
+    [3,"envoyer des nudes à la mauvaise personne"],[3,"tromper sans culpabiliser"],
     [3,"finir la soirée aux urgences"],[3,"rentrer à pied à 6 h du mat"],[3,"finir en garde à vue"],
-    [1, "pleurer devant un dessin animé"],[1, "se perdre dans un IKEA"],[1, "s'endormir à son propre anniversaire"],[1, "se faire arnaquer en vacances"],[1, "parler à son chat comme à un humain"],[1, "finir prof"],[1, "manger un truc tombé par terre devant tout le monde"],[1, "devenir le chef d'une secte"],[1, "oublier l'anniversaire de sa mère"],[2, "se marier avec quelqu'un rencontré il y a un mois"],[2, "se battre pour la dernière part de pizza"],[2, "sortir avec quelqu'un juste pour sa voiture"],[2, "se faire larguer par vocal"],[3, "avoir un plan cul en cours en ce moment"],[3, "pécho quelqu'un à un mariage"],
+    [1, "pleurer devant un dessin animé"],[1, "se perdre dans un IKEA"],[1, "s'endormir à son propre anniversaire"],[1, "se faire arnaquer en vacances"],[1, "parler à son chat comme à un humain"],[1, "manger un truc tombé par terre devant tout le monde"],[1, "devenir le chef d'une secte"],[1, "oublier l'anniversaire de sa mère"],[2, "se marier avec quelqu'un rencontré il y a un mois"],[2, "sortir avec quelqu'un juste pour sa voiture"],[2, "se faire larguer par vocal"],[3, "avoir un plan cul en cours en ce moment"],[3, "pécho quelqu'un à un mariage"],
     [1,"piquer la place de {q} sur le canapé"],[1,"finir les frites de {q} sans demander"],[1,"oublier l'anniversaire de {q}"],
     [1,"se faire passer pour {q} au téléphone"],[1,"raconter la vie de {q} mieux que {q}"],[1,"partir en vacances avec la famille de {q}"],
     [2,"pécho le cousin ou la cousine de {q}"],[2,"balancer la pire honte de {q} à un mariage"],[2,"mytho sur {q} pour se sortir d'une galère"],
     [2,"faire semblant d'être en couple avec {q} à un mariage"],[3,"sortir avec l'ex de {q}"],[3,"finir la soirée dans le lit de {q}"],
-    [1,"retourner le plateau en perdant à un jeu"],[1,"passer 10 heures par jour sur son téléphone"],[1,"survivre le plus longtemps sur une île déserte"],
+    [1,"retourner le plateau en perdant à un jeu"],[1,"survivre le plus longtemps sur une île déserte"],
     [1,"dépenser 200 € dans un truc qui sert à rien"],[1,"rire à ses propres blagues avant de les finir"],[1,"manger des chips dans son lit"],
-    [1,"mettre deux heures à se préparer"],[1,"chanter faux au karaoké sans aucune honte"],[1,"perdre ses clés trois fois dans la même semaine"],
-    [1,"répondre à un message trois jours après"],[1,"faire perdre toute l'équipe à un escape game"],[1,"commander toujours la même chose au resto"],
+    [1,"chanter faux au karaoké sans aucune honte"],[1,"perdre ses clés trois fois dans la même semaine"],
+    [1,"répondre à un message trois jours après"],[1,"faire perdre toute l'équipe à un escape game"],
     [1,"hurler pour une araignée"],[1,"faire un TikTok de tout et n'importe quoi"],[1,"gagner un concours de mauvaise foi"],[1,"dormir 14 heures d'affilée en vacances"],
     [2,"faire une crise de jalousie pour un like"],[2,"mentir à ses parents sans cligner des yeux"],[2,"stalker les ex de son mec ou de sa meuf"],
     [2,"draguer en soirée alors qu'il est en couple"],[2,"bouder trois jours pour une broutille"],[2,"dire « je t'aime » au bout d'une semaine"],
     [2,"mentir sur son âge"],[2,"regarder encore les stories de son ex"],[2,"tout perdre au casino"],[2,"lâcher son meilleur pote pour 10 000 €"],
     [2,"avoir l'historique de recherche le plus honteux"],
-    [3,"avoir le fantasme le plus inavouable"],[3,"être le plus bruyant au lit"],[3,"avoir le plus gros body count"]
+    [3,"avoir le fantasme le plus inavouable"],[3,"être le plus bruyant au lit"],[3,"avoir le plus gros body count"],
+    [1,"manger un ver de terre pour 50 €"],[1,"se raser la tête pour 1 000 €"],[1,"faire le tour du quartier en slip pour 100 €"],
+    [1,"dire « toi aussi » au serveur qui souhaite bon appétit"],[1,"porter le même caleçon trois jours de suite"],[1,"goûter la pâtée du chat pour voir"],
+    [1,"prendre le mauvais train et finir à l'autre bout de la France"],[1,"faire pipi dans la piscine de l'hôtel"],[1,"lâcher internet à vie pour 1 million"],
+    [2,"vendre sa mère pour une PS5"],[2,"créer un faux compte pour stalker son ex"],[2,"inventer un décès dans la famille pour sécher le taf"],
+    [2,"se faire bloquer par sa propre mère"],[2,"coucher le premier soir et le regretter direct"],
+    [1,"squatter le canapé de {q} pendant un mois"],[1,"vider le frigo de {q} sans demander"],[1,"faire semblant de rire aux blagues de {q}"],
+    [1,"se faire passer pour {q} sur Tinder"],[1,"perdre {q} dans un festival"],[1,"laisser {q} payer l'addition en douce"],
+    [1,"copier la tenue de {q} sans rien dire"],[1,"s'endormir pendant que {q} raconte sa vie"],[1,"oublier {q} sur une aire d'autoroute"],
+    [1,"rayer la voiture de {q} et faire comme si de rien n'était"],[1,"garder un secret de {q} pendant dix ans"],[1,"confier son chien à {q} et le regretter"],
+    [1,"appeler {q} à 4 h du mat pour une connerie"],[1,"se battre avec {q} pour la dernière part de pizza"],
+    [2,"draguer le frère ou la sœur de {q}"],[2,"dire du mal de {q} et se faire griller"],[2,"emprunter 50 € à {q} et ne jamais les rendre"],
+    [2,"lâcher {q} au milieu d'une soirée pour un crush"],[2,"inviter l'ex de {q} à son anniversaire"],[2,"mettre {q} dans une galère et partir en courant"],
+    [2,"vendre {q} pour 1 000 €"],[2,"voler le crush de {q}"],[2,"raconter à tout le monde la pire cuite de {q}"],[2,"balancer {q} à ses parents"],
+    [3,"avoir déjà eu un fantasme sur {q}"],[3,"envoyer un message osé à {q} par erreur"],[3,"sortir avec la mère ou le père de {q}"]
   ],
   pref: [
     [1,"passer une nuit seul dans le désert du Sahara","passer une nuit seul au pôle Nord"],
@@ -2788,10 +2806,17 @@ function cQui(c) {
     if (S.idx + 1 >= S.deck.length) jamaisRefill();
     const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
     const txt = x => x.txt || (x.txt = fill(x.data[1])); // le prénom tiré reste le même quand la carte passe dessus
-    const face = (x, i) => cardShell("qui", null, `
+    // carte duel : de temps en temps, dès 3 joueurs, la carte vise deux joueurs et tout le monde choisit entre eux
+    // (jamais dans les 2 premières, jamais deux de suite, jamais sur une carte qui contient déjà un prénom)
+    const duel = (x, i) => {
+      if (x.duel === undefined) { const pv = S.deck[i - 1]; x.duel = S.players.length >= 3 && i >= 2 && !(pv && pv.duel) && !x.data[1].includes("{q}") && Math.random() < .18 ? shuffle(S.players).slice(0, 2).map(p => p.name) : null; }
+      return x.duel;
+    };
+    const face = (x, i) => { const d = duel(x, i); return cardShell("qui", null, `
+      ${d ? `<p class="qduel"><span>Duel</span>${esc(d[0])} <i>ou</i> ${esc(d[1])}</p>` : ""}
       <p class="text">Qui pourrait <b>${esc(txt(x))}</b> ?</p>
       <button class="qcount">3, 2, 1</button>
-    `, i % 2 === 1);
+    `, i % 2 === 1); };
     return view(`${header()}
       <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
       <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
@@ -4425,7 +4450,7 @@ const TUTO = {
   pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
   ouinon: "Lis la question à voix haute, chacun répond oui ou non, et ceux qui sont tout seuls s'expliquent. Swipe pour la suivante.",
   classement: "Celui qui a le tel voit une question en secret et classe tout le monde, lui compris. Les autres regardent le classement et se mettent d'accord pour retrouver la question.",
-  qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe.",
+  qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe. Sur une carte duel, on choisit seulement entre les deux prénoms.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir, Mr. White n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
