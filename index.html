@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="ca0e7db783c8">
+<meta name="build" content="f6ebcb530a6a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1114,6 +1114,8 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .p4-score .nm > span { display: inline-flex; align-items: center; gap: 6px; }
 .p4-score .p4c { width: 14px; height: 14px; flex: none; }
 .p4-score .pts { font-family: var(--display); font-size: 20px; white-space: nowrap; }
+.p4-score .pts.vs { font-family: inherit; font-size: 14px; opacity: .6; }
+.nw { white-space: nowrap; }
 .p4-next { text-align: center; margin: 0; min-height: 1.4em; }
 .hint .p4c { width: 14px; height: 14px; vertical-align: -1px; margin: 0 5px; }
 /* Vide ta main (ex-Uno) : look proche du Uno pour qu'on comprenne direct (couleurs, bord blanc, joker noir), sans l'ovale ni le nom */
@@ -4413,19 +4415,83 @@ function tabooFinal() {
   `, () => { tbFit(); party(); $("#again").onclick = tabooSetup; $("#home").onclick = home; bindBubbles(); });
 }
 
-/* -------- ALIGNE 4 (ex-Puissance 4) : un téléphone, à deux ou plus (le gagnant reste, le perdant laisse sa place) -------- */
-const P4 = { key: "", wins: {}, q: [], first: 0, round: 0 };
-// « Ensuite : Max, Zoé, Lina et 4 autres »
-const p4Next = q => q.length ? `Ensuite : ${q.slice(0, 3).map(esc).join(", ")}${q.length > 3 ? ` et ${q.length - 3} autre${q.length > 4 ? "s" : ""}` : ""}` : "";
+/* -------- ALIGNE 4 (ex-Puissance 4) : un téléphone ; à deux, revanches ; à plus, tournoi jusqu'à la finale -------- */
+const P4 = { key: "", wins: {}, first: 0, round: 0, cup: null };
+// tournoi à élimination directe, partagé avec le mode en ligne : ro = paires à plat [a, b, a, b…], "" = qualifié d'office
+const P4_STAGE = m => ({ 2: "Finale", 4: "Demi-finale", 8: "Quart de finale" })[m] || "Huitième de finale";
+function cupNew(list) {
+  const l = shuffle(list); let size = 2; while (size < l.length) size *= 2;
+  const byes = size - l.length, ro = []; let i = 0;
+  for (let k = 0; k < size / 2; k++) ro.push(l[i++], k < byes ? "" : l[i++]);
+  return cupSkip({ ro, mi: 0, up: [], out: [], byes: ro.filter((x, j) => j % 2 === 0 && !ro[j + 1]), champ: "" });
+}
+// passe les qualifiés d'office et ouvre le tour suivant quand le tour est fini
+function cupSkip(c) {
+  for (;;) {
+    while (c.mi * 2 < c.ro.length && !c.ro[c.mi * 2 + 1]) { c.up.push(c.ro[c.mi * 2]); c.mi++; }
+    if (c.mi * 2 < c.ro.length) return c;
+    if (c.up.length === 1) { c.champ = c.up[0]; return c; }
+    Object.assign(c, { ro: c.up, up: [], mi: 0, byes: [] });
+  }
+}
+function cupWin(c, w, l) { c.up.push(w); c.out.push(l); c.mi++; return cupSkip(c); }
+// « Demi-finale 2/2 », « Finale »
+function cupLabel(c) {
+  const st = P4_STAGE(c.ro.length), real = [];
+  for (let k = 0; k < c.ro.length / 2; k++) if (c.ro[k * 2 + 1]) real.push(k);
+  return real.length > 1 ? `${st} ${real.indexOf(c.mi) + 1}/${real.length}` : st;
+}
+const cupPair = c => [c.ro[c.mi * 2], c.ro[c.mi * 2 + 1]];
+// un prénom composé ne passe jamais à la ligne au milieu
+const nw = x => `<span class="nw">${esc(x)}</span>`;
 function p4Start() {
   if (tutoGate("p4", p4Start)) return;
+  if (S.names.length > 2) return p4Cup(true);
   const key = S.names.join("|");
-  if (P4.key !== key) Object.assign(P4, { key, wins: {}, q: S.names.slice(), first: 0, round: 0 });
+  if (P4.key !== key) Object.assign(P4, { key, wins: {}, first: 0, round: 0 });
   P4.round++;
-  const Q = P4.q, names = Q.slice(0, 2), R = 6, W = 7;
-  stat("start", "p4", Q.length, "un");
-  const g = Array.from({ length: R }, () => Array(W).fill(-1));
-  let cur = P4.first, over = false, line = null, last = null, swap = "";
+  const names = S.names.slice(0, 2);
+  p4Board(names, P4.first, `Manche ${P4.round}`, `${P4.wins[names[0]] || 0} - ${P4.wins[names[1]] || 0}`, "", w => {
+    // à deux : le perdant commence la revanche
+    if (w >= 0) P4.wins[names[w]] = (P4.wins[names[w]] || 0) + 1;
+    P4.first = w >= 0 ? 1 - w : 1 - P4.first;
+    return { sub: "", btn: "Revanche", next: p4Start };
+  });
+}
+function p4Cup(fresh) {
+  if (fresh || !P4.cup) P4.cup = cupNew(S.names);
+  const c = P4.cup;
+  if (c.champ) return p4Champ();
+  const names = cupPair(c), byes = c.byes.length ? `Passe${c.byes.length > 1 ? "nt" : ""} direct au tour suivant : ${c.byes.map(nw).join(", ")}` : "";
+  p4Board(names, c.replay ? 1 : 0, cupLabel(c), "contre", byes, w => {
+    if (w < 0) { c.replay = !c.replay; return { sub: "On rejoue le match.", btn: "Rejouer", next: () => p4Cup() }; }
+    c.replay = false; const was = c.ro.length;
+    cupWin(c, names[w], names[1 - w]);
+    if (c.champ) return { sub: `${nw(names[1 - w])} sort du tournoi.`, btn: "Voir le champion", next: p4Champ };
+    const [x, y] = cupPair(c);
+    return { sub: c.ro.length < was ? `Place ${c.ro.length === 2 ? "à la finale" : "aux " + P4_STAGE(c.ro.length).toLowerCase() + "s"} : ${nw(x)} contre ${nw(y)}` : `Ensuite : ${nw(x)} contre ${nw(y)}`, btn: c.ro.length === 2 && c.ro.length < was ? "Jouer la finale" : "Match suivant", next: () => p4Cup() };
+  });
+}
+function p4Champ() {
+  const c = P4.cup, o = c.out, fin = o[o.length - 1], semi = o.slice(-3, -1);
+  S.inGame = false;
+  view(`
+    <div class="rank anim fin-jamais" style="flex:1">
+      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${S.names.length} joueurs</span></div>
+      <p class="mbest"><span>🏆 Champion</span><b>${esc(c.champ)}</b><small>bat ${esc(fin)} en finale</small></p>
+      ${semi.length && S.names.length > 3 ? `<p class="hint muted" style="text-align:center;margin:0">Demi-finalistes : ${semi.map(nw).join(" et ")}</p>` : ""}
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <div class="actions"><div class="row"><button class="btn red" id="again">Nouveau tournoi</button><button class="btn white" id="home">Accueil</button></div></div>
+  `, () => { $("#again").onclick = () => p4Cup(true); $("#home").onclick = home; party(); buzz([40, 30, 80]); });
+}
+// « Au tour de Maximilienne » reste sur une ligne : le texte rapetisse plutôt que de passer à la ligne
+function p4Fit() { const m = $(".p4-msg"); if (!m) return; let f = 21; while (m.scrollHeight > 34 && f > 14) m.style.fontSize = --f + "px"; }
+// le plateau ; end(w) reçoit 0 ou 1 (gagnant) ou -1 (nul) et rend { sub, btn, next }
+function p4Board(names, first, top, mid, sub, end) {
+  stat("start", "p4", S.names.length, "un");
+  const R = 6, W = 7, g = Array.from({ length: R }, () => Array(W).fill(-1));
+  let cur = first, over = null, line = null, last = null;
   const win = (r, c) => {
     const p = g[r][c];
     for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
@@ -4435,41 +4501,31 @@ function p4Start() {
     }
     return null;
   };
-  // fin de manche : à deux, le perdant commence la suivante ; à plus, le gagnant reste et celui qui arrive commence
-  const end = w => {
-    over = true;
-    if (Q.length === 2) { P4.first = w >= 0 ? 1 - w : 1 - P4.first; return; }
-    const stay = names[w >= 0 ? w : 0], out = names[w >= 0 ? 1 - w : 1];
-    P4.q = [stay, ...Q.slice(2), out]; P4.first = 1;
-    swap = `${esc(out)} laisse sa place à ${esc(Q[2])}.`;
-  };
   const draw = () => {
-    const full = g[0].every(x => x >= 0);
-    const msg = line ? `<b class="p4c p${cur}"></b>${esc(names[cur])} gagne !` : full ? "Match nul" : `<b class="p4c p${cur}"></b>Au tour de ${esc(names[cur])}`;
-    const sub = over ? swap : p4Next(Q.slice(2));
+    const msg = line ? `<b class="p4c p${cur}"></b>${esc(names[cur])} gagne !` : over ? "Match nul" : `<b class="p4c p${cur}"></b>Au tour de ${esc(names[cur])}`;
     view(`
-      <div class="topbar">${quitBtn()}<span class="progress">Manche ${P4.round}</span><span style="width:44px"></span></div>
-      <p class="p4-score"><span class="nm"><span><b class="p4c p0"></b>${esc(names[0])}</span></span><span class="pts">${P4.wins[names[0]] || 0} - ${P4.wins[names[1]] || 0}</span><span class="nm"><span>${esc(names[1])}<b class="p4c p1"></b></span></span></p>
+      <div class="topbar">${quitBtn()}<span class="progress">${top}</span><span style="width:44px"></span></div>
+      <p class="p4-score"><span class="nm"><span><b class="p4c p0"></b>${esc(names[0])}</span></span><span class="pts${mid === "contre" ? " vs" : ""}">${mid}</span><span class="nm"><span>${esc(names[1])}<b class="p4c p1"></b></span></span></p>
       <p class="p4-msg">${msg}</p>
       <div class="p4" id="p4">${Array.from({ length: W }, (_, c) => `<button class="p4col" data-c="${c}" aria-label="Colonne ${c + 1}">${Array.from({ length: R }, (_, r) => {
         const v = g[r][c], hl = line && line.some(([a, b]) => a === r && b === c), drop = last && last[0] === r && last[1] === c;
         return `<i class="${v >= 0 ? "p" + v : ""}${hl ? " hl" : ""}${drop ? " drop" : ""}" style="--r:${r + 1}"></i>`;
       }).join("")}</button>`).join("")}</div>
-      ${Q.length > 2 ? `<p class="hint muted p4-next">${sub}</p>` : ""}
-      <div class="actions">${over ? `<div class="row"><button class="btn red" id="again">${Q.length > 2 ? "Manche suivante" : "Revanche"}</button><button class="btn white" id="home">Accueil</button></div>` : ""}</div>
+      ${S.names.length > 2 ? `<p class="hint muted p4-next">${over ? over.sub : sub}</p>` : ""}
+      <div class="actions">${over ? `<div class="row"><button class="btn red" id="again">${over.btn}</button><button class="btn white" id="home">Accueil</button></div>` : ""}</div>
     `, () => {
       bindQuit();
       // un prénom trop long rapetisse au lieu d'être coupé
-      $$(".p4-score .nm").forEach(el => { let f = 16; while (el.firstChild.offsetWidth > el.clientWidth + 1 && f > 11) el.style.fontSize = --f + "px"; });
-      if (over) { $("#again").onclick = p4Start; $("#home").onclick = home; return; }
+      $$(".p4-score .nm").forEach(el => { let f = 16; while (el.firstChild.offsetWidth > el.clientWidth + 1 && f > 10) el.style.fontSize = --f + "px"; });
+      p4Fit();
+      if (over) { $("#again").onclick = over.next; $("#home").onclick = home; return; }
       $$(".p4col").forEach(b => b.onclick = () => {
         const c = +b.dataset.c; let r = R - 1; while (r >= 0 && g[r][c] >= 0) r--;
         if (r < 0) { buzz([20, 30, 20]); return; }
         g[r][c] = cur; last = [r, c]; buzz(15);
         line = win(r, c);
-        if (line || g[0].every(x => x >= 0)) stat("end", "p4", Q.length, "un");
-        if (line) { P4.wins[names[cur]] = (P4.wins[names[cur]] || 0) + 1; end(cur); buzz([60, 40, 120]); }
-        else if (g[0].every(x => x >= 0)) end(-1);
+        const full = g[0].every(x => x >= 0);
+        if (line || full) { stat("end", "p4", S.names.length, "un"); over = end(line ? cur : -1); if (line) buzz([60, 40, 120]); }
         else cur = 1 - cur;
         draw();
       });
@@ -4653,7 +4709,7 @@ const TUTO = {
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille. Parfois, un défi surprise rapporte du temps ou des points.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir, Mr. White n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
-  p4: "Chacun son tour, tu touches une colonne et ton jeton tombe. Le premier qui aligne 4 jetons gagne, en ligne, en colonne ou en diagonale. À plus de deux, le gagnant reste et le perdant laisse sa place au suivant.",
+  p4: "Chacun son tour, tu touches une colonne et ton jeton tombe. Le premier qui aligne 4 jetons gagne, en ligne, en colonne ou en diagonale. À plus de deux, c'est un tournoi : le perdant est éliminé, jusqu'à la finale.",
   uno: "Les règles du Uno. On se passe le tel, chacun cache sa main. Tu poses la même couleur ou le même chiffre, sinon tu pioches. Le premier qui n'a plus de cartes gagne. Avec le cumul, un +2 ou un +4 se renvoie au suivant, et celui qui peut pas renvoyer prend tout.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
@@ -5930,6 +5986,7 @@ async function roomNext(r) {
   S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
   const turnOf = all[r.round % n], pl = u => S.players[all.indexOf(u)];
   let card, phase = "vote";
+  const more = {};
   if (t === "imposteur" && r.game === "imposteur") {
     const roles = impRoles(all, r.imp == null ? 1 : r.imp, r.und || 0, r.white || 0), und = Object.values(roles).includes("und");
     const cc = und && !underOf(c) ? pool("imposteur").find(x => underOf(x)) || c : c;
@@ -5954,15 +6011,23 @@ async function roomNext(r) {
     if (r.traps !== false && Math.random() < .45) { d += 900; trap = Math.round(700 + Math.random() * (d - 2100)); }
     card = { type: t, delay: Math.round(d), trap, tcol: rnd(["red", "blue", "violet", "pink"]) };
   }
+  else if (t === "p4" && n > 2) {
+    // tournoi : on reprend le tableau de la carte précédente ; un nul se rejoue, un joueur parti perd son match
+    const pc = r.card && r.card.type === "p4" && r.card.cup ? r.card : null, cup = pc ? JSON.parse(JSON.stringify(pc.cup)) : cupNew(all);
+    if (pc && pc.win >= 0) cupWin(cup, pc.win ? pc.b : pc.a, pc.win ? pc.a : pc.b);
+    else if (pc) cup.replay = !cup.replay;
+    for (let p = cupPair(cup); !cup.champ && !(all.includes(p[0]) && all.includes(p[1])); p = cupPair(cup)) { const k = all.includes(p[0]) ? 0 : 1; cupWin(cup, p[k], p[1 - k]); cup.replay = false; }
+    if (cup.champ) { stat("end", r.game, n, "multi"); return upd({ status: "end" }); }
+    if (pc && pc.win >= 0) cup.replay = false;
+    const [a, b] = cupPair(cup), alive = cup.up.length + cup.ro.slice(cup.mi * 2).filter(Boolean).length;
+    card = { type: t, a, b, cup, fin: cup.ro.length === 2, board: ".".repeat(42), turn: cup.replay ? 1 : 0, last: -1, line: [], win: null }; phase = "play";
+    more.rounds = r.round + alive - 1; // le dernier match (la finale) ferme la partie
+  }
   else if (t === "p4") {
-    // le gagnant reste, le perdant passe en bout de file ; celui qui arrive commence (à deux sur un nul, on échange)
-    const pc = r.card && r.card.type === "p4" && r.card.q ? r.card : null;
-    let q = pc ? pc.q.filter(u => all.includes(u)) : all.slice(); all.forEach(u => q.includes(u) || q.push(u));
-    if (pc && pc.win != null && q.includes(pc.a) && q.includes(pc.b)) {
-      const w = pc.win >= 0 ? (pc.win ? pc.b : pc.a) : n === 2 ? pc.b : pc.a, l = w === pc.a ? pc.b : pc.a;
-      q = [w, ...q.filter(u => u !== w && u !== l), l];
-    }
-    card = { type: t, a: q[0], b: q[1], q, board: ".".repeat(42), turn: pc ? 1 : 0, last: -1, line: [], win: null }; phase = "play";
+    // à deux : le perdant commence le match suivant (sur un nul, on échange)
+    const pc = r.card && r.card.type === "p4" && !r.card.cup && all.includes(r.card.a) && all.includes(r.card.b) ? r.card : null;
+    const [a, b] = !pc ? all : pc.win === 0 ? [pc.a, pc.b] : [pc.b, pc.a];
+    card = { type: t, a, b, board: ".".repeat(42), turn: pc ? 1 : 0, last: -1, line: [], win: null }; phase = "play";
   }
   else if (t === "uno") {
     const order = shuffle(all).slice(0, 10), pile = unoDeck().map(k => k.c + k.v), hands = {};
@@ -5976,7 +6041,7 @@ async function roomNext(r) {
   }
   else card = { type: t, text: fill(c.data[1]) };
   if (c && card.type === c.type && t !== "imposteur") card.rate = { id: c.id, type: c.type, data: c.data }; // pour le vote 🔥 / 😑 sur chaque téléphone
-  return upd({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase });
+  return upd(Object.assign({ status: "play", round: r.round + 1, card, acts: {}, res: null, phase }, more));
 }
 // L'Imposteur sur plusieurs téléphones, façon Undercover : chacun voit son mot chez lui, chacun vote pour éliminer, sans points
 function impRoles(all, i0, u0, w0) {
@@ -6389,13 +6454,19 @@ function roomRenderX(r, h) {
       const v = g[y * 7 + x], i = y * 7 + x;
       return `<i class="${v !== "." ? "p" + v : ""}${line.includes(i) ? " hl" : ""}${c.last === i ? " drop" : ""}" style="--r:${y + 1}"></i>`;
     }).join("")}</button>`).join("")}</div>`;
-    const q = (c.q || []).filter(u => u !== c.a && u !== c.b), loser = c.win >= 0 ? (c.win ? c.a : c.b) : c.b;
-    const who = `<p class="hint muted" style="text-align:center;margin:0"><b class="p4c p0"></b>${N(c.a)} contre <b class="p4c p1"></b>${N(c.b)}</p>`
-      + (q.length ? `<p class="hint muted p4-next">${over ? (r.round < r.rounds ? `${N(loser)} laisse sa place à ${N(q[0])}.` : "") : p4Next(q.map(u => pname(r, u)))}</p>` : "");
+    let who = `<p class="hint muted" style="text-align:center;margin:0"><b class="p4c p0"></b>${N(c.a)} contre <b class="p4c p1"></b>${N(c.b)}</p>`;
+    if (c.cup) {
+      // tournoi : la suite se lit sur une copie du tableau
+      const w = c.win >= 0 ? (c.win ? c.b : c.a) : "", nx = w ? cupWin(JSON.parse(JSON.stringify(c.cup)), w, w === c.a ? c.b : c.a) : null, nxp = nx && !nx.champ ? cupPair(nx) : [];
+      const sub = !over ? (c.cup.byes.length ? `Passe${c.cup.byes.length > 1 ? "nt" : ""} direct au tour suivant : ${c.cup.byes.map(u => `<span class="nw">${N(u)}</span>`).join(", ")}` : "")
+        : !w ? "Match nul, on rejoue." : nx.champ ? `🏆 ${N(w)} remporte le tournoi !` : `Ensuite : <span class="nw">${N(nxp[0])}</span> contre <span class="nw">${N(nxp[1])}</span>`;
+      who += `<p class="hint muted p4-next">${sub}</p>`;
+    }
     let acts = over ? h.nextBtn : ![c.a, c.b].includes(uid) ? `<p class="hint muted on-waiting">Tu regardes le match.</p>` : "";
     if (!over && h.host && !r.players[turnU]) acts = `<button class="btn white" id="abort">Arrêter le match</button>`;
-    return view(`${h.top}${who}<p class="p4-msg">${msg}</p>${board}${over ? scores : ""}<div class="actions">${acts}</div>`, () => {
+    return view(`${c.cup ? h.top.replace(/Manche [^<]*/, cupLabel(c.cup)) : h.top}${who}<p class="p4-msg">${msg}</p>${board}${over ? scores : ""}<div class="actions">${acts}</div>`, () => {
       bindLeave();
+      p4Fit();
       const ab = $("#abort"); if (ab) ab.onclick = () => upd({ "card.win": -1, phase: "reveal" });
       let locked = false;
       if (myTurn) $$(".p4col").forEach(b => b.onclick = () => {
@@ -6404,7 +6475,7 @@ function roomRenderX(r, h) {
         if (y < 0) { buzz([20, 30, 20]); return; }
         locked = true; buzz(15);
         const i = y * 7 + x, nb = g.slice(0, i) + c.turn + g.slice(i + 1), win = p4Line(nb, y, x), o = { "card.board": nb, "card.last": i };
-        if (win) { Object.assign(o, { "card.line": win, "card.win": c.turn, phase: "reveal" }); roomFinish(o, { [uid]: 3 }); }
+        if (win) { Object.assign(o, { "card.line": win, "card.win": c.turn, phase: "reveal" }); roomFinish(o, { [uid]: c.fin ? 5 : 3 }); }
         else if (!nb.slice(0, 7).includes(".")) upd(Object.assign(o, { "card.win": -1, phase: "reveal" }));
         else upd(Object.assign(o, { "card.turn": 1 - c.turn }));
       });
@@ -6551,15 +6622,15 @@ function lobbyView(r, host) {
     ${endBubbles(all.map(u => r.players[u].name + (u === r.host ? " ★" : ""))).replace('class="end-bubbles', 'class="end-bubbles lobby-bubbles')}
     ${host ? `<div class="section-label">Jeu</div>
       <div class="chips on-games" id="g">${Object.entries(ON_GAMES).filter(([k]) => !ONE_PHONE.includes(k)).map(([k, [l]]) => `<button class="chip pick" data-v="${k}" aria-pressed="${k === r.game}">${l}</button>`).join("")}</div>
-      <div class="section-label">Manches</div>
-      <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>
+      ${r.game === "p4" && n > 2 ? `<p class="hint muted">Tournoi : le perdant de chaque match sort, jusqu'à la finale.</p>` : `<div class="section-label">Manches</div>
+      <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`}
       ${r.game === "imposteur" ? `<div class="section-label">Imposteurs</div><div class="seg" id="impn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.imp == null ? 1 : r.imp)}">${v}</button>`).join("")}</div>
       <div class="section-label">Undercovers</div><div class="seg" id="undn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.und || 0)}">${v}</button>`).join("")}</div>
       <div class="section-label">Mr. White</div><div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}" aria-pressed="${v === (r.white || 0)}">${v}</button>`).join("")}</div>
       <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Mr. White n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}
       ${r.game === "reflexe" ? `<div class="section-label">Pièges</div><div class="seg" id="trp"><button data-v="1" aria-pressed="${r.traps !== false}">Activés</button><button data-v="0" aria-pressed="${r.traps === false}">Désactivés</button></div>` : ""}
       ${r.game === "uno" ? `<div class="section-label">Cumuler les +2 et +4</div><div class="seg" id="stk"><button data-v="1" aria-pressed="${r.stack !== false}">Activé</button><button data-v="0" aria-pressed="${r.stack === false}">Désactivé</button></div>` : ""}`
-      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}${r.game === "uno" ? (r.stack === false ? " Sans cumul des +2 et +4." : " Avec cumul des +2 et +4.") : ""}</p>`}
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.game === "p4" && n > 2 ? "en tournoi" : r.rounds + " manches"}.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}${r.game === "uno" ? (r.stack === false ? " Sans cumul des +2 et +4." : " Avec cumul des +2 et +4.") : ""}</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
     <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
