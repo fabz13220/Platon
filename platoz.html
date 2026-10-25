@@ -4073,7 +4073,7 @@ function proposeTool() {
 }
 
 /* -------- SANS LE DIRE : un téléphone, deux équipes, on fait deviner un mot sans dire les mots interdits -------- */
-const TB = { teams: [[], []], score: [0, 0], turns: 0, secs: store.get("tbSecs", 60), giver: [0, 0], names: store.get("tbNames", null) };
+const TB = { teams: [[], []], score: [0, 0], turns: 0, secs: store.get("tbSecs", 60), max: store.get("tbMax", 4), giver: [0, 0], names: store.get("tbNames", null) };
 const TB_NAMES = ["Équipe Feu", "Équipe Glace"], TB_COLS = ["#FF3B6E", "#4D8BFF"], TB_PASS = 5; // passer coûte 5 secondes
 const tbName = i => (TB.names && TB.names[i]) || TB_NAMES[i];
 const tbAnd = l => l.length > 1 ? l.slice(0, -1).join(", ") + " et " + l[l.length - 1] : l.join("");
@@ -4105,6 +4105,7 @@ function tabooSetup() {
     });
     $("#tsec").textContent = tbTime(TB.secs);
     $("#tm").disabled = TB.secs <= 15; $("#tp").disabled = TB.secs >= 300;
+    $("#rnum").textContent = TB.max; $("#rm").disabled = TB.max <= 1; $("#rp").disabled = TB.max >= 10;
   };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Sans le dire</span><span style="width:44px"></span></div>
@@ -4113,12 +4114,16 @@ function tabooSetup() {
     <p style="text-align:center;margin:0"><button class="linkbtn" id="mix">Refaire les équipes au hasard</button></p>
     <div class="section-label">Chrono</div>
     <div class="tb-step"><button id="tm" aria-label="Moins de temps">−</button><b id="tsec"></b><button id="tp" aria-label="Plus de temps">+</button></div>
+    <div class="section-label">Tours par équipe</div>
+    <div class="tb-step"><button id="rm" aria-label="Moins de tours">−</button><b id="rnum"></b><button id="rp" aria-label="Plus de tours">+</button></div>
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
     $("#back").onclick = playersScreen;
     $("#mix").onclick = () => { tabooSplit(); buzz(10); draw(); };
     const step = d => { TB.secs = Math.max(15, Math.min(300, TB.secs + d)); store.set("tbSecs", TB.secs); buzz(8); draw(); };
     $("#tm").onclick = () => step(-15); $("#tp").onclick = () => step(15);
+    const rounds = d => { TB.max = Math.max(1, Math.min(10, TB.max + d)); store.set("tbMax", TB.max); buzz(8); draw(); };
+    $("#rm").onclick = () => rounds(-1); $("#rp").onclick = () => rounds(1);
     $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.found = {}; TB.deck = shuffle(tbPool()); S.inGame = true; keepAwake(); tabooTurn(); };
     draw();
     tbFit();
@@ -4158,7 +4163,7 @@ const tbSign = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
 function tabooTurn() {
   const t = TB.turns % 2, team = TB.teams[t], g = team[TB.giver[t] % team.length];
   view(`
-    <div class="topbar">${quitBtn()}<span class="progress">Manche ${TB.turns + 1}</span><span style="width:44px"></span></div>
+    <div class="topbar">${quitBtn()}<span class="progress">Tour ${Math.floor(TB.turns / 2) + 1} / ${TB.max}</span><span style="width:44px"></span></div>
     ${tbBoard(t)}
     <div class="stage"><div class="secret" style="--c:${TB_COLS[t]}"><span class="eyebrow" style="color:var(--paper)">${esc(tbName(t))} · passe le téléphone à</span><span class="mast">${esc(g)}</span>
       <p>Tu dois faire deviner à ton équipe&nbsp;: ${tbAnd(team.filter(n => n !== g).map(esc))}.<br>Quelqu'un de ${esc(tbName(1 - t))} regarde l'écran avec toi.</p></div></div>
@@ -4260,13 +4265,13 @@ function tbFitWord(card) {
 // fin de manche : l'équipe en gros, ses points, et les mots ; toucher un mot le passe de trouvé à pas trouvé
 function tabooEnd(t, g, log, fouls) {
   view(`
-    <div class="topbar">${quitBtn()}<span class="progress">Manche ${TB.turns + 1}</span><span style="width:44px"></span></div>
+    <div class="topbar">${quitBtn()}<span class="progress">Tour ${Math.floor(TB.turns / 2) + 1} / ${TB.max}</span><span style="width:44px"></span></div>
     <div class="stage tb-endst">
       <div class="tb-endhead" style="--tc:${TB_COLS[t]}"><span class="tb-endteam">${esc(tbName(t))}</span><span class="tb-endpts" id="net"></span><span class="tb-endsub" id="sub"></span></div>
       ${log.length ? `<p class="tb-fix">Erreur de swipe ? Touche le mot.</p><div class="tb-grid" id="words">${log.map((x, i) => `<button class="tb-c${x.gold ? " gold" : ""}" data-i="${i}"><i></i><span>${esc(x.w)}${x.gold ? " <b>×2</b>" : ""}</span></button>`).join("")}</div>` : `<p class="tb-fix">Aucun mot cette fois.</p>`}
       <div id="board"></div>
     </div>
-    <div class="actions"><div class="row tb-row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="next">Équipe suivante</button></div></div>
+    <div class="actions">${TB.turns + 1 >= TB.max * 2 ? `<button class="btn red" id="stop">Voir le résultat</button>` : `<div class="row tb-row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="next">Équipe suivante</button></div>`}</div>
   `, () => {
     bindQuit();
     const net = () => tbPts(log) - fouls;
@@ -4280,7 +4285,7 @@ function tabooEnd(t, g, log, fouls) {
     };
     $$("#words .tb-c").forEach(b => b.onclick = () => { const x = log[+b.dataset.i]; x.r = x.r === "ok" ? "pass" : "ok"; buzz(10); draw(); });
     const close = go => { TB.score[t] += net(); TB.found[g] = (TB.found[g] || 0) + log.filter(x => x.r === "ok").length; TB.giver[t]++; TB.turns++; go(); };
-    $("#next").onclick = () => close(tabooTurn);
+    if ($("#next")) $("#next").onclick = () => close(tabooTurn);
     $("#stop").onclick = () => close(tabooFinal);
     draw(); tbFit();
   });
