@@ -1152,6 +1152,14 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .stage > .card.tb-play { animation: tbIn .16s ease-out both; }
 .card.tb-play.tbgold { --g: linear-gradient(165deg, #FFE27A 0%, #F5A623 45%, #B8620A 100%); --glow: rgba(255,190,40,.75); --pill-ink: #8A4B00; box-shadow: 0 0 0 3px #FFE27A, 0 20px 50px -12px var(--glow); }
 .tbgold .tb-word { text-shadow: 0 2px 12px rgba(120,50,0,.6); }
+.tb-defi { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border-radius: 14px; background: rgba(140,70,255,.18); box-shadow: inset 0 0 0 1.5px #A66BFF; font-weight: 900; font-size: 14.5px; text-align: center; line-height: 1.2; transition: background .2s, box-shadow .2s; }
+.tb-defi b { flex: none; min-width: 34px; padding: 2px 8px; border-radius: 8px; background: rgba(0,0,0,.3); }
+.tb-defi b:empty { display: none; }
+.tb-defi.big { font-size: 17px; padding: 12px 14px; }
+.tb-defi.won { background: rgba(46,230,160,.2); box-shadow: inset 0 0 0 1.5px #2EE6A0; }
+.tb-defi.lost { opacity: .5; }
+.tb-minus.plus { color: #2EE6A0; }
+.tb-endsub.dwin { color: #2EE6A0; } .tb-endsub.dlose { color: var(--muted); opacity: .8; }
 .tb-goldtag { flex: none; padding: 6px 10px; border-radius: 999px; background: rgba(60,25,0,.45); color: #FFE27A; font-weight: 900; font-size: 13px; white-space: nowrap; }
 .tb-c.gold { box-shadow: inset 0 0 0 1.5px #FFD24A; } .tb-c.gold.ok { background: rgba(255,200,60,.2); } .tb-c span b { color: #FFD24A; font-size: .85em; }
 @keyframes tbIn { from { transform: translateY(14px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -4170,25 +4178,39 @@ const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(tbPool
 const tbBoard = (cur, sc = TB.score) => `<div class="tb-score">${[0, 1].map(i => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${esc(tbName(i))} <b>${sc[i]}</b></span>`).join("")}</div>`;
 const tbPts = log => log.reduce((a, x) => a + (x.r === "ok" ? (x.gold ? 2 : 1) : 0), 0);
 const tbSign = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
+// défis surprises : environ 1 tour sur 3 (jamais le tout premier), l'équipe gagne du temps, des points ou des passes gratuites
+const tbDefis = () => { const f = Math.max(3, Math.round(TB.secs / 10)); return [
+  { k: "streak", n: 3, txt: "3 mots d'affilée", gain: "+10 s", sec: 10 },
+  { k: "streak", n: 5, txt: "5 mots d'affilée", gain: "+3 points", pts: 3 },
+  { k: "found", n: f, txt: `${f} mots trouvés`, gain: "+2 points", pts: 2 },
+  { k: "clean", n: 4, txt: "4 mots sans aucun interdit", gain: "+2 points", pts: 2 },
+  { k: "fast", n: 10, txt: "Le premier mot en moins de 10 s", gain: "passes gratuites", free: true }
+]; };
+const tbDefiTxt = d => `🎯 Défi : ${d.txt} → ${d.gain}`;
+// réussi ? les défis de fin de tour se recalculent si on corrige un mot
+const tbDefiOk = (d, log, fouls, won) => !!d && (d.k === "found" ? log.filter(x => x.r === "ok").length >= d.n : d.k === "clean" ? !fouls && log.filter(x => x.r === "ok").length >= d.n : won);
 function tabooTurn() {
   const t = TB.turns % 2, team = TB.teams[t], g = team[TB.giver[t] % team.length];
+  const d = TB.turns > 0 && Math.random() < .35 ? rnd(tbDefis()) : null;
   view(`
     <div class="topbar">${quitBtn()}<span class="progress">Tour ${Math.floor(TB.turns / 2) + 1} / ${TB.max}</span><span style="width:44px"></span></div>
     ${tbBoard(t)}
     <div class="stage"><div class="secret" style="--c:${TB_COLS[t]}"><span class="eyebrow" style="color:var(--paper)">${esc(tbName(t))} · passe le téléphone à</span><span class="mast">${esc(g)}</span>
       <p>Tu dois faire deviner à ton équipe&nbsp;: ${tbAnd(team.filter(n => n !== g).map(esc))}.<br>Quelqu'un de ${esc(tbName(1 - t))} regarde l'écran avec toi.</p></div></div>
+    ${d ? `<div class="tb-defi big">${esc(tbDefiTxt(d))}</div>` : ""}
     <div class="actions"><button class="btn red" id="go">Lancer le chrono (${tbTime(TB.secs)})</button></div>
-  `, () => { bindQuit(); tbFit(); $("#go").onclick = () => tabooPlay(t, g); });
+  `, () => { bindQuit(); tbFit(); $("#go").onclick = () => tabooPlay(t, g, d); });
 }
 // pendant le chrono : swipe à droite = trouvé, à gauche = passé (−5 s) ; « Interdit » = −1 point et carte suivante
-function tabooPlay(t, g) {
-  let left = TB.secs, c = tbCard(), over = false, fouls = 0, fly = () => {}, gold = false, n = 0;
+function tabooPlay(t, g, d) {
+  let left = TB.secs, c = tbCard(), over = false, fouls = 0, fly = () => {}, gold = false, n = 0, streak = 0, won = false, free = false, spent = 0;
   const log = [];
   // environ 1 carte sur 10 est en or et vaut 2 points ; jamais la première, jamais deux de suite
   const goldNext = () => { gold = n > 0 && !gold && Math.random() < .1; n++; };
   goldNext();
   view(`
     <div class="topbar tb-top" style="--tc:${TB_COLS[t]}">${quitBtn()}<span class="tb-timer" id="timer">${left}</span><span class="progress tb-net" id="pts">0</span></div>
+    ${d ? `<div class="tb-defi" id="defi"><span>${esc(tbDefiTxt(d))}</span><b id="dprog"></b></div>` : ""}
     <div class="stage" id="stage"></div>
     <div class="tb-btns">
       <button class="btn white" id="pass">← Passer<small>−${TB_PASS} s</small></button>
@@ -4198,17 +4220,38 @@ function tabooPlay(t, g) {
   `, () => {
     bindQuit();
     const net = () => tbPts(log) - fouls;
-    const pts = () => { $("#pts").textContent = tbSign(net()); };
+    const ok = () => log.filter(x => x.r === "ok").length;
+    const pts = () => {
+      $("#pts").textContent = tbSign(net());
+      if (!d) return;
+      const done = tbDefiOk(d, log, fouls, won), box = $("#defi");
+      box.classList.toggle("won", done); box.classList.toggle("lost", !done && (d.k === "clean" && fouls > 0 || d.k === "fast" && (ok() > 0 || spent >= d.n)));
+      $("#dprog").textContent = done ? "✓" : d.k === "streak" ? `${streak}/${d.n}` : d.k === "fast" ? "" : d.k === "clean" && fouls ? "✕" : `${Math.min(ok(), d.n)}/${d.n}`;
+    };
+    // défi réussi pendant le chrono : le bonus de temps ou les passes gratuites tombent tout de suite
+    const win = () => {
+      if (won) return; won = true; stamp("Défi réussi", "green tbq"); buzz([40, 30, 40, 30, 80]);
+      if (d.sec) { const m = document.createElement("span"); m.className = "tb-minus plus"; m.textContent = `+${d.sec} s`; $("#timer").appendChild(m); setTimeout(() => m.remove(), 1000); tickTo(left + d.sec); }
+      if (d.free) { free = true; $("#pass small").textContent = "gratuit"; }
+    };
+    const check = () => {
+      if (!d || won) return;
+      if (d.k === "streak" && streak >= d.n) win();
+      if (d.k === "fast" && ok() === 1 && spent < d.n) win();
+      if (d.k === "found" && tbDefiOk(d, log, fouls)) { won = true; stamp("Défi réussi", "green tbq"); buzz([40, 30, 40, 30, 80]); }
+    };
     const tickTo = s => {
       left = s; const el = $("#timer"); if (!el) return;
       el.firstChild.nodeValue = Math.max(0, left); el.classList.toggle("hot", left <= 10);
-      if (left <= 0 && !over) { over = true; clearInterval(tick); buzz([200, 80, 200]); stamp("Temps écoulé"); later(() => tabooEnd(t, g, log, fouls), 900); }
+      if (left <= 0 && !over) { over = true; clearInterval(tick); buzz([200, 80, 200]); stamp("Temps écoulé"); later(() => tabooEnd(t, g, log, fouls, d, won), 900); }
     };
     const act = (r, id) => {
       if (over || id !== c.id) return; // un double toucher ne compte qu'une fois
       log.push({ w: c.data[1], r, gold });
-      if (r === "ok") buzz(gold ? [30, 30, 60] : 20);
+      if (r === "ok") { buzz(gold ? [30, 30, 60] : 20); streak++; check(); }
+      else if (free) { streak = 0; buzz(10); }
       else { // passer coûte du temps, et ça se voit sous le chrono
+        streak = 0;
         const m = document.createElement("span"); m.className = "tb-minus"; m.textContent = `−${TB_PASS} s`; $("#timer").appendChild(m); setTimeout(() => m.remove(), 1000);
         buzz([30, 30, 30]); tickTo(left - TB_PASS);
         if (over) return;
@@ -4227,9 +4270,9 @@ function tabooPlay(t, g) {
       tbFitWord(el); pts();
     };
     $("#ok").onclick = () => fly("oui"); $("#pass").onclick = () => fly("non");
-    $("#no").onclick = () => { if (over) return; fouls++; buzz([80, 40, 80]); stamp("Interdit", "tbq"); c = tbCard(); goldNext(); show(); };
+    $("#no").onclick = () => { if (over) return; fouls++; buzz([80, 40, 80]); stamp("Interdit", "tbq"); streak = 0; c = tbCard(); goldNext(); show(); };
     show(); tbFit();
-    const tick = setInterval(() => { if (!$("#timer")) return clearInterval(tick); tickTo(left - 1); if (left <= 10 && left > 0) buzz(8); }, 1000);
+    const tick = setInterval(() => { if (!$("#timer")) return clearInterval(tick); spent++; tickTo(left - 1); if (d && d.k === "fast") pts(); if (left <= 10 && left > 0) buzz(8); }, 1000);
     timers.push(tick);
   });
 }
@@ -4273,19 +4316,21 @@ function tbFitWord(card) {
   while ((w.scrollWidth > w.clientWidth + 1 || w.getBoundingClientRect().height > f * 2.3) && f > 20) w.style.fontSize = (f -= 2) + "px";
 }
 // fin de manche : l'équipe en gros, ses points, et les mots ; toucher un mot le passe de trouvé à pas trouvé
-function tabooEnd(t, g, log, fouls) {
+function tabooEnd(t, g, log, fouls, d, won) {
   view(`
     <div class="topbar">${quitBtn()}<span class="progress">Tour ${Math.floor(TB.turns / 2) + 1} / ${TB.max}</span><span style="width:44px"></span></div>
     <div class="stage tb-endst">
-      <div class="tb-endhead" style="--tc:${TB_COLS[t]}"><span class="tb-endteam">${esc(tbName(t))}</span><span class="tb-endpts" id="net"></span><span class="tb-endsub" id="sub"></span></div>
+      <div class="tb-endhead" style="--tc:${TB_COLS[t]}"><span class="tb-endteam">${esc(tbName(t))}</span><span class="tb-endpts" id="net"></span><span class="tb-endsub" id="sub"></span>${d ? `<span class="tb-endsub" id="dres"></span>` : ""}</div>
       ${log.length ? `<p class="tb-fix">Erreur de swipe ? Touche le mot.</p><div class="tb-grid" id="words">${log.map((x, i) => `<button class="tb-c${x.gold ? " gold" : ""}" data-i="${i}"><i></i><span>${esc(x.w)}${x.gold ? " <b>×2</b>" : ""}</span></button>`).join("")}</div>` : `<p class="tb-fix">Aucun mot cette fois.</p>`}
       <div id="board"></div>
     </div>
     <div class="actions">${TB.turns + 1 >= TB.max * 2 ? `<button class="btn red" id="stop">Voir le résultat</button>` : `<div class="row tb-row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="next">Équipe suivante</button></div>`}</div>
   `, () => {
     bindQuit();
-    const net = () => tbPts(log) - fouls;
+    const bonus = () => tbDefiOk(d, log, fouls, won) ? d.pts || 0 : 0;
+    const net = () => tbPts(log) - fouls + bonus();
     const draw = () => {
+      if (d) { const y = tbDefiOk(d, log, fouls, won); $("#dres").textContent = y ? `🎯 Défi réussi : ${d.gain}` : `🎯 Défi raté : ${d.txt}`; $("#dres").className = "tb-endsub " + (y ? "dwin" : "dlose"); }
       const n = net(), ok = log.filter(x => x.r === "ok").length, sc = TB.score.slice(); sc[t] += n;
       $("#net").textContent = `${tbSign(n)} point${Math.abs(n) > 1 ? "s" : ""}`;
       $("#sub").textContent = `${ok} trouvé${ok > 1 ? "s" : ""}${fouls ? ` · ${fouls} interdit${fouls > 1 ? "s" : ""}` : ""}`;
@@ -4519,7 +4564,7 @@ const TUTO = {
   classement: "Celui qui a le tel voit une question en secret et classe tout le monde, lui compris. Les autres regardent le classement et se mettent d'accord pour retrouver la question.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe. Sur une carte duel, on choisit seulement entre les deux prénoms.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
-  taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille.",
+  taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille. Parfois, un défi surprise rapporte du temps ou des points.",
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir, Mr. White n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "Chacun son tour, tu touches une colonne et ton jeton tombe. Le premier qui aligne 4 jetons gagne, en ligne, en colonne ou en diagonale. À plus de deux, le gagnant reste et le perdant laisse sa place au suivant.",
