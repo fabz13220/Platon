@@ -59,12 +59,20 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: var(--night); padding: 10px 16px; border-radius: 14px; font-weight: 900; z-index: 9; max-width: calc(100% - 32px); }
 .err { color: #FF8FA8; }
 [hidden] { display: none !important; }
+/* ouverte depuis l'appli (Réglages > Admin) : l'appli met son propre bandeau avec « Fermer » */
+html.in-app body { padding-top: 12px; }
+html.in-app h1 { display: none; }
 @media (max-width: 520px) { .card { grid-template-columns: 1fr auto; } .card select { grid-column: 1 / -1; width: 120px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Platoz <small>Admin</small></h1>
+
+  <section class="panel" id="refus" hidden>
+    <h2>Réservé à l'admin</h2>
+    <p class="muted">Ce compte n'a pas l'accès admin.</p>
+  </section>
 
   <section class="panel" id="login" hidden>
     <h2>Connexion</h2>
@@ -107,8 +115,12 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const EMU = new URLSearchParams(location.search).has("emu");
+// dans l'appli (cadre ouvert depuis Réglages > Admin) : même compte que le joueur, celui de l'appli.
+// seule, la page a son compte à elle (« admin ») : se connecter ici ne touche plus au compte de joueur du même navigateur.
+const IN_APP = new URLSearchParams(location.search).has("app");
+if (IN_APP) document.documentElement.classList.add("in-app");
 const [{ initializeApp }, A, F] = await Promise.all(["app", "auth", "firestore"].map(m => import(FBV + m + ".js")));
-const fapp = initializeApp(FBC), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
+const fapp = IN_APP ? initializeApp(FBC) : initializeApp(FBC, "admin"), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
 if (EMU) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
 
 const $ = s => document.querySelector(s);
@@ -141,6 +153,7 @@ const toPub = w => {
   return o;
 };
 const dirty = () => work && !same(toPub(work), toPub(fromPub()));
+window.adminDirty = () => !!dirty(); // l'appli demande avant de fermer le cadre
 const syncBar = () => { const d = dirty(); $("#savebar").hidden = !d; $("#savetxt").textContent = "Pas encore publié."; };
 addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });
 
@@ -152,7 +165,7 @@ async function loadContenu() {
 async function publish() {
   const btn = $("#pub"); btn.disabled = true;
   try {
-    const o = toPub(work), at = Date.now(), body = { data: JSON.stringify(o), at, par: auth.currentUser.email || "" };
+    const o = toPub(work), at = Date.now(), body = { data: JSON.stringify(o), at, par: auth.currentUser.email || auth.currentUser.uid };
     await F.setDoc(F.doc(db, "contenu_hist", String(at)), body);
     await F.setDoc(F.doc(db, "contenu", "app"), body);
     pub = o; work = fromPub(); syncBar(); render(); toast("Publié. C'est en ligne.");
@@ -298,7 +311,12 @@ function viewComptes() {
   if (!USERS) return `<p class="muted">Chargement des comptes…</p>`;
   const opt = u => `<option value="${esc(u.id)}">${esc(u.name || "?")} · ${esc(u.code || "")} · vu ${esc(dateFr(u.seen || u.at))}</option>`;
   const list = USERS.filter(u => !u.movedTo);
-  return `<section class="panel"><h2>Récupérer un ancien compte</h2>
+  return `${IN_APP ? "" : `<section class="panel"><h2>Admin dans l'appli</h2>
+    <p class="muted">Tape le code ami de ton compte de joueur (dans l'appli : Amis, « Ton code ami »). Sur ce compte, un bouton <b>Admin</b> apparaît dans Réglages. Aucun autre compte ne peut l'ouvrir : la base refuse.</p>
+    <div class="row"><input id="adm-code" maxlength="6" placeholder="Code ami" autocomplete="off" autocapitalize="characters" style="flex:1 1 140px"><button class="btn pink" id="adm-add" style="flex:0 0 auto">Donner l'accès admin</button></div>
+    <p id="adm-msg"></p>
+    ${ADMINS && ADMINS.length ? `<table>${ADMINS.map(a => `<tr><td>${esc(a.name || "?")}</td><td>${esc(a.code || "")}</td><td class="n"><button class="btn ghost small" data-unadm="${esc(a.id)}">Retirer</button></td></tr>`).join("")}</table>` : `<p class="muted">Aucun compte de joueur n'a l'accès admin pour l'instant.</p>`}</section>`}
+    <section class="panel"><h2>Récupérer un ancien compte</h2>
     <p class="muted">Si tu as perdu ton compte de joueur (appli réinstallée, nouveau téléphone) : crée un pseudo dans l'appli, puis choisis ici l'ancien compte et le nouveau. Le nouveau reprend le pseudo et les amis de l'ancien, et l'ancien code ami mène au nouveau compte. L'ancien compte n'est pas supprimé.</p>
     <label>Ancien compte, à récupérer<select id="old">${list.map(opt).join("")}</select></label>
     <label>Nouveau compte, celui de ton téléphone aujourd'hui<select id="new">${list.map(opt).join("")}</select></label>
@@ -308,12 +326,15 @@ function viewComptes() {
     <section class="panel"><h2>Tous les comptes (${USERS.length})</h2>
     <table><tr><th>Pseudo</th><th>Code ami</th><th>Vu</th></tr>${USERS.map(u => `<tr><td>${esc(u.name || "?")}${u.movedTo ? ` <span class="tag">récupéré</span>` : ""}</td><td>${esc(u.code || "")}</td><td>${esc(dateFr(u.seen || u.at))}</td></tr>`).join("")}</table></section>`;
 }
+let ADMINS = null;
 async function loadUsers() {
+  if (!IN_APP) ADMINS = (await F.getDocs(F.collection(db, "admins")).catch(() => ({ docs: [] }))).docs.map(d => ({ id: d.id, ...d.data() }));
   const s = await F.getDocs(F.collection(db, "users"));
   USERS = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.seen || b.at || 0) - (a.seen || a.at || 0));
 }
 function bindComptes() {
   if (!USERS) { loadUsers().then(render).catch(e => { $("#view").innerHTML = `<p class="err">Impossible de lire les comptes (${esc(e.code || e.message)}).</p>`; }); return; }
+  bindAdmins();
   const O = $("#old"), N = $("#new"); if (!O) return;
   if (O.options.length > 1) O.selectedIndex = 1; // le plus récent est sans doute le nouveau
   const showFriends = async () => {
@@ -348,18 +369,51 @@ function bindComptes() {
     }
   };
 }
+// donner ou retirer l'accès admin à un compte de joueur : seul le compte de cette page (l'e-mail admin) peut le faire
+function bindAdmins() {
+  const add = $("#adm-add"); if (!add) return;
+  const msg = (t, err) => { const m = $("#adm-msg"); m.className = err ? "err" : "muted"; m.textContent = t; };
+  const refused = e => { if (!String(e.code || "").includes("permission")) return false; msg("La base refuse : colle d'abord les nouvelles règles (cadre jaune en haut), puis recommence.", 1); $("#rule").textContent = RULES(auth.currentUser.uid); $("#setup").hidden = false; scrollTo(0, 0); return true; };
+  $("#adm-code").onkeydown = e => { if (e.key === "Enter") add.click(); };
+  add.onclick = async () => {
+    const code = $("#adm-code").value.trim().toUpperCase();
+    if (code.length !== 6) return msg("Un code ami fait 6 caractères.", 1);
+    try {
+      const c = await F.getDoc(F.doc(db, "codes", code));
+      if (!c.exists()) return msg("Aucun compte avec ce code.", 1);
+      const uid = c.data().uid, u = (await F.getDoc(F.doc(db, "users", uid))).data() || {};
+      if (!confirm(`Donner l'accès admin à « ${u.name || "?"} » (${code}) ?`)) return;
+      await F.setDoc(F.doc(db, "admins", uid), { name: u.name || "", code, at: Date.now() });
+      await loadUsers(); render(); toast(`C'est fait : ouvre Réglages dans l'appli, sur le compte « ${u.name || code} ».`);
+    } catch (e) { if (!refused(e)) msg("Erreur : " + (e.code || e.message), 1); }
+  };
+  document.querySelectorAll("[data-unadm]").forEach(b => b.onclick = async () => {
+    if (!confirm("Retirer l'accès admin à ce compte ?")) return;
+    try { await F.deleteDoc(F.doc(db, "admins", b.dataset.unadm)); await loadUsers(); render(); }
+    catch (e) { if (!refused(e)) toast("Erreur : " + (e.code || e.message)); }
+  });
+}
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; render(); scrollTo(0, 0); });
 $("#pub").onclick = publish;
 $("#copyrule").onclick = async () => { try { await navigator.clipboard.writeText($("#rule").textContent); toast("Copié."); } catch (e) { $("#setup details").open = true; const r = document.createRange(); r.selectNodeContents($("#rule")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Sélectionné : copie-le."); } };
 $("#undo").onclick = () => { if (!confirm("Annuler toutes les modifications pas encore publiées ?")) return; work = fromPub(); syncBar(); render(); };
 
 // règles Firestore complètes : celles déjà publiées par Fabio, plus l'accès admin réservé à ce compte (son identifiant)
+// et aux comptes de joueur qu'il a choisis (collection admins, que lui seul peut remplir)
 const RULES = uid => `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function admin() { return request.auth != null && request.auth.uid == "${uid}"; }
+    function owner() { return request.auth != null && request.auth.uid == "${uid}"; }
+    function admin() { return owner() || request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    match /admins/{id} {
+      allow read: if request.auth != null && (request.auth.uid == id || owner());
+      allow write: if owner();
+    }
     match /votes/{id} { allow read, create, update: if true; }
-    match /propositions/{id} { allow read, create: if true; }
+    match /propositions/{id} {
+      allow read: if admin();
+      allow create: if true;
+    }
     match /codes/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
@@ -385,15 +439,15 @@ service cloud.firestore {
       allow create, update: if request.resource.data.keys().hasOnly(["a", "b"]);
     }
     match /stats/{id} {
-      allow read: if request.auth != null;
+      allow read: if admin();
       allow create: if true;
     }
     match /contenu/{id} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == "${uid}";
+      allow write: if admin();
     }
     match /contenu_hist/{id} {
-      allow read, write: if request.auth != null && request.auth.uid == "${uid}";
+      allow read, write: if admin();
     }
   }
 }`;
@@ -404,12 +458,17 @@ $("#in").onclick = go(A.signInWithEmailAndPassword);
 $("#create").onclick = go(A.createUserWithEmailAndPassword);
 $("#pass").onkeydown = e => { if (e.key === "Enter") $("#in").click(); };
 A.onAuthStateChanged(auth, async u => {
-  if (!u || u.isAnonymous) { $("#login").hidden = false; $("#app").hidden = true; return; }
-  $("#login").hidden = true; $("#app").hidden = false; $("#view").innerHTML = `<p class="muted">Chargement…</p>`;
+  if (IN_APP) {
+    // le compte de joueur de l'appli : la base dit s'il a l'accès admin (collection admins)
+    const ok = u && await F.getDoc(F.doc(db, "admins", u.uid)).then(d => d.exists(), () => false);
+    if (!ok) { $("#refus").hidden = false; $("#app").hidden = true; return; }
+  } else if (!u || u.isAnonymous) { $("#login").hidden = false; $("#app").hidden = true; return; }
+  $("#refus").hidden = true; $("#login").hidden = true; $("#app").hidden = false; $("#view").innerHTML = `<p class="muted">Chargement…</p>`;
   try { await loadContenu(); } catch (e) { $("#view").innerHTML = `<p class="err">Impossible de charger le contenu (${esc(e.code || e.message)}).</p>`; return; }
   render();
-  // ce compte peut-il publier ? sinon, on affiche la règle à coller, écrite pour lui (son identifiant, pas son e-mail)
-  try { await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
+  if (IN_APP) return;
+  // les règles collées sont-elles les dernières (accès admin dans l'appli) ? sinon, on affiche celles à coller, écrites pour ce compte (son identifiant, pas son e-mail)
+  try { await F.getDoc(F.doc(db, "admins", u.uid)); await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
   catch (e) {
     $("#rule").textContent = RULES(u.uid);
     $("#setup").hidden = false;
