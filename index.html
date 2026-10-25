@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="2ff54f52ff23">
+<meta name="build" content="1fa619c981a8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -868,17 +868,37 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .pad.idle, .half.pause { background: radial-gradient(80% 60% at 50% 40%, #2C1F72, #160F3D); color: #fff; }
 /* WAIT = dark, breathing, unmistakably "not yet" */
 .pad.wait { background: radial-gradient(80% 60% at 50% 45%, #0B2A5E, #06132E 70%, #030812); color: #9CC4FF; }
-.half.wait { background: radial-gradient(80% 60% at 50% 45%, #5A0A26, #2A0514 70%, #16020B); color: #FF9DB8; }
+.half.wait { background: radial-gradient(80% 60% at 50% 45%, #0B2A5E, #06132E 70%, #030812); color: #9CC4FF; }
 .pad.wait .pad-big { color: #CFE2FF; animation: breathe 1.1s ease-in-out infinite alternate; }
-.half.wait .pad-big { color: #FFC2D2; animation: breathe 1.1s ease-in-out infinite alternate; }
+.half.wait .pad-big { color: #CFE2FF; animation: breathe 1.1s ease-in-out infinite alternate; }
 @keyframes breathe { to { opacity: .55; transform: scale(.97); } }
-/* GO = full flood. Solo copy says "attends le rouge" so solo stays red; the duel uses green */
-.pad.go { background: radial-gradient(90% 70% at 50% 45%, #FF5A4A, #F0123F 70%, #C80A3A); color: #fff; }
-.half.go { background: radial-gradient(90% 70% at 50% 45%, #7DFFC4, #16E08E 60%, #00B26E); color: #06140D; }
+/* GO = full green flood everywhere ("attends le vert") */
+.pad.go, .half.go { background: radial-gradient(90% 70% at 50% 45%, #7DFFC4, #16E08E 60%, #00B26E); color: #06140D; }
 .pad.go .pad-big, .half.go .pad-big { font-size: clamp(64px, 22vw, 110px); animation: pop .2s cubic-bezier(.2,1.5,.4,1) both; }
-.pad.go .pad-big { text-shadow: 0 6px 30px rgba(110,0,20,.45); }
-.half.go .pad-big { text-shadow: none; }
-.half.go .pad-name, .half.go .pad-small { color: #06140D; }
+.pad.go .pad-big, .half.go .pad-big { text-shadow: none; }
+.pad.go .pad-name, .pad.go .pad-small, .half.go .pad-name, .half.go .pad-small { color: #06140D; }
+/* pièges : une autre couleur vive pendant l'attente, toucher = faux départ */
+.pad.trap, .half.trap { color: #fff; transition: none; }
+.pad.trap .pad-big, .half.trap .pad-big { color: #fff; }
+.trap.t-red { background: radial-gradient(90% 70% at 50% 45%, #FF5A4A, #F0123F 70%, #C80A3A); }
+.trap.t-blue { background: radial-gradient(90% 70% at 50% 45%, #6FB2FF, #2F6BFF 70%, #1C3FBF); }
+.trap.t-violet { background: radial-gradient(90% 70% at 50% 45%, #C79BFF, #8A4DFF 70%, #5A20C8); }
+.trap.t-pink { background: radial-gradient(90% 70% at 50% 45%, #FF8AD0, #FF3BAA 70%, #C8137E); }
+/* résultats d'une manche en groupe */
+.rx-res { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; min-height: 0; }
+.rx-res .mbest { margin-top: 0; }
+.rx-list { display: grid; gap: 6px; }
+.rx-list.two { grid-template-columns: 1fr 1fr; }
+.rx-list > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 14px; border-radius: 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--hair); font-weight: 900; font-size: 16px; }
+.rx-list span { white-space: nowrap; }
+.rx-list b { font-family: var(--display); font-size: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rx-list.two > div { flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 12px; font-size: min(15px, 4.2vw); }
+.rx-list.two b { font-size: 14px; }
+.rx-list .top { box-shadow: inset 0 0 0 2px #16E08E; background: rgba(22,224,142,.14); }
+.rx-list .top b { color: #7DFFC4; }
+.rx-list .bad b { color: #FF6A90; }
+.rx-list .slow b { color: #FFC24A; }
+@media (max-height: 620px) { .rx-fin { gap: 12px; } .rx-fin .rank-head .mast { font-size: 30px; } .rx-fin .mbest { padding: 6px 18px; } .rx-fin .mbest b { font-size: 26px; } }
 .pad.early { background: var(--g-gold); color: var(--ink); animation: shake .2s ease-in-out; }
 @keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-10px); } 50% { transform: translateX(9px); } 75% { transform: translateX(-5px); } }
 .duel { display: flex; flex-direction: column; background: #06040F; }
@@ -2002,7 +2022,7 @@ function home() {
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
-  const maxOf = t => ({ p4: 2, deux: 16, reflexe: 2, test: 1, uno: 10 })[t] || 16;
+  const maxOf = t => ({ p4: 2, deux: 16, test: 1, uno: 10 })[t] || 16;
   const LBL = { p4: ["Puissance 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de scandale", "T'es grave à quel point ?"] };
   const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
   const rail = (title, list, id, on) => (list = on ? list.filter(t => !ONE_PHONE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
@@ -2022,8 +2042,8 @@ function home() {
       ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
       ${rail("En équipes", fit(["taboo", "imposteur", "menteur"])).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
-      ${n > 1 ? rail("Jeux de société", ["p4", "uno"], "row-societe") : ""}
-      ${n <= 2 ? rail(n === 1 ? "En solo" : "Rien que vous deux", fit(["reflexe", "test"])) : ""}
+      ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe"], "row-societe") : ""}
+      ${n === 1 ? rail("En solo", fit(["reflexe", "test"])) : ""}
       ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
     <div class="tabbar-space"></div>
@@ -2107,7 +2127,7 @@ function ideaSheet() {
 }
 
 /* -------- JOUEURS -------- */
-function minPlayers() { if (S.mode === "uno" || S.mode === "mix") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
+function minPlayers() { if (S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
 function playersScreen() {
   const min = minPlayers();
   const draw = () => {
@@ -2123,10 +2143,11 @@ function playersScreen() {
     <div class="field"><input id="name-input" maxlength="14" placeholder="Prénom" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Prénom du joueur"><button class="btn" type="button" id="add">Ajouter</button></div>
     <div class="chips" id="chips"></div>
     <div id="bubbles"></div>
+    ${S.mode === "reflexe" ? rxSeg() : ""}
     ${tutoLink()}
     <div class="actions"><button class="btn red" id="next"></button></div>
   `, () => {
-    $("#back").onclick = home; bindTutoLink(S.mode);
+    $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg();
     // pas de <form> : le cadre de l'artifact bloque l'envoi des formulaires
     const add = () => {
       const v = $("#name-input").value.trim().replace(/\s+/g, " ");
@@ -2270,8 +2291,8 @@ function jellyStep() {
   if (busy) wake();
 }
 // fin de partie : chaque joueur dans sa bulle
-function endBubbles(names, wait) {
-  return `<div class="end-bubbles${wait ? " wait" : ""}">${names.map((n, i) => `<div class="bubble" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s"><span>${esc(n)}</span></div>`).join("")}</div>`;
+function endBubbles(names, wait, subs) {
+  return `<div class="end-bubbles${wait ? " wait" : ""}">${names.map((n, i) => `<div class="bubble" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s"><span>${esc(n)}</span>${subs ? `<small>${esc(subs[i])}</small>` : ""}</div>`).join("")}</div>`;
 }
 const bindBubbles = () => $$(".end-bubbles .bubble").forEach(b => jelly(b));
 function groupSheet(done) {
@@ -2361,6 +2382,7 @@ function popGroup(b, g, draw) {
 /* -------- AMBIANCE -------- */
 function ambiance() {
   if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
+  if (S.mode === "reflexe") return reflexStart(); // Duel réflexe : rien à régler à part les pièges, déjà sur l'écran des joueurs
   if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ni de réglage ex et sexe, tous les mots
   const draw = () => {
     $$(".opt").forEach(o => o.setAttribute("aria-pressed", +o.dataset.l === S.level));
@@ -4466,7 +4488,7 @@ const TUTO = {
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "À deux sur le même tel. Le premier qui aligne 4 jetons gagne.",
   uno: "Comme le vrai. On se passe le tel et on cache sa main.",
-  reflexe: "L'écran devient rouge d'un coup. Le premier qui touche gagne. Trop tôt, t'as perdu.",
+  reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel.",
   test: "Tu réponds oui ou non, personne voit. À la fin t'as ton score.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
 };
@@ -4829,55 +4851,97 @@ function miniUne(A) {
 }
 
 /* ---------- DUEL RÉFLEXE ---------- */
+// un téléphone : seul (5 essais), à deux (face à face, premier à 3) ou en groupe (on se passe le tel, un essai chacun par manche)
+const rxTraps = () => store.get("reflexTraps", true);
+const rxSeg = () => `<div class="section-label">Pièges</div><div class="seg" id="rx-traps"><button data-v="1" aria-pressed="${rxTraps()}">Activés</button><button data-v="0" aria-pressed="${!rxTraps()}">Désactivés</button></div>`;
+const bindRxSeg = () => $$("#rx-traps button").forEach(b => b.onclick = () => { store.set("reflexTraps", b.dataset.v === "1"); buzz(10); $$("#rx-traps button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+const RX_TRAP = ["trap", "t-red", "t-blue", "t-violet", "t-pink"];
+const rxTrapCls = (els, c) => els.forEach(el => { el.classList.remove(...RX_TRAP); if (c) el.classList.add("trap", "t-" + c); });
+// attente avant le vert ; avec les pièges, l'écran passe parfois d'abord à une autre couleur
+function rxWait(on) {
+  const ids = [], at = (f, ms) => { const t = setTimeout(f, ms); ids.push(t); timers.push(t); };
+  let d = 1500 + Math.random() * 3000;
+  if (rxTraps() && Math.random() < .45) {
+    d += 900; const t = 700 + Math.random() * (d - 2100), col = rnd(["red", "blue", "violet", "pink"]);
+    at(() => on.trap(col), t); at(() => on.trap(""), t + 550);
+  }
+  at(on.go, d);
+  return () => ids.forEach(clearTimeout);
+}
+function rxFin(sub, best, bubbles, again, rec) {
+  S.inGame = false;
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  view(`
+    <div class="rank anim fin-jamais rx-fin" style="flex:1">
+      <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${sub}</span></div>
+      ${best}
+      ${endBubbles(bubbles[0], false, bubbles[1]).replace('class="end-bubbles', `class="end-bubbles${bubbles[0].length > 10 ? " tbfit2 tbfit3" : bubbles[0].length > 6 ? " tbfit1" : ""}`)}
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <div class="actions">
+      <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
+    </div>
+  `, () => { $("#again").onclick = again; $("#home").onclick = home; bindBubbles(); party(); buzz([40, 30, 80]); if (rec) stamp("Record", "green"); });
+}
 function reflexMenu() {
   if (tutoGate("reflexe", reflexMenu)) return;
+  if (store.get("count", 4) > 1) { S.mode = "reflexe"; return playersScreen(); }
   const best = store.get("reflex-best", null);
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Duel réflexe</span><span style="width:44px"></span></div>
     <div class="stage">${cardShell("reflexe", null, `
-      <p class="text">Touche l'écran dès qu'il devient rouge. Trop tôt, c'est perdu.</p>
-      <p class="sub">${best ? "Ton record sur ce téléphone : " + best + " ms." : "Pas encore de record sur ce téléphone."}</p>`)}</div>
-    <div class="actions"><button class="btn" id="solo">Seul <small>5 essais, bats ton record</small></button><button class="btn red" id="duo">À deux <small>Face à face sur le même téléphone</small></button></div>
-  `, () => { $("#back").onclick = home; $("#solo").onclick = reflexSolo; $("#duo").onclick = () => duoSetup(reflexDuo); });
+      <p class="text">Touche l'écran dès qu'il devient vert. Trop tôt, c'est raté.</p>
+      <p class="sub">${best ? "Ton record : " + best + " ms." : "Pas encore de record sur ce téléphone."} T'as 5 essais.</p>`)}</div>
+    ${rxSeg()}
+    ${tutoLink()}
+    <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
+  `, () => { $("#back").onclick = home; bindRxSeg(); bindTutoLink("reflexe"); $("#go").onclick = reflexSolo; });
+}
+function reflexStart() {
+  S.players = shuffle(S.names).map(n => ({ name: n, pts: 0 }));
+  if (S.names.length === 2) { S.duo = S.names.slice(); return reflexDuo(); }
+  reflexGroup();
 }
 function reflexSolo() {
   stat("start", "reflexe", 1, "un");
-  const times = []; let state = "idle", t0 = 0, to = null;
-  keepAwake();
-  view(`<div class="pad" id="pad"><span class="pad-big" id="big">Touche pour commencer</span><span class="pad-small" id="small">Essai 1 / 5</span></div>
+  const times = []; let state = "idle", t0 = 0, stop = () => {}, trapped = false;
+  keepAwake(); S.inGame = true;
+  view(`<div class="pad idle" id="pad"><span class="pad-big" id="big">Touche pour commencer</span><span class="pad-small" id="small">Essai 1 / 5</span></div>
     <button class="iconbtn pad-quit" id="quit" aria-label="Quitter">×</button>`, () => {
     bindQuit();
     const pad = $("#pad"), big = $("#big"), small = $("#small");
     const set = (cls, b, s) => { pad.className = "pad " + cls; big.textContent = b; small.textContent = s; };
-    const arm = () => { state = "wait"; set("wait", "Attends le rouge…", `Essai ${times.length + 1} / 5`); to = setTimeout(() => { state = "go"; t0 = performance.now(); set("go", "Tape !", ""); buzz(30); }, 1500 + Math.random() * 2500); timers.push(to); };
+    const arm = () => {
+      state = "wait"; trapped = false; set("wait", "Attends le vert…", `Essai ${times.length + 1} / 5`);
+      stop = rxWait({ trap: c => { trapped = !!c; if (state === "wait") rxTrapCls([pad], c); }, go: () => { state = "go"; t0 = performance.now(); set("go", "Tape !", ""); buzz(30); } });
+    };
     pad.onpointerdown = e => {
       e.preventDefault();
       if (state === "idle" || state === "shown") return arm();
-      if (state === "wait") { clearTimeout(to); state = "shown"; set("early", "Trop tôt !", "Touche pour réessayer"); buzz([60, 40, 60]); return; }
+      if (state === "wait") { stop(); state = "shown"; set("early", trapped ? "Piège !" : "Trop tôt !", "Touche pour réessayer"); buzz([60, 40, 60]); return; }
       if (state === "go") {
-        const ms = Math.round(performance.now() - t0); times.push(ms); state = "shown";
-        if (times.length >= 5) return done();
-        set("idle", ms + " ms", "Touche pour l'essai suivant");
+        const ms = Math.round(performance.now() - t0); times.push(ms); state = "lock";
+        if (times.length >= 5) { set("idle", ms + " ms", "Fini !"); return later(done, 900); }
+        set("idle", ms + " ms", "Touche pour l'essai suivant"); later(() => state = "shown", 250);
       }
     };
     const done = () => {
+      stat("end", "reflexe", 1, "un");
       const best = Math.min(...times), avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
       const rec = store.get("reflex-best", null), isRec = !rec || best < rec;
       if (isRec) store.set("reflex-best", best);
-      const verdict = best < 220 ? "Réflexes de pilote de chasse" : best < 300 ? "Bien réveillé" : best < 400 ? "Correct, sans plus" : "Tu dors déjà ?";
-      const name = store.get("solo-name", "") || (S.duo && S.duo[0]) || "";
-      const A = { kicker: "Duel réflexe", headline: `${name ? name + " : " : "Réflexe : "}${best} ms`, deck: verdict + (isRec ? ". Nouveau record !" : "."), items: [],
-        stats: [[best, "meilleur (ms)"], [avg, "moyenne (ms)"], [store.get("reflex-best", best), "record (ms)"]] };
-      S.inGame = false;
-      view(`${miniUne(A)}${resultActions()}`, () => { if (isRec) stamp("Record", "green"); bindResult(A, reflexSolo, "duel-reflexe"); });
+      const verdict = best < 220 ? "Pilote de chasse" : best < 300 ? "Bien réveillé" : best < 400 ? "Correct, sans plus" : "Tu dors déjà ?";
+      const name = store.get("solo-name", "") || "Toi";
+      rxFin(`moyenne ${avg} ms`, `<p class="mbest"><span>⚡ Ton meilleur temps</span><b>${best} ms</b><small>${isRec ? "Nouveau record !" : verdict + ". Record : " + rec + " ms"}</small></p>`,
+        [[name], [best + " ms"]], reflexSolo, isRec);
     };
   });
 }
 function reflexDuo() {
   stat("start", "reflexe", 2, "un");
   const [a, b] = S.duo, score = [0, 0];
-  let state = "wait", to = null;
-  keepAwake();
+  let state = "wait", stop = () => {}, trapped = false;
+  keepAwake(); S.inGame = true;
   view(`<div class="duel">
       <div class="half top" id="h1"><span class="pad-name">${esc(b)}</span><span class="pad-big" id="b1"></span><span class="pad-small" id="s1"></span></div>
       <div class="half" id="h0"><span class="pad-name">${esc(a)}</span><span class="pad-big" id="b0"></span><span class="pad-small" id="s0"></span></div>
@@ -4887,12 +4951,12 @@ function reflexDuo() {
     const set = (cls, big, small) => [0, 1].forEach(i => { H[i].className = "half " + (i ? "top " : "") + cls; B[i].textContent = big[i]; Sm[i].textContent = small[i]; });
     const scoreTxt = () => [`${score[0]} - ${score[1]}`, `${score[1]} - ${score[0]}`];
     const round = () => {
-      state = "wait"; set("wait", ["Attends…", "Attends…"], scoreTxt());
-      to = setTimeout(() => { state = "go"; set("go", ["Tape !", "Tape !"], scoreTxt()); buzz(30); }, 1500 + Math.random() * 3000); timers.push(to);
+      state = "wait"; trapped = false; set("wait", ["Attends le vert…", "Attends le vert…"], scoreTxt());
+      stop = rxWait({ trap: c => { trapped = !!c; if (state === "wait") rxTrapCls(H, c); }, go: () => { state = "go"; set("go", ["Tape !", "Tape !"], scoreTxt()); buzz(30); } });
     };
     const point = (w, why) => {
-      state = "pause"; clearTimeout(to); score[w]++; buzz([40, 30, 40]);
-      const msg = i => i === w ? (why === "early" ? "Faux départ adverse" : "Point !") : (why === "early" ? "Faux départ !" : "Trop lent");
+      state = "pause"; stop(); score[w]++; buzz([40, 30, 40]);
+      const msg = i => i === w ? (why === "early" ? "Faux départ de l'autre" : "Point !") : (why === "early" ? (trapped ? "Piège !" : "Faux départ !") : "Trop lent");
       set("pause", [msg(0), msg(1)], scoreTxt());
       if (score[w] >= 3) { later(() => end(w), 1200); return; }
       later(round, 1500);
@@ -4903,14 +4967,65 @@ function reflexDuo() {
       else if (state === "wait") point(1 - i, "early");
     });
     const end = w => {
-      const winner = S.duo[w], loser = S.duo[1 - w];
-      const A = { kicker: "Duel réflexe", headline: `${winner} bat ${loser} ${score[w]} à ${score[1 - w]}`, deck: `Victoire en ${score[0] + score[1]} manches.`, items: [],
-        stats: [[score[0] + score[1], "manches"], [score[w], "pour " + winner], [score[1 - w], "pour " + loser]] };
-      S.inGame = false;
-      view(`${miniUne(A)}${resultActions()}`, () => { stamp(winner.length > 9 ? "Victoire" : winner, "green"); bindResult(A, reflexDuo, "duel-reflexe"); });
+      stat("end", "reflexe", 2, "un");
+      const pt = n => n + " point" + (n > 1 ? "s" : "");
+      rxFin(`${score[0] + score[1]} manches`, `<p class="mbest"><span>🏆 Victoire</span><b>${esc(S.duo[w])}</b><small>${score[w]} à ${score[1 - w]}</small></p>`,
+        [S.duo, score.map(pt)], reflexDuo);
     };
     round();
   });
+}
+// en groupe : on se passe le téléphone, un essai chacun par manche, sans points ; on garde le meilleur temps de chacun
+function reflexGroup() {
+  stat("start", "reflexe", S.players.length, "un");
+  S.rx = { round: 0, best: {} }; keepAwake();
+  rxManche();
+}
+function rxManche() {
+  const all = S.players.map(p => p.name), sh = S.rx.round % all.length, P = [...all.slice(sh), ...all.slice(0, sh)], res = [];
+  let k = 0, state = "ready", stop = () => {}, t0 = 0, trapped = false;
+  S.rx.round++; S.inGame = true;
+  view(`<div class="pad idle" id="pad"><span class="pad-name" id="nm"></span><span class="pad-big" id="big"></span><span class="pad-small" id="small"></span></div>
+    <button class="iconbtn pad-quit" id="quit" aria-label="Quitter">×</button>`, () => {
+    bindQuit();
+    const pad = $("#pad"), nm = $("#nm"), big = $("#big"), small = $("#small");
+    const set = (cls, a, b, c) => { pad.className = "pad " + cls; nm.textContent = a; big.textContent = b; small.textContent = c; };
+    const ready = () => { state = "ready"; set("idle", `Manche ${S.rx.round} · ${k + 1} / ${P.length}`, P[k], "Touche quand t'es prêt"); };
+    const next = (ms, cls, txt) => {
+      const who = P[k]; res.push({ name: who, ms });
+      if (ms < 99999 && !(S.rx.best[who] <= ms)) S.rx.best[who] = ms;
+      state = "lock"; k++;
+      set(cls, who, txt, k < P.length ? "Passe le tel à " + P[k] : "");
+      later(() => k < P.length ? ready() : rxResult(res), 1100);
+    };
+    pad.onpointerdown = e => {
+      e.preventDefault();
+      if (state === "ready") {
+        state = "wait"; trapped = false; set("wait", P[k], "Attends le vert…", "");
+        stop = rxWait({ trap: c => { trapped = !!c; if (state === "wait") rxTrapCls([pad], c); }, go: () => { state = "go"; t0 = performance.now(); set("go", P[k], "Tape !", ""); buzz(30); } });
+      } else if (state === "wait") { stop(); buzz([60, 40, 60]); next(99999, "early", trapped ? "Piège !" : "Trop tôt !"); }
+      else if (state === "go") { const ms = Math.round(performance.now() - t0); next(ms, "idle", ms + " ms"); }
+    };
+    ready();
+  });
+}
+function rxResult(res) {
+  const ok = res.filter(r => r.ms < 99999).sort((a, b) => a.ms - b.ms), bad = res.filter(r => r.ms >= 99999), list = [...ok, ...bad];
+  const slow = !bad.length && ok.length > 1 ? ok[ok.length - 1] : null;
+  view(`
+    <div class="topbar">${quitBtn()}<span class="progress">Manche ${S.rx.round}</span><span style="width:44px"></span></div>
+    <div class="rx-res">
+      <p class="mbest"><span>⚡ Le plus rapide</span><b>${ok[0] ? esc(ok[0].name) : "Personne"}</b><small>${ok[0] ? ok[0].ms + " ms" : "Que des faux départs"}</small></p>
+      <div class="rx-list${list.length > 6 ? " two" : ""}">${list.map(r => `<div class="${r.ms >= 99999 ? "bad" : r === ok[0] ? "top" : r === slow ? "slow" : ""}"><span>${esc(r.name)}</span><b>${r.ms >= 99999 ? "Faux départ" : (r === slow ? "🐢 " : "") + r.ms + " ms"}</b></div>`).join("")}</div>
+    </div>
+    <div class="actions"><div class="row"><button class="btn white" id="end">Terminer</button><button class="btn red" id="more">Encore une</button></div></div>
+  `, () => { bindQuit(); $("#end").onclick = rxEnd; $("#more").onclick = rxManche; buzz(20); });
+}
+function rxEnd() {
+  stat("end", "reflexe", S.players.length, "un");
+  const B = S.rx.best, P = S.players.map(p => p.name).sort((x, y) => (B[x] == null ? 1e9 : B[x]) - (B[y] == null ? 1e9 : B[y])), fast = B[P[0]] != null ? P[0] : null;
+  rxFin(`${S.rx.round} manche${S.rx.round > 1 ? "s" : ""}`, fast ? `<p class="mbest"><span>⚡ Le plus rapide</span><b>${esc(fast)}</b><small>${B[fast]} ms</small></p>` : "",
+    [P, P.map(n => B[n] != null ? B[n] + " ms" : "Faux départ")], () => { S.players = shuffle(S.players); reflexGroup(); });
 }
 
 /* ---------- TEST DE SCANDALE ---------- */
@@ -5362,7 +5477,7 @@ async function roomOpen(code) {
     if (ON.ctx.pub !== pub) { ON.ctx.pub = pub; F.setDoc(F.doc(db, "users", uid), { room: pub }, { merge: true }).catch(() => {}); }
     ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
     if (r.host === uid) hostTick(r);
-    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und, r.white]) : "",
+    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und, r.white, r.traps]) : "",
       r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue, c && LONG.includes(c.type) ? JSON.stringify(c) : ""].join("|");
     if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
     else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
@@ -5417,7 +5532,11 @@ async function roomNext(r) {
     const q = rnd(fresh.length ? fresh : qs); used.add("deux:" + q[1]); store.set("used", [...used]);
     card = { type: t, pair: [turnOf, all[(r.round + 1) % n]], text: q[1] };
   }
-  else if (t === "reflexe") card = { type: t, delay: 1500 + Math.round(Math.random() * 3000) };
+  else if (t === "reflexe") {
+    let d = 1500 + Math.random() * 3000, trap = 0;
+    if (r.traps !== false && Math.random() < .45) { d += 900; trap = Math.round(700 + Math.random() * (d - 2100)); }
+    card = { type: t, delay: Math.round(d), trap, tcol: rnd(["red", "blue", "violet", "pink"]) };
+  }
   else if (t === "p4") { card = { type: t, a: turnOf, b: all[(r.round + 1) % n], board: ".".repeat(42), turn: 0, last: -1, line: [], win: null }; phase = "play"; }
   else if (t === "uno") {
     const order = shuffle(all).slice(0, 10), pile = unoDeck().map(k => k.c + k.v), hands = {};
@@ -5815,15 +5934,16 @@ function roomRenderX(r, h) {
   }
 
   if (T === "reflexe") {
-    if (!over && h.mine == null) return view(`<div class="pad wait" id="pad"><span class="pad-big" id="big">Attends le rouge…</span><span class="pad-small">Manche ${r.round} / ${r.rounds}</span></div>
+    if (!over && h.mine == null) return view(`<div class="pad wait" id="pad"><span class="pad-big" id="big">Attends le vert…</span><span class="pad-small">Manche ${r.round} / ${r.rounds}</span></div>
       <button class="iconbtn pad-quit" id="leave" aria-label="Quitter">×</button>`, () => {
       bindLeave();
-      const pad = $("#pad"), big = $("#big"); let go = 0, done = false;
+      const pad = $("#pad"), big = $("#big"); let go = 0, done = false, trapped = false;
+      if (c.trap) { later(() => { if (!done) { trapped = true; rxTrapCls([pad], c.tcol); } }, c.trap); later(() => { trapped = false; if (!done) rxTrapCls([pad], ""); }, c.trap + 550); }
       later(() => { if (done) return; go = performance.now(); pad.className = "pad go"; big.textContent = "Tape !"; buzz(30); }, c.delay);
       pad.onpointerdown = e => {
         e.preventDefault(); if (done) return; done = true;
         const ms = go ? Math.round(performance.now() - go) : 99999;
-        if (go) { pad.className = "pad idle"; big.textContent = ms + " ms"; } else { pad.className = "pad early"; big.textContent = "Trop tôt !"; buzz([60, 40, 60]); }
+        if (go) { pad.className = "pad idle"; big.textContent = ms + " ms"; } else { pad.className = "pad early"; big.textContent = trapped ? "Piège !" : "Trop tôt !"; buzz([60, 40, 60]); }
         later(() => upd({ [`acts.${uid}`]: ms }), 700);
       };
     });
@@ -5987,8 +6107,9 @@ function lobbyView(r, host) {
       ${r.game === "imposteur" ? `<div class="section-label">Imposteurs</div><div class="seg" id="impn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.imp == null ? 1 : r.imp)}">${v}</button>`).join("")}</div>
       <div class="section-label">Undercovers</div><div class="seg" id="undn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.und || 0)}">${v}</button>`).join("")}</div>
       <div class="section-label">Mr. White</div><div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}" aria-pressed="${v === (r.white || 0)}">${v}</button>`).join("")}</div>
-      <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Mr. White n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}`
-      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}</p>`}
+      <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Mr. White n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}
+      ${r.game === "reflexe" ? `<div class="section-label">Pièges</div><div class="seg" id="trp"><button data-v="1" aria-pressed="${r.traps !== false}">Activés</button><button data-v="0" aria-pressed="${r.traps === false}">Désactivés</button></div>` : ""}`
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
     <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
@@ -5998,6 +6119,7 @@ function lobbyView(r, host) {
     bindBubbles(); // une bulle par joueur, qu'on peut lancer comme en fin de partie
     $$("#g button").forEach(b => b.onclick = () => { const g = b.dataset.v, o = roundOpts(g); upd({ game: g, rounds: o.includes(ON.r.rounds) ? ON.r.rounds : o[1] }); });
     $$("#nr button").forEach(b => b.onclick = () => upd({ rounds: +b.dataset.v }));
+    $$("#trp button").forEach(b => b.onclick = () => upd({ traps: b.dataset.v === "1" }));
     $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) + (ON.r.white || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
     $$("#undn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.white || 0) < 1 ? { und: v, imp: 1 } : { und: v }); });
     $$("#whn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.und || 0) < 1 ? { white: v, imp: 1 } : { white: v }); });
