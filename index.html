@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="4e32cbe20bb7">
+<meta name="build" content="bf8269f0b08c">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -4646,8 +4646,10 @@ function vmPaint(m) {
   $("#vm-pile").classList.toggle("go", !!m.pileGo);
 }
 // main : cartes [{ k, key, cls }] ; les cartes déjà là glissent à leur nouvelle place, les nouvelles arrivent
-function vmHand(cards, deal) {
-  const box = $("#vm-hand"), old = {};
+// from : la pioche, d'où partent les cartes qu'on vient de prendre (elles s'y retournent puis glissent à leur place)
+function vmHand(cards, deal, from) {
+  const box = $("#vm-hand"), old = {}, pr = from && from.getBoundingClientRect();
+  let nw = 0;
   $$(".uno", box).forEach(b => { old[b.dataset.k] = b.getBoundingClientRect(); });
   const had = Object.keys(old).length;
   box.innerHTML = cards.map((c, i) => unoCard(c.k, c.cls, i, c.key)).join("");
@@ -4658,6 +4660,9 @@ function vmHand(cards, deal) {
     if (o) {
       const n = b.getBoundingClientRect(), dx = o.left - n.left, dy = o.top - n.top;
       if (Math.abs(dx) + Math.abs(dy) > 1) b.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" });
+    } else if (pr) {
+      const n = b.getBoundingClientRect(), s = pr.width / n.width, dx = pr.left + pr.width / 2 - n.left - n.width / 2, dy = pr.top + pr.height / 2 - n.top - n.height / 2;
+      b.animate([{ translate: `${dx}px ${dy}px`, scale: `.08 ${s}` }, { offset: .3, scale: `${s} ${s}` }, { translate: "0 0", scale: "1 1" }], { duration: 480, delay: nw++ * 110, easing: "cubic-bezier(.25,.8,.25,1)", fill: "backwards" });
     } else if (deal || had) b.animate([{ opacity: 0, translate: "0 50px", scale: .6 }, { opacity: 1, translate: "0 0", scale: 1 }], { duration: 280, delay: deal ? j * 22 : 60, easing: "cubic-bezier(.2,1.2,.4,1)", fill: "backwards" });
   });
 }
@@ -4707,12 +4712,12 @@ function unoStart() {
     $("#vm-act").innerHTML = "";
     $("#vm-cov").onclick = () => show(true);
   };
-  const show = deal => {
+  const show = (deal, from) => {
     const p = P[cur], can = p.hand.some(ok);
     busy = false;
     paint(pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, touche la pioche : ${pen} cartes.`)
       : drew ? "Pose une carte, ou passe." : can ? "Pose une carte qui brille." : "Rien à poser, touche la pioche.", !!pen, !can || !!pen, true);
-    vmHand(p.hand.map(k => ({ k, key: k.id, cls: ok(k) ? "ok" : "no" })), deal);
+    vmHand(p.hand.map(k => ({ k, key: k.id, cls: ok(k) ? "ok" : "no" })), deal, from);
     $("#vm-act").innerHTML = drew ? `<button class="btn white" id="vm-pass">Passer</button>` : pen ? `<button class="btn white" id="vm-take">Prendre ${pen} cartes</button>` : "";
     const ps = $("#vm-pass"); if (ps) ps.onclick = () => { if (busy) return; busy = true; log = `${p.name} pioche et passe.`; cur = nextIdx(); cover(); };
     const tk = $("#vm-take"); if (tk) tk.onclick = take;
@@ -4725,22 +4730,21 @@ function unoStart() {
       put(k, k.c, b);
     });
   };
-  const drawFx = n => { for (let i = 0; i < Math.min(n, 4); i++) later(() => vmFly(unoBack(), $("#vm-pile .p1"), $("#vm-hand"), 300), i * 90); buzz(10); };
   const draw = () => {
-    const p = P[cur]; busy = true; drew = true;
-    const k = pick(); drawFx(1);
-    later(() => {
-      if (k) { p.hand.push(k); p.hand.sort(unoSort); }
-      if (k && p.hand.some(ok)) return show(false);
-      log = `${p.name} pioche et passe.`;
-      show(false); busy = true; $("#vm-sub").textContent = "Rien à poser, ça passe."; $("#vm-act").innerHTML = "";
-      cur = nextIdx(); later(cover, 900);
-    }, 260);
+    const p = P[cur]; busy = true; drew = true; buzz(10);
+    const k = pick();
+    if (k) { p.hand.push(k); p.hand.sort(unoSort); }
+    if (k && p.hand.some(ok)) return show(false, $("#vm-pile .p1"));
+    log = `${p.name} pioche et passe.`;
+    show(false, $("#vm-pile .p1")); busy = true; $("#vm-sub").textContent = "Rien à poser, ça passe."; $("#vm-act").innerHTML = "";
+    cur = nextIdx(); later(cover, 1200);
   };
   const take = () => {
     if (busy) return;
-    const p = P[cur], n = pen; busy = true; drawFx(n);
-    later(() => { give(p, n); log = `${p.name} prend ${n} cartes.`; pen = 0; show(false); busy = true; $("#vm-act").innerHTML = ""; $("#vm-sub").textContent = ""; buzz(30); cur = nextIdx(); later(cover, 800); }, 380);
+    const p = P[cur], n = pen; busy = true; buzz(30);
+    give(p, n); log = `${p.name} prend ${n} cartes.`; pen = 0;
+    show(false, $("#vm-pile .p1")); busy = true; $("#vm-act").innerHTML = ""; $("#vm-sub").textContent = "";
+    cur = nextIdx(); later(cover, 900 + n * 110);
   };
   const put = (k, col, el) => {
     const p = P[cur]; busy = true;
@@ -6610,7 +6614,8 @@ function roomRenderX(r, h) {
       : c.drew ? "Pose une carte, ou passe." : can ? "Pose une carte qui brille." : "Rien à poser, touche la pioche.")
       : P.includes(uid) ? (pen && curU ? `${pname(r, curU)} doit prendre ${pen} cartes, ou renvoyer.` : `Au tour de ${pname(r, curU)}.`) : "Tu regardes la partie.";
     vmPaint({ players: P.map((u, i) => ({ name: pname(r, u) + (u === uid ? " (toi)" : ""), n: (c.hands[u] || []).length, on: i === c.cur })), top, topKey: c.top + ":" + (c.disc || []).length, color: c.color, dir: c.dir, log: c.log, sub, warn: isMe && !!pen, pileGo: isMe && (!can || !!pen), quiet: ON.ctx.vmQuiet === c.top });
-    vmHand(hand.map((k, i) => ({ k, key: keys[i], cls: isMe ? (ok(k) ? "ok" : "no") : "" })), !$("#vm-hand .uno"));
+    const drawn = ON.ctx.vmFrom && Date.now() - ON.ctx.vmFrom < 4000; ON.ctx.vmFrom = 0; // je viens de piocher : les cartes partent de la pioche
+    vmHand(hand.map((k, i) => ({ k, key: keys[i], cls: isMe ? (ok(k) ? "ok" : "no") : "" })), !$("#vm-hand .uno"), drawn ? $("#vm-pile .p1") : null);
     let acts = isMe ? (c.drew ? `<button class="btn white" id="vm-pass">Passer</button>` : pen ? `<button class="btn white" id="vm-take">Prendre ${pen} cartes</button>` : "") : "";
     if (!isMe && h.host && !r.players[curU]) acts = `<button class="btn white" id="skipgone">Passer son tour</button>`;
     $("#vm-act").innerHTML = acts;
@@ -6622,19 +6627,18 @@ function roomRenderX(r, h) {
     const give = (u, n) => { for (let j = 0; j < n; j++) { const x = pick(); if (x) st.hands[u].push(x); } sortH(u); };
     const step = i => { let j = i; for (let k = 0; k < P.length; k++) { j = ((j + st.dir) % P.length + P.length) % P.length; if (r.players[P[j]]) return j; } return i; };
     const save = () => upd({ card: st });
-    const drawFx = n => { for (let i = 0; i < Math.min(n, 4); i++) setTimeout(() => vmFly(unoBack(), $("#vm-pile .p1"), $("#vm-hand"), 300), i * 90); buzz(10); };
     const sk = $("#skipgone"); if (sk) sk.onclick = () => { if (st.pen) { give(curU, st.pen); st.pen = 0; } st.cur = step(st.cur); st.drew = false; st.log = `${pname(r, curU)} est parti, on passe.`; save(); };
-    const take = () => { if (locked) return; locked = true; drawFx(st.pen); give(uid, st.pen); st.log = `${me} prend ${st.pen} cartes.`; st.pen = 0; st.cur = step(st.cur); buzz(30); setTimeout(save, 300); };
+    const take = () => { if (locked) return; locked = true; ON.ctx.vmFrom = Date.now(); give(uid, st.pen); st.log = `${me} prend ${st.pen} cartes.`; st.pen = 0; st.cur = step(st.cur); buzz(30); save(); };
     $("#vm-pile").onclick = () => {
       if (!isMe || locked) return;
       if (st.pen) return take();
       if (st.drew) { toast("T'as déjà pioché : pose une carte ou passe."); return; }
-      locked = true; drawFx(1);
+      locked = true; ON.ctx.vmFrom = Date.now(); buzz(10);
       const x = pick();
       if (x) { st.hands[uid].push(x); sortH(uid); }
       if (x && st.hands[uid].some(y => ok(unoDec(y)))) st.drew = true;
       else { st.drew = false; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); }
-      setTimeout(save, 260);
+      save();
     };
     if (!isMe) { $$("#vm-hand .uno").forEach(b => b.onclick = () => toast(`C'est au tour de ${pname(r, curU)}.`)); return; }
     const ps = $("#vm-pass"); if (ps) ps.onclick = () => { if (locked) return; locked = true; st.drew = false; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); save(); };
