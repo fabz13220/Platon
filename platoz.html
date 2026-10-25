@@ -1093,6 +1093,10 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 @keyframes tbMinus { 0% { opacity: 0; transform: translate(-50%, -6px) scale(.8); } 20% { opacity: 1; transform: translate(-50%, 4px) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, 26px) scale(1); } }
 .tb-play .band .mast { max-width: 100%; overflow: hidden; }
 .stage > .card.tb-play { animation: tbIn .16s ease-out both; }
+.card.tb-play.tbgold { --g: linear-gradient(165deg, #FFE27A 0%, #F5A623 45%, #B8620A 100%); --glow: rgba(255,190,40,.75); --pill-ink: #8A4B00; box-shadow: 0 0 0 3px #FFE27A, 0 20px 50px -12px var(--glow); }
+.tbgold .tb-word { text-shadow: 0 2px 12px rgba(120,50,0,.6); }
+.tb-goldtag { flex: none; padding: 6px 10px; border-radius: 999px; background: rgba(60,25,0,.45); color: #FFE27A; font-weight: 900; font-size: 13px; white-space: nowrap; }
+.tb-c.gold { box-shadow: inset 0 0 0 1.5px #FFD24A; } .tb-c.gold.ok { background: rgba(255,200,60,.2); } .tb-c span b { color: #FFD24A; font-size: .85em; }
 @keyframes tbIn { from { transform: translateY(14px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
 .tb-play .tb-word { font-size: clamp(38px, 13vw, 58px); margin: 0 16px; }
 .tb-play .tb-forbid { flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 0 14px; padding: 12px 10px; background: rgba(10,4,30,.55); }
@@ -1127,6 +1131,9 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .end-bubbles.tbfit1 { gap: 10px 8px; } .end-bubbles.tbfit1 .bubble { min-width: 72px; min-height: 72px; padding: 8px 12px; font-size: 14px; }
 .end-bubbles.tbfit2 .bubble { min-width: 58px; min-height: 58px; padding: 6px 10px; font-size: 12.5px; }
 .end-bubbles.tbfit3 { min-height: 0; gap: 6px; }
+.rank.tbfit1 { gap: 8px; } .rank.tbfit1 .rank-list li { padding-top: 6px; padding-bottom: 6px; } .rank.tbfit1 .mbest { padding: 6px 16px; margin-top: 0; }
+.rank.tbfit2 .rank-head .mast { font-size: 30px; } .rank.tbfit2 .mbest b { font-size: 22px; } .rank.tbfit2 .rank-say { min-height: 0; margin: 0; font-size: 18px; }
+.rank.tbfit3 .rank-list { gap: 4px; } .rank.tbfit3 .rank-list li { padding-top: 3px; padding-bottom: 3px; }
 .count-seg { margin-top: -4px; }
 /* sensation d'appli : pas de sélection de texte ni de loupe au toucher, sauf dans les champs */
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
@@ -4025,7 +4032,7 @@ function tabooSetup() {
     $("#mix").onclick = () => { tabooSplit(); buzz(10); draw(); };
     const step = d => { TB.secs = Math.max(15, Math.min(300, TB.secs + d)); store.set("tbSecs", TB.secs); buzz(8); draw(); };
     $("#tm").onclick = () => step(-15); $("#tp").onclick = () => step(15);
-    $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.deck = shuffle(tbPool()); S.inGame = true; keepAwake(); tabooTurn(); };
+    $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.found = {}; TB.deck = shuffle(tbPool()); S.inGame = true; keepAwake(); tabooTurn(); };
     draw();
     tbFit();
   });
@@ -4059,6 +4066,7 @@ function tabooSplit() { const n = shuffle(S.names); TB.teams = [n.filter((_, i) 
 const tbPool = () => { const l = S.level, h = S.hot; S.level = 3; S.hot = true; try { return pool("taboo"); } finally { S.level = l; S.hot = h; } };
 const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(tbPool()); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
 const tbBoard = (cur, sc = TB.score) => `<div class="tb-score">${[0, 1].map(i => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${esc(tbName(i))} <b>${sc[i]}</b></span>`).join("")}</div>`;
+const tbPts = log => log.reduce((a, x) => a + (x.r === "ok" ? (x.gold ? 2 : 1) : 0), 0);
 const tbSign = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
 function tabooTurn() {
   const t = TB.turns % 2, team = TB.teams[t], g = team[TB.giver[t] % team.length];
@@ -4072,8 +4080,11 @@ function tabooTurn() {
 }
 // pendant le chrono : swipe à droite = trouvé, à gauche = passé (−5 s) ; « Interdit » = −1 point et carte suivante
 function tabooPlay(t, g) {
-  let left = TB.secs, c = tbCard(), over = false, fouls = 0, fly = () => {};
+  let left = TB.secs, c = tbCard(), over = false, fouls = 0, fly = () => {}, gold = false, n = 0;
   const log = [];
+  // environ 1 carte sur 10 est en or et vaut 2 points ; jamais la première, jamais deux de suite
+  const goldNext = () => { gold = n > 0 && !gold && Math.random() < .1; n++; };
+  goldNext();
   view(`
     <div class="topbar tb-top" style="--tc:${TB_COLS[t]}">${quitBtn()}<span class="tb-timer" id="timer">${left}</span><span class="progress tb-net" id="pts">0</span></div>
     <div class="stage" id="stage"></div>
@@ -4084,7 +4095,7 @@ function tabooPlay(t, g) {
     </div>
   `, () => {
     bindQuit();
-    const net = () => log.filter(x => x.r === "ok").length - fouls;
+    const net = () => tbPts(log) - fouls;
     const pts = () => { $("#pts").textContent = tbSign(net()); };
     const tickTo = s => {
       left = s; const el = $("#timer"); if (!el) return;
@@ -4093,19 +4104,19 @@ function tabooPlay(t, g) {
     };
     const act = (r, id) => {
       if (over || id !== c.id) return; // un double toucher ne compte qu'une fois
-      log.push({ w: c.data[1], r });
-      if (r === "ok") buzz(20);
+      log.push({ w: c.data[1], r, gold });
+      if (r === "ok") buzz(gold ? [30, 30, 60] : 20);
       else { // passer coûte du temps, et ça se voit sous le chrono
         const m = document.createElement("span"); m.className = "tb-minus"; m.textContent = `−${TB_PASS} s`; $("#timer").appendChild(m); setTimeout(() => m.remove(), 1000);
         buzz([30, 30, 30]); tickTo(left - TB_PASS);
         if (over) return;
       }
-      c = tbCard(); show();
+      c = tbCard(); goldNext(); show();
     };
     const show = () => {
       const d = c.data, id = c.id;
-      $("#stage").innerHTML = `<div class="card tb-card tb-play" id="tbc" style="--c:var(--taboo)">
-        <div class="band"><span class="mast">${esc(tbName(t))}</span></div>
+      $("#stage").innerHTML = `<div class="card tb-card tb-play${gold ? " tbgold" : ""}" id="tbc" style="--c:var(--taboo)">
+        <div class="band"><span class="mast">${esc(tbName(t))}</span>${gold ? `<span class="tb-goldtag">★ Carte en or · 2 points</span>` : ""}</div>
         <p class="tb-word">${esc(d[1])}</p>
         <div class="tb-forbid"><small>Interdit de dire</small>${d.slice(2).map(w => `<span>${esc(w)}</span>`).join("")}</div>
       </div>`;
@@ -4114,7 +4125,7 @@ function tabooPlay(t, g) {
       tbFitWord(el); pts();
     };
     $("#ok").onclick = () => fly("oui"); $("#pass").onclick = () => fly("non");
-    $("#no").onclick = () => { if (over) return; fouls++; buzz([80, 40, 80]); stamp("Interdit", "tbq"); c = tbCard(); show(); };
+    $("#no").onclick = () => { if (over) return; fouls++; buzz([80, 40, 80]); stamp("Interdit", "tbq"); c = tbCard(); goldNext(); show(); };
     show(); tbFit();
     const tick = setInterval(() => { if (!$("#timer")) return clearInterval(tick); tickTo(left - 1); if (left <= 10 && left > 0) buzz(8); }, 1000);
     timers.push(tick);
@@ -4165,13 +4176,13 @@ function tabooEnd(t, g, log, fouls) {
     <div class="topbar">${quitBtn()}<span class="progress">Manche ${TB.turns + 1}</span><span style="width:44px"></span></div>
     <div class="stage tb-endst">
       <div class="tb-endhead" style="--tc:${TB_COLS[t]}"><span class="tb-endteam">${esc(tbName(t))}</span><span class="tb-endpts" id="net"></span><span class="tb-endsub" id="sub"></span></div>
-      ${log.length ? `<p class="tb-fix">Erreur de swipe ? Touche le mot.</p><div class="tb-grid" id="words">${log.map((x, i) => `<button class="tb-c" data-i="${i}"><i></i><span>${esc(x.w)}</span></button>`).join("")}</div>` : `<p class="tb-fix">Aucun mot cette fois.</p>`}
+      ${log.length ? `<p class="tb-fix">Erreur de swipe ? Touche le mot.</p><div class="tb-grid" id="words">${log.map((x, i) => `<button class="tb-c${x.gold ? " gold" : ""}" data-i="${i}"><i></i><span>${esc(x.w)}${x.gold ? " <b>×2</b>" : ""}</span></button>`).join("")}</div>` : `<p class="tb-fix">Aucun mot cette fois.</p>`}
       <div id="board"></div>
     </div>
     <div class="actions"><div class="row tb-row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="next">Équipe suivante</button></div></div>
   `, () => {
     bindQuit();
-    const net = () => log.filter(x => x.r === "ok").length - fouls;
+    const net = () => tbPts(log) - fouls;
     const draw = () => {
       const n = net(), ok = log.filter(x => x.r === "ok").length, sc = TB.score.slice(); sc[t] += n;
       $("#net").textContent = `${tbSign(n)} point${Math.abs(n) > 1 ? "s" : ""}`;
@@ -4181,7 +4192,7 @@ function tabooEnd(t, g, log, fouls) {
       $("#board").innerHTML = tbBoard(-1, sc);
     };
     $$("#words .tb-c").forEach(b => b.onclick = () => { const x = log[+b.dataset.i]; x.r = x.r === "ok" ? "pass" : "ok"; buzz(10); draw(); });
-    const close = go => { TB.score[t] += net(); TB.giver[t]++; TB.turns++; go(); };
+    const close = go => { TB.score[t] += net(); TB.found[g] = (TB.found[g] || 0) + log.filter(x => x.r === "ok").length; TB.giver[t]++; TB.turns++; go(); };
     $("#next").onclick = () => close(tabooTurn);
     $("#stop").onclick = () => close(tabooFinal);
     draw(); tbFit();
@@ -4194,6 +4205,12 @@ function tbFit() {
   els.forEach(e => e.classList.remove(...cls));
   for (let k = 0; k < 3 && tbOver(); k++) els.forEach(e => e.classList.add(cls[k]));
 }
+// celui qui a fait trouver le plus de mots à son équipe
+function tbBest() {
+  const f = TB.found || {}, max = Math.max(0, ...Object.values(f)), w = Object.keys(f).filter(k => f[k] === max).map(esc);
+  if (!max) return "";
+  return `<p class="mbest"><span>🎤 Meilleur pour faire deviner</span><b>${tbAnd(w)}</b><small>${max} mot${max > 1 ? "s" : ""}</small></p>`;
+}
 function tabooFinal() {
   stat("end", "taboo", S.names.length, "un");
   S.inGame = false;
@@ -4203,6 +4220,7 @@ function tabooFinal() {
     <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Sans le dire</span></div>
       <p class="rank-say">${w < 0 ? "Égalité parfaite" : esc(tbName(w)) + " gagne"}</p>
       <ol class="rank-list">${[0, 1].sort((x, y) => TB.score[y] - TB.score[x]).map((i, k) => `<li class="up"><span class="rk">${w < 0 ? 1 : k + 1}</span><span class="nm">${esc(tbName(i))}</span><b>${TB.score[i]} pt${Math.abs(TB.score[i]) > 1 ? "s" : ""}</b></li>`).join("")}</ol>
+      ${tbBest()}
       <div class="confetti" id="confetti"></div></div>
     ${endBubbles(S.names)}
     <div class="actions"><div class="row"><button class="btn red" id="again">Revanche</button><button class="btn white" id="home">Accueil</button></div></div>
