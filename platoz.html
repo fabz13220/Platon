@@ -2303,6 +2303,7 @@ function popGroup(b, g, draw) {
 /* -------- AMBIANCE -------- */
 function ambiance() {
   if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
+  if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ni de réglage ex et sexe, tous les mots
   const draw = () => {
     $$(".opt").forEach(o => o.setAttribute("aria-pressed", +o.dataset.l === S.level));
     $$("#hot button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.v === "1") === S.hot));
@@ -4020,11 +4021,11 @@ function tabooSetup() {
     <div class="tb-step"><button id="tm" aria-label="Moins de temps">−</button><b id="tsec"></b><button id="tp" aria-label="Plus de temps">+</button></div>
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
-    $("#back").onclick = ambiance;
+    $("#back").onclick = playersScreen;
     $("#mix").onclick = () => { tabooSplit(); buzz(10); draw(); };
     const step = d => { TB.secs = Math.max(15, Math.min(300, TB.secs + d)); store.set("tbSecs", TB.secs); buzz(8); draw(); };
     $("#tm").onclick = () => step(-15); $("#tp").onclick = () => step(15);
-    $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.deck = shuffle(pool("taboo")); S.inGame = true; keepAwake(); tabooTurn(); };
+    $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.deck = shuffle(tbPool()); S.inGame = true; keepAwake(); tabooTurn(); };
     draw();
     tbFit();
   });
@@ -4054,7 +4055,9 @@ function tbDrag(b, move) {
   b.addEventListener("pointercancel", reset);
 }
 function tabooSplit() { const n = shuffle(S.names); TB.teams = [n.filter((_, i) => i % 2 === 0), n.filter((_, i) => i % 2 === 1)]; }
-const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(pool("taboo")); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
+// tous les mots, sans tenir compte de l'intensité ni du réglage ex et sexe des autres jeux
+const tbPool = () => { const l = S.level, h = S.hot; S.level = 3; S.hot = true; try { return pool("taboo"); } finally { S.level = l; S.hot = h; } };
+const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(tbPool()); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
 const tbBoard = (cur, sc = TB.score) => `<div class="tb-score">${[0, 1].map(i => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${esc(tbName(i))} <b>${sc[i]}</b></span>`).join("")}</div>`;
 const tbSign = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
 function tabooTurn() {
