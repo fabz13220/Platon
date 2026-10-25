@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="cc44b7bcc2aa">
+<meta name="build" content="ca0e7db783c8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -1116,14 +1116,22 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .p4-score .pts { font-family: var(--display); font-size: 20px; white-space: nowrap; }
 .p4-next { text-align: center; margin: 0; min-height: 1.4em; }
 .hint .p4c { width: 14px; height: 14px; vertical-align: -1px; margin: 0 5px; }
-/* Uno */
-.uno { position: relative; width: 58px; height: 86px; flex: none; border-radius: 10px; border: 3px solid #fff; background: var(--uc); color: #fff; font-family: var(--display); font-weight: 900; font-size: 22px; display: grid; place-items: center; box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); padding: 0; }
-.uno span { width: 78%; height: 62%; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--uc); display: grid; place-items: center; transform: rotate(-18deg); }
-.uno.wild { background: conic-gradient(#FF3B6E 0 25%, #FFC93C 0 50%, #2EE6A0 0 75%, #4D8BFF 0); }
-.uno.wild span { color: #1A0F2E; }
-.uno.big { width: 92px; height: 136px; font-size: 34px; border-width: 4px; }
-.uno.no { opacity: .38; filter: saturate(.5); }
-.uno.ok { transform: translateY(-6px); box-shadow: 0 0 0 3px rgba(255,255,255,.4), 0 12px 22px -8px rgba(0,0,0,.7); }
+/* Vide ta main (ex-Uno) : look proche du Uno pour qu'on comprenne direct (couleurs, bord blanc, joker noir), sans l'ovale ni le nom */
+.uno { position: relative; width: var(--cw, 60px); height: calc(var(--cw, 60px) * 1.45); flex: none; border-radius: calc(var(--cw, 60px) * .14); border: calc(var(--cw, 60px) * .06) solid #fff; padding: 0; background: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,0) 40%, rgba(0,0,0,.18)), var(--uc); color: #fff; font-family: var(--display); font-weight: 900; display: grid; place-items: center; box-shadow: 0 6px 14px -6px rgba(0,0,0,.7); transition: transform .15s; }
+.uno span { font-size: calc(var(--cw, 60px) * .46); line-height: 1; letter-spacing: -.04em; text-shadow: calc(var(--cw, 60px) * .03) calc(var(--cw, 60px) * .03) 0 rgba(0,0,0,.45); }
+.uno.sp span { font-size: calc(var(--cw, 60px) * .38); }
+.uno i { position: absolute; top: calc(var(--cw, 60px) * .04); left: calc(var(--cw, 60px) * .07); font-style: normal; font-size: calc(var(--cw, 60px) * .17); line-height: 1; text-shadow: 0 1px 0 rgba(0,0,0,.4); }
+.uno i:last-child { top: auto; left: auto; bottom: calc(var(--cw, 60px) * .04); right: calc(var(--cw, 60px) * .07); transform: rotate(180deg); }
+.uno.wild { background: #15121C; }
+.uno span.dots { --d: .22; display: grid; grid-template-columns: repeat(2, calc(var(--cw, 60px) * var(--d))); grid-auto-rows: calc(var(--cw, 60px) * var(--d)); gap: calc(var(--cw, 60px) * .05); }
+.uno .dots b { display: block; border-radius: 28%; }
+.uno .dots b:nth-child(1) { background: #E8343B; } .uno .dots b:nth-child(2) { background: #1E78D2; } .uno .dots b:nth-child(3) { background: #F6C800; } .uno .dots b:nth-child(4) { background: #2DAA4F; }
+.uno.wild > span { display: flex; flex-direction: column; align-items: center; gap: calc(var(--cw, 60px) * .08); }
+.uno.plus span.dots { --d: .15; }
+.uno.big { --cw: 84px; }
+.uno.no { filter: brightness(.42) saturate(.6); }
+.uno.ok { z-index: 1; transform: translateY(-6px); box-shadow: 0 0 0 3px rgba(255,255,255,.45), 0 12px 22px -8px rgba(0,0,0,.7); }
+.uno.new { outline: 3px dashed rgba(255,255,255,.85); outline-offset: 3px; }
 .uno-table { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .uno-top { display: flex; align-items: center; gap: 14px; }
 .uno-col { padding: 6px 12px; border-radius: 999px; color: #1A0F2E; font-weight: 900; text-transform: uppercase; font-size: 13px; letter-spacing: .08em; }
@@ -1131,7 +1139,9 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .uno-players span { padding: 5px 11px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-weight: 800; font-size: 14px; }
 .uno-players span.on { background: #fff; color: var(--ink); }
 .uno-log { margin: 0; text-align: center; color: var(--muted); font-weight: 700; font-size: 14.5px; padding: 0 12px; }
-.uno-hand { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px 0 4px; }
+.uno-sub { text-align: center; margin: 0; }
+.uno-hand { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 0 4px; width: 100%; }
+.uno-row { display: flex; justify-content: center; }
 .uno-colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .uno-colors button { min-height: 70px; border: 0; border-radius: 18px; color: #1A0F2E; font-weight: 900; font-size: 18px; text-transform: capitalize; }
 .card[style*="--taboo"] { --glyph: "∅"; --g: linear-gradient(165deg, #FF6A88 0%, #E0245E 50%, #8A1050 100%); --glow: rgba(240,40,110,.6); --pill-ink: #9F1239; }
@@ -1892,7 +1902,7 @@ const C = {
 const HOT = /(^|[\s'’])ex([\s,.?!]|$)|sex|coquin|nude|plan cul|au lit|fantasme|érotique|orgasm|simul|couch|l'amour|plan à trois|(^|[\s'’])osée?|sensuel|tromp|capote|préservatif|body count/i;
 const isHot = parts => HOT.test(parts.join(" "));
 const TYPES = {
-  uno:       { label: "Uno", color: "var(--yellow)", dark: false, desc: "" },
+  uno:       { label: "Vide ta main", color: "var(--yellow)", dark: false, desc: "" },
   jamais:    { label: "Je n'ai jamais", color: "var(--violet)", dark: true,  desc: "Ceux qui l'ont fait se balancent." },
   av:        { label: "Action ou vérité", color: "var(--yellow)", dark: false, desc: "Chacun son tour, et on swipe." },
   qui:       { label: "Qui pourrait", color: "var(--red)", dark: true, desc: "3, 2, 1, on pointe." },
@@ -2068,7 +2078,7 @@ function home() {
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
-  const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Uno", "On se passe le tel."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
+  const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Les règles du Uno."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
   const rail = (title, list, id, on) => (list = on ? list.filter(t => !ONE_PHONE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
@@ -2190,10 +2200,11 @@ function playersScreen() {
     <div class="chips" id="chips"></div>
     <div id="bubbles"></div>
     ${S.mode === "reflexe" ? rxSeg(true) : ""}
+    ${S.mode === "uno" ? unoSeg() : ""}
     ${tutoLink()}
     <div class="actions"><button class="btn red" id="next"></button></div>
   `, () => {
-    $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg(); bindPurWho();
+    $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg(); bindUnoSeg(); bindPurWho();
     // pas de <form> : le cadre de l'artifact bloque l'envoi des formulaires
     const add = () => {
       const v = $("#name-input").value.trim().replace(/\s+/g, " ");
@@ -4467,9 +4478,11 @@ function p4Start() {
   draw();
 }
 
-/* -------- UNO : on se passe le téléphone, chacun voit sa main en secret -------- */
-const UNO_COLS = { r: "#FF3B6E", y: "#FFC93C", g: "#2EE6A0", b: "#4D8BFF" };
+/* -------- VIDE TA MAIN (ex-Uno) : on se passe le téléphone, chacun voit sa main en secret -------- */
+// clés internes gardées en « uno » (stats, salles en ligne)
+const UNO_COLS = { r: "#E8343B", y: "#F6C800", g: "#2DAA4F", b: "#1E78D2" };
 const UNO_NAMES = { r: "rouge", y: "jaune", g: "vert", b: "bleu" };
+const UNO_ORD = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+2", "skip", "rev", "w", "+4"];
 function unoDeck() {
   const d = [];
   for (const c of "rygb") {
@@ -4479,52 +4492,97 @@ function unoDeck() {
   for (let i = 0; i < 4; i++) d.push({ c: "w", v: "w" }, { c: "w", v: "+4" });
   return shuffle(d);
 }
-const unoLabel = v => ({ skip: "⊘", rev: "⇄", w: "★" }[v] || v);
-const unoCard = (k, cls = "", i) => `<button class="uno ${k.c === "w" ? "wild" : ""} ${cls}" ${i != null ? `data-i="${i}"` : ""} style="--uc:${UNO_COLS[k.c] || "#1A0F2E"}"><span>${unoLabel(k.v)}</span></button>`;
+// main rangée par couleur puis par valeur
+const unoSort = (a, b) => "rygbw".indexOf(a.c) - "rygbw".indexOf(b.c) || UNO_ORD.indexOf(a.v) - UNO_ORD.indexOf(b.v);
+const UNO_DOTS = `<span class="dots"><b></b><b></b><b></b><b></b></span>`;
+const unoLabel = v => ({ skip: "⊘", rev: "⇄", w: UNO_DOTS, "+4": "+4" + UNO_DOTS }[v] || v);
+const unoCorner = v => ({ skip: "⊘", rev: "⇄", w: "" }[v] ?? v);
+const unoSay = (k, col) => k.v === "w" ? `un joker, ${UNO_NAMES[col]}` : k.v === "+4" ? `un +4, ${UNO_NAMES[col]}` : `un ${{ skip: "stop", rev: "demi-tour" }[k.v] || k.v} ${UNO_NAMES[k.c]}`;
+const unoAria = k => k.v === "w" ? "joker" : k.v === "+4" ? "plus 4" : `${{ skip: "stop", rev: "demi-tour" }[k.v] || k.v} ${UNO_NAMES[k.c]}`;
+const unoCard = (k, cls = "", i) => `<button class="uno${k.c === "w" ? " wild" : ""}${k.v === "+4" ? " plus" : ""}${/^\d$/.test(k.v) ? "" : " sp"} ${cls}" ${i != null ? `data-i="${i}"` : ""} style="--uc:${UNO_COLS[k.c] || "#1A0F2E"}" aria-label="${unoAria(k)}"><i>${unoCorner(k.v)}</i><span>${unoLabel(k.v)}</span><i>${unoCorner(k.v)}</i></button>`;
+const unoTop = (k, color) => `<div class="uno-top">${unoCard(k, "big")}<span class="uno-col" style="background:${UNO_COLS[color]};color:${color === "y" ? "#1A0F2E" : "#fff"}">${UNO_NAMES[color]}</span></div>`;
+// la main tient toujours sur l'écran : rangées de cartes qui se chevauchent, cartes plus petites quand il y en a beaucoup
+function unoLay(box) {
+  if (!box) return;
+  const cs = $$(".uno", box), n = cs.length, W = box.clientWidth;
+  if (!n || !W) return;
+  // jusqu'à 3 rangées sans chevauchement, ensuite les cartes se chevauchent (une 4e rangée si elles se cachent trop)
+  const cw = n <= 15 ? 60 : n <= 18 ? 52 : 46, free = Math.max(1, Math.floor((W + 6) / (cw + 6)));
+  let rows = Math.min(3, Math.ceil(n / free)), k = Math.ceil(n / rows);
+  if ((W - cw) / Math.max(1, k - 1) < cw * .6) { rows = 4; k = Math.ceil(n / rows); }
+  const step = Math.min(cw + 6, (W - cw) / Math.max(1, k - 1));
+  box.style.setProperty("--cw", cw + "px");
+  box.textContent = "";
+  for (let r = 0; r < rows; r++) {
+    const row = document.createElement("div"); row.className = "uno-row";
+    cs.slice(r * k, r * k + k).forEach((c, j) => { c.style.marginLeft = j ? (step - cw).toFixed(1) + "px" : ""; row.appendChild(c); });
+    box.appendChild(row);
+  }
+}
+const unoStack = () => store.get("unoStack", true);
+const unoSeg = () => `<div class="section-label">Cumuler les +2 et +4</div><div class="seg" id="vm-stack"><button data-v="1" aria-pressed="${unoStack()}">Activé</button><button data-v="0" aria-pressed="${!unoStack()}">Désactivé</button></div>`;
+const bindUnoSeg = () => $$("#vm-stack button").forEach(b => b.onclick = () => { store.set("unoStack", b.dataset.v === "1"); buzz(10); $$("#vm-stack button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
 function unoStart() {
-  if (S.names.length <= 10 && tutoGate("uno", unoStart)) return;
-  if (S.names.length > 10) { toast("10 joueurs maximum au Uno."); return; }
-  const P = shuffle(S.names).map(n => ({ name: n, hand: [] }));
+  if (S.names.length > 10) { toast("10 joueurs maximum à Vide ta main."); return; }
+  if (tutoGate("uno", unoStart)) return;
+  const P = shuffle(S.names).map(n => ({ name: n, hand: [] })), stack = unoStack();
   stat("start", "uno", P.length, "un");
-  let pile = unoDeck(), disc = [], color, dir = 1, cur = 0, log = "", locked = false;
+  let pile = unoDeck(), disc = [], color, dir = 1, cur = 0, log = "", locked = false, pen = 0; // pen : cartes à prendre en attente (cumul)
   const pick = () => { if (!pile.length) { const top = disc.pop(); pile = shuffle(disc); disc = [top]; } return pile.pop(); };
-  P.forEach(p => { for (let i = 0; i < 7; i++) p.hand.push(pick()); });
+  const give = (p, n) => { for (let i = 0; i < n; i++) { const k = pick(); if (k) p.hand.push(k); } p.hand.sort(unoSort); };
+  P.forEach(p => give(p, 7));
   let first = pick(); while (first.c === "w") { pile.unshift(first); first = pick(); }
   disc.push(first); color = first.c;
   const top = () => disc[disc.length - 1];
   const nextIdx = (n = 1) => ((cur + dir * n) % P.length + P.length) % P.length;
-  const ok = k => k.c === "w" || k.c === color || k.v === top().v;
+  const ok = k => pen ? k.v === "+4" || (k.v === "+2" && (top().v === "+2" || k.c === color)) : k.c === "w" || k.c === color || k.v === top().v;
   // effet de la première carte
   if (first.v === "skip") { log = `${P[0].name} passe son tour.`; cur = nextIdx(); }
   else if (first.v === "rev") { dir = -1; if (P.length === 2) cur = nextIdx(); }
-  else if (first.v === "+2") { P[0].hand.push(pick(), pick()); log = `${P[0].name} pioche 2 cartes.`; cur = nextIdx(); }
+  else if (first.v === "+2") {
+    if (stack) { pen = 2; log = `${P[0].name} prend 2 cartes, sauf s'il renvoie.`; }
+    else { give(P[0], 2); log = `${P[0].name} prend 2 cartes.`; cur = nextIdx(); }
+  }
   const table = () => `<div class="uno-table">
-      <div class="uno-top">${unoCard(top(), "big")}<span class="uno-col" style="background:${UNO_COLS[color]}">${UNO_NAMES[color]}</span></div>
+      ${unoTop(top(), color)}
       <div class="uno-players">${P.map((p, i) => `<span class="${i === cur ? "on" : ""}">${esc(p.name)} <b>${p.hand.length}</b></span>`).join("")}</div>
       ${log ? `<p class="uno-log">${esc(log)}</p>` : ""}
     </div>`;
+  const head = t => `<div class="topbar">${quitBtn()}<span class="progress">${t}</span><span style="width:44px"></span></div>`;
   const turn = () => {
     const p = P[cur];
     view(`
-      <div class="topbar">${quitBtn()}<span class="progress">Uno ${dir > 0 ? "→" : "←"}</span><span style="width:44px"></span></div>
+      ${head(`Vide ta main ${dir > 0 ? "→" : "←"}`)}
       ${table()}
-      <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">Passe le téléphone à</span><span class="mast">${esc(p.name)}</span><p>Les autres, ne regardez pas ses cartes.</p></div></div>
-      <div class="actions"><button class="btn" id="show">Je suis ${esc(p.name)}, voir mes cartes</button></div>
-    `, () => { bindQuit(); $("#show").onclick = () => play(false); });
+      <div class="stage" id="reveal"><div class="secret"><span class="eyebrow" style="color:var(--paper)">Passe le tel à</span><span class="mast">${esc(p.name)}</span><p>Les autres, regardez pas ses cartes.</p></div></div>
+      <div class="actions"><button class="btn" id="show">Touche pour voir tes cartes</button></div>
+    `, () => { bindQuit(); $("#reveal").onclick = $("#show").onclick = () => play(null); });
   };
-  const play = drew => {
+  // drawn : la carte qu'on vient de piocher (seule jouable ensuite)
+  const play = drawn => {
     const p = P[cur]; locked = false;
-    const can = p.hand.some(ok);
+    const can = drawn ? ok(drawn) : p.hand.some(ok);
+    const sub = pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, tu prends ${pen} cartes.`)
+      : drawn ? (can ? "Tu peux la poser direct, ou la garder." : "Elle passe pas, tour suivant.")
+      : can ? "Pose une carte qui brille." : "Rien à poser, pioche.";
+    const mark = k => (drawn ? k === drawn && can : ok(k)) ? "ok" : "no";
     view(`
-      <div class="topbar">${quitBtn()}<span class="progress">Main de ${esc(p.name)}</span><span style="width:44px"></span></div>
+      ${head(`Main de ${esc(p.name)}`)}
       ${table()}
-      <p class="sub" style="text-align:center;margin:0">${drew ? (can ? "Tu peux jouer une carte ou passer." : "Toujours rien, tu passes.") : can ? "Joue une carte en surbrillance." : "Aucune carte jouable : pioche."}</p>
-      <div class="uno-hand">${p.hand.map((k, i) => unoCard(k, ok(k) ? "ok" : "no", i)).join("")}</div>
-      <div class="actions">${drew ? `<button class="btn white" id="pass">Passer</button>` : `<button class="btn white" id="draw">Piocher</button>`}</div>
+      <p class="sub uno-sub">${sub}</p>
+      <div class="uno-hand">${p.hand.map((k, i) => unoCard(k, mark(k) + (k === drawn ? " new" : ""), i)).join("")}</div>
+      <div class="actions">${pen ? `<button class="btn white" id="take">Prendre ${pen} cartes</button>` : drawn ? (can ? `<button class="btn white" id="keep">La garder</button>` : "") : `<button class="btn white" id="draw">Piocher</button>`}</div>
     `, () => {
-      bindQuit();
-      const d = $("#draw"); if (d) d.onclick = () => { if (locked) return; locked = true; const k = pick(); if (k) p.hand.push(k); buzz(10); play(true); };
-      const ps = $("#pass"); if (ps) ps.onclick = () => { log = `${p.name} passe.`; cur = nextIdx(); turn(); };
+      bindQuit(); unoLay($(".uno-hand"));
+      const d = $("#draw"); if (d) d.onclick = () => {
+        if (locked) return; locked = true; buzz(10);
+        const k = pick(); if (!k) { log = `${p.name} passe.`; cur = nextIdx(); return turn(); }
+        p.hand.push(k); p.hand.sort(unoSort);
+        if (ok(k)) return play(k);
+        log = `${p.name} pioche et passe.`; play(k); locked = true; cur = nextIdx(); later(turn, 1300);
+      };
+      const kp = $("#keep"); if (kp) kp.onclick = () => { if (locked) return; locked = true; log = `${p.name} pioche et passe.`; cur = nextIdx(); turn(); };
+      const tk = $("#take"); if (tk) tk.onclick = () => { if (locked) return; locked = true; give(p, pen); log = `${p.name} prend ${pen} cartes.`; pen = 0; cur = nextIdx(); buzz(30); turn(); };
       $$(".uno-hand .uno.ok").forEach(b => b.onclick = () => {
         const k = p.hand[+b.dataset.i];
         if (!k || locked) return; // pas de double carte sur un double appui
@@ -4535,31 +4593,31 @@ function unoStart() {
     });
   };
   const chooseColor = then => sheet(`<span class="mast" style="font-size:28px">Quelle couleur ?</span>
-    <div class="uno-colors">${Object.keys(UNO_COLS).map(c => `<button data-c="${c}" style="background:${UNO_COLS[c]}">${UNO_NAMES[c]}</button>`).join("")}</div>`,
+    <div class="uno-colors">${Object.keys(UNO_COLS).map(c => `<button data-c="${c}" style="background:${UNO_COLS[c]};color:${c === "y" ? "#1A0F2E" : "#fff"}">${UNO_NAMES[c]}</button>`).join("")}</div>`,
     w => $$("[data-c]", w).forEach(b => b.onclick = () => { w.remove(); then(b.dataset.c); }));
   const put = (k, col) => {
     const p = P[cur];
     p.hand.splice(p.hand.indexOf(k), 1); disc.push(k); color = col; buzz(20);
     if (!p.hand.length) return end(p);
-    log = `${p.name} a joué ${k.v === "w" ? "un joker" : k.v === "+4" ? "un +4" : k.v === "skip" ? "un passe-tour" : k.v === "rev" ? "un changement de sens" : k.v === "+2" ? "un +2" : "un " + k.v}${k.c === "w" ? " : " + UNO_NAMES[col] : ""}.`;
-    if (p.hand.length === 1) { stamp("UNO !", "green"); log += ` ${p.name} n'a plus qu'une carte !`; }
+    log = `${p.name} pose ${unoSay(k, col)}.`;
+    if (p.hand.length === 1) { stamp("Dernière carte !", "green"); log += ` Plus qu'une carte !`; }
     if (k.v === "rev") { dir = -dir; if (P.length === 2) cur = nextIdx(); }
     if (k.v === "skip") { cur = nextIdx(); log += ` ${P[cur].name} passe son tour.`; }
-    if (k.v === "+2" || k.v === "+4") { cur = nextIdx(); const n = k.v === "+2" ? 2 : 4; for (let i = 0; i < n; i++) P[cur].hand.push(pick()); log += ` ${P[cur].name} pioche ${n} cartes et passe.`; }
+    if (k.v === "+2" || k.v === "+4") {
+      const n = k.v === "+2" ? 2 : 4;
+      cur = nextIdx();
+      if (stack) { pen += n; log += ` ${P[cur].name} prend ${pen}, sauf s'il renvoie.`; return later(turn, p.hand.length === 1 ? 900 : 250); }
+      give(P[cur], n); log += ` ${P[cur].name} prend ${n} cartes et passe.`;
+    }
     cur = nextIdx();
     later(turn, p.hand.length === 1 ? 900 : 250);
   };
   const end = p => {
     stat("end", "uno", P.length, "un");
-    buzz([60, 40, 140]);
-    view(`
-      <div class="rank anim" id="rank"><div class="rank-head"><span class="mast">Uno</span></div>
-        <p class="rank-say">Victoire de ${esc(p.name)}</p>
-        <ol class="rank-list">${P.filter(x => x !== p).sort((a, b) => a.hand.length - b.hand.length).map((x, i) => `<li class="up"><span class="rk">${i + 2}</span><span class="nm">${esc(x.name)}</span><b>${x.hand.length} carte${x.hand.length > 1 ? "s" : ""}</b></li>`).join("")}</ol>
-        <div class="confetti" id="confetti"></div></div>
-      ${endBubbles(P.map(x => x.name))}
-      <div class="actions"><div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div></div>
-    `, () => { party(); $("#again").onclick = unoStart; $("#home").onclick = home; bindBubbles(); });
+    // fin en bulles : le gagnant, puis du moins de cartes au plus
+    const L = [p, ...P.filter(x => x !== p).sort((a, b) => a.hand.length - b.hand.length)];
+    rxFin("Vide ta main", `<p class="mbest"><span>🏆 Victoire</span><b>${esc(p.name)}</b><small>A vidé sa main</small></p>`,
+      [L.map(x => x.name), L.map(x => x.hand.length ? `${x.hand.length} carte${x.hand.length > 1 ? "s" : ""}` : "🏆")], unoStart);
   };
   turn();
 }
@@ -4596,7 +4654,7 @@ const TUTO = {
   imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir, Mr. White n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "Chacun son tour, tu touches une colonne et ton jeton tombe. Le premier qui aligne 4 jetons gagne, en ligne, en colonne ou en diagonale. À plus de deux, le gagnant reste et le perdant laisse sa place au suivant.",
-  uno: "Comme le vrai. On se passe le tel et on cache sa main.",
+  uno: "Les règles du Uno. On se passe le tel, chacun cache sa main. Tu poses la même couleur ou le même chiffre, sinon tu pioches. Le premier qui n'a plus de cartes gagne. Avec le cumul, un +2 ou un +4 se renvoie au suivant, et celui qui peut pas renvoyer prend tout.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
   mix: "La roue choisit le jeu à chaque tour. Tous les points comptent pour le même classement."
@@ -5458,7 +5516,7 @@ async function saveStory(A, btn, file) {
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const SITE = "https://fabz13220.github.io/Platon/";
-const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 2], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Aligne 4", 2], uno: ["Uno", 2] };
+const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Oui ou non", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 2], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Aligne 4", 2], uno: ["Vide ta main", 2] };
 // jeux longs : une manche = une partie entière, jamais tirés par le Mix
 const LONG = ["p4", "uno", "taboo"], NEWG = ["deux", "reflexe", "p4", "uno", "taboo"];
 const roundOpts = g => ({ p4: [3, 5, 7], uno: [1, 2, 3], taboo: [4, 6, 8] })[g] || [4, 6, 10];
@@ -5792,7 +5850,7 @@ async function roomCreate(game = "mix") {
       code = genCode(4, "ABCDEFGHJKLMNPQRSTUVWXYZ");
     }
     await F.setDoc(F.doc(db, "rooms", code), {
-      host: uid, status: "lobby", game, rounds: 6, level: S.level, hot: S.hot,
+      host: uid, status: "lobby", game, rounds: roundOpts(game).includes(6) ? 6 : roundOpts(game)[1], level: S.level, hot: S.hot,
       round: 0, phase: "", card: null, acts: {}, res: null, at: Date.now(),
       players: { [uid]: { name: me.name, pts: 0, t: Date.now() } }
     });
@@ -5836,7 +5894,7 @@ async function roomOpen(code) {
     if (ON.ctx.pub !== pub) { ON.ctx.pub = pub; F.setDoc(F.doc(db, "users", uid), { room: pub }, { merge: true }).catch(() => {}); }
     ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
     if (r.host === uid) hostTick(r);
-    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und, r.white, r.traps]) : "",
+    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und, r.white, r.traps, r.stack]) : "",
       r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue, c && LONG.includes(c.type) ? JSON.stringify(c) : ""].join("|");
     if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
     else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
@@ -5908,9 +5966,9 @@ async function roomNext(r) {
   }
   else if (t === "uno") {
     const order = shuffle(all).slice(0, 10), pile = unoDeck().map(k => k.c + k.v), hands = {};
-    order.forEach(u => { hands[u] = pile.splice(0, 7); });
+    order.forEach(u => { hands[u] = pile.splice(0, 7).sort((a, b) => unoSort(unoDec(a), unoDec(b))); });
     const top = pile.splice(pile.findIndex(x => /^[rygb]\d$/.test(x)), 1)[0];
-    card = { type: t, order, hands, pile, disc: [], top, color: top[0], dir: 1, cur: 0, drew: false, log: "" }; phase = "play";
+    card = { type: t, order, hands, pile, disc: [], top, color: top[0], dir: 1, cur: 0, drew: false, drawn: null, pen: 0, log: "" }; phase = "play";
   }
   else if (t === "taboo") {
     const t0 = all.filter((_, i) => i % 2 === 0), t1 = all.filter((_, i) => i % 2 === 1), tm = r.round % 2, team = tm ? t1 : t0;
@@ -6250,7 +6308,7 @@ function roomRender(r) {
     }
   });
 }
-// jeux ajoutés en ligne : Qui de nous deux, Duel réflexe, Aligne 4, Uno, Sans le dire
+// jeux ajoutés en ligne : Qui de nous deux, Duel réflexe, Aligne 4, Vide ta main, Sans le dire
 const unoDec = s => ({ c: s[0], v: s.slice(1) });
 function p4Line(g, r, c) {
   const p = g[r * 7 + c];
@@ -6354,10 +6412,13 @@ function roomRenderX(r, h) {
   }
 
   if (T === "uno") {
-    const P = c.order, curU = P[c.cur], top = unoDec(c.top), ok = k => k.c === "w" || k.c === c.color || k.v === top.v;
-    const hand = (c.hands[uid] || []).map(unoDec), isMe = !over && curU === uid, can = hand.some(ok);
+    const P = c.order, curU = P[c.cur], top = unoDec(c.top), pen = c.pen || 0;
+    const ok = k => pen ? k.v === "+4" || (k.v === "+2" && (top.v === "+2" || k.c === c.color)) : k.c === "w" || k.c === c.color || k.v === top.v;
+    const hand = (c.hands[uid] || []).map(unoDec), isMe = !over && curU === uid, drawn = c.drew && isMe ? c.drawn : null;
+    const mine = (k, i) => (drawn == null || c.hands[uid][i] === drawn) && ok(k); // après la pioche, seule la carte piochée se pose
+    const can = hand.some(mine);
     const table = `<div class="uno-table">
-      <div class="uno-top">${unoCard(top, "big")}<span class="uno-col" style="background:${UNO_COLS[c.color]}">${UNO_NAMES[c.color]}</span></div>
+      ${unoTop(top, c.color)}
       <div class="uno-players">${P.map((u, i) => `<span class="${i === c.cur && !over ? "on" : ""}">${N(u)} <b>${(c.hands[u] || []).length}</b></span>`).join("")}</div>
       ${c.log ? `<p class="uno-log">${esc(c.log)}</p>` : ""}</div>`;
     if (over) {
@@ -6365,34 +6426,52 @@ function roomRenderX(r, h) {
       return show(cardShell("uno", { label: "Victoire de", name: pname(r, w) }, `${h.rows(P.filter(u => u !== w).sort((a, b) => c.hands[a].length - c.hands[b].length).map(u => [u, c.hands[u].length + " carte" + (c.hands[u].length > 1 ? "s" : "")]))}
         ${rulePts(`+3 points pour ${N(w)}`)}`) + scores, h.nextBtn);
     }
-    const sub = isMe ? (c.drew ? (can ? "Tu peux jouer une carte ou passer." : "Toujours rien, tu passes.") : can ? "Joue une carte en surbrillance." : "Aucune carte jouable : pioche.")
+    const sub = isMe ? (pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, tu prends ${pen} cartes.`)
+      : c.drew ? "Tu peux la poser direct, ou la garder." : can ? "Pose une carte qui brille." : "Rien à poser, pioche.")
       : P.includes(uid) ? `Au tour de ${N(curU)}.` : "Tu regardes la partie.";
-    let acts = isMe ? (c.drew ? `<button class="btn white" id="pass">Passer</button>` : `<button class="btn white" id="draw">Piocher</button>`) : "";
+    let acts = isMe ? (pen ? `<button class="btn white" id="take">Prendre ${pen} cartes</button>` : c.drew ? `<button class="btn white" id="pass">La garder</button>` : `<button class="btn white" id="draw">Piocher</button>`) : "";
     if (!isMe && h.host && !r.players[curU]) acts = `<button class="btn white" id="skipgone">Passer son tour</button>`;
-    return view(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="progress">Uno ${c.dir > 0 ? "→" : "←"} · ${r.round} / ${r.rounds}</span><span class="on-pill">${ON.ctx.code}</span></div>
-      ${table}<p class="sub" style="text-align:center;margin:0">${sub}</p>
-      <div class="uno-hand">${hand.map((k, i) => unoCard(k, isMe ? (ok(k) ? "ok" : "no") : "", i)).join("")}</div>
+    return view(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="progress">Vide ta main ${c.dir > 0 ? "→" : "←"} · ${r.round} / ${r.rounds}</span><span class="on-pill">${ON.ctx.code}</span></div>
+      ${table}<p class="sub uno-sub">${sub}</p>
+      <div class="uno-hand">${hand.map((k, i) => unoCard(k, isMe ? (mine(k, i) ? "ok" : "no") + (drawn != null && c.hands[uid][i] === drawn ? " new" : "") : "", i)).join("")}</div>
       <div class="actions">${acts}</div>`, () => {
-      bindLeave();
+      bindLeave(); unoLay($(".uno-hand"));
       let locked = false;
       const st = JSON.parse(JSON.stringify(c)), me = pname(r, uid);
+      st.pen = st.pen || 0;
       const pick = () => { if (!st.pile.length) { st.pile = shuffle(st.disc); st.disc = []; } return st.pile.pop(); };
+      const sortH = u => st.hands[u].sort((a, b) => unoSort(unoDec(a), unoDec(b)));
+      const give = (u, n) => { for (let j = 0; j < n; j++) { const x = pick(); if (x) st.hands[u].push(x); } sortH(u); };
       const step = i => { let j = i; for (let k = 0; k < P.length; k++) { j = ((j + st.dir) % P.length + P.length) % P.length; if (r.players[P[j]]) return j; } return i; };
       const save = () => upd({ card: st });
-      const sk = $("#skipgone"); if (sk) sk.onclick = () => { st.cur = step(st.cur); st.drew = false; st.log = `${pname(r, curU)} est parti, on passe.`; save(); };
+      const sk = $("#skipgone"); if (sk) sk.onclick = () => { if (st.pen) { give(curU, st.pen); st.pen = 0; } st.cur = step(st.cur); st.drew = false; st.drawn = null; st.log = `${pname(r, curU)} est parti, on passe.`; save(); };
       if (!isMe) return;
-      const d = $("#draw"); if (d) d.onclick = () => { if (locked) return; locked = true; const k = pick(); if (k) st.hands[uid].push(k); st.drew = true; buzz(10); save(); };
-      const ps = $("#pass"); if (ps) ps.onclick = () => { if (locked) return; locked = true; st.drew = false; st.log = `${me} passe.`; st.cur = step(st.cur); save(); };
+      const d = $("#draw"); if (d) d.onclick = () => {
+        if (locked) return; locked = true; buzz(10);
+        const x = pick();
+        if (x) { st.hands[uid].push(x); sortH(uid); }
+        if (x && ok(unoDec(x))) { st.drew = true; st.drawn = x; }
+        else { st.drew = false; st.drawn = null; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); }
+        save();
+      };
+      const ps = $("#pass"); if (ps) ps.onclick = () => { if (locked) return; locked = true; st.drew = false; st.drawn = null; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); save(); };
+      const tk = $("#take"); if (tk) tk.onclick = () => { if (locked) return; locked = true; give(uid, st.pen); st.log = `${me} prend ${st.pen} cartes.`; st.pen = 0; st.cur = step(st.cur); buzz(30); save(); };
       const put = (i, col) => {
         const code = st.hands[uid][i], k = unoDec(code);
-        st.hands[uid].splice(i, 1); st.disc.push(st.top); st.top = code; st.color = col; st.drew = false; buzz(20);
+        st.hands[uid].splice(i, 1); st.disc.push(st.top); st.top = code; st.color = col; st.drew = false; st.drawn = null; buzz(20);
         if (!st.hands[uid].length) { st.log = `${me} a vidé sa main !`; return roomFinish({ card: st, phase: "reveal", res: { winner: uid } }, { [uid]: 3 }); }
-        st.log = `${me} a joué ${k.v === "w" ? "un joker" : k.v === "+4" ? "un +4" : k.v === "skip" ? "un passe-tour" : k.v === "rev" ? "un changement de sens" : k.v === "+2" ? "un +2" : "un " + k.v}${k.c === "w" ? " : " + UNO_NAMES[col] : ""}.`;
-        if (st.hands[uid].length === 1) st.log += ` ${me} n'a plus qu'une carte !`;
+        st.log = `${me} pose ${unoSay(k, col)}.`;
+        if (st.hands[uid].length === 1) { stamp("Dernière carte !", "green"); st.log += ` Plus qu'une carte !`; }
         const alive = P.filter(u => r.players[u]).length;
         if (k.v === "rev") { st.dir = -st.dir; if (alive === 2) st.cur = step(st.cur); }
         if (k.v === "skip") { st.cur = step(st.cur); st.log += ` ${pname(r, P[st.cur])} passe son tour.`; }
-        if (k.v === "+2" || k.v === "+4") { st.cur = step(st.cur); const n = k.v === "+2" ? 2 : 4, v = P[st.cur]; for (let j = 0; j < n; j++) { const x = pick(); if (x) st.hands[v].push(x); } st.log += ` ${pname(r, v)} pioche ${n} cartes et passe.`; }
+        if (k.v === "+2" || k.v === "+4") {
+          const n = k.v === "+2" ? 2 : 4;
+          st.cur = step(st.cur);
+          const v = P[st.cur];
+          if (r.stack !== false) { st.pen += n; st.log += ` ${pname(r, v)} prend ${st.pen}, sauf s'il renvoie.`; return save(); }
+          give(v, n); st.log += ` ${pname(r, v)} prend ${n} cartes et passe.`;
+        }
         st.cur = step(st.cur);
         save();
       };
@@ -6400,7 +6479,7 @@ function roomRenderX(r, h) {
         if (locked) return;
         const i = +b.dataset.i, k = hand[i];
         if (k.c === "w") return sheet(`<span class="mast" style="font-size:28px">Quelle couleur ?</span>
-          <div class="uno-colors">${Object.keys(UNO_COLS).map(x => `<button data-c="${x}" style="background:${UNO_COLS[x]}">${UNO_NAMES[x]}</button>`).join("")}</div>`,
+          <div class="uno-colors">${Object.keys(UNO_COLS).map(x => `<button data-c="${x}" style="background:${UNO_COLS[x]};color:${x === "y" ? "#1A0F2E" : "#fff"}">${UNO_NAMES[x]}</button>`).join("")}</div>`,
           w => $$("[data-c]", w).forEach(z => z.onclick = () => { w.remove(); if (!locked) { locked = true; put(i, z.dataset.c); } }));
         locked = true; put(i, k.c);
       });
@@ -6478,8 +6557,9 @@ function lobbyView(r, host) {
       <div class="section-label">Undercovers</div><div class="seg" id="undn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.und || 0)}">${v}</button>`).join("")}</div>
       <div class="section-label">Mr. White</div><div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}" aria-pressed="${v === (r.white || 0)}">${v}</button>`).join("")}</div>
       <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Mr. White n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}
-      ${r.game === "reflexe" ? `<div class="section-label">Pièges</div><div class="seg" id="trp"><button data-v="1" aria-pressed="${r.traps !== false}">Activés</button><button data-v="0" aria-pressed="${r.traps === false}">Désactivés</button></div>` : ""}`
-      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}</p>`}
+      ${r.game === "reflexe" ? `<div class="section-label">Pièges</div><div class="seg" id="trp"><button data-v="1" aria-pressed="${r.traps !== false}">Activés</button><button data-v="0" aria-pressed="${r.traps === false}">Désactivés</button></div>` : ""}
+      ${r.game === "uno" ? `<div class="section-label">Cumuler les +2 et +4</div><div class="seg" id="stk"><button data-v="1" aria-pressed="${r.stack !== false}">Activé</button><button data-v="0" aria-pressed="${r.stack === false}">Désactivé</button></div>` : ""}`
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.rounds} manches.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}${r.game === "uno" ? (r.stack === false ? " Sans cumul des +2 et +4." : " Avec cumul des +2 et +4.") : ""}</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
     <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
@@ -6490,6 +6570,7 @@ function lobbyView(r, host) {
     $$("#g button").forEach(b => b.onclick = () => { const g = b.dataset.v, o = roundOpts(g); upd({ game: g, rounds: o.includes(ON.r.rounds) ? ON.r.rounds : o[1] }); });
     $$("#nr button").forEach(b => b.onclick = () => upd({ rounds: +b.dataset.v }));
     $$("#trp button").forEach(b => b.onclick = () => upd({ traps: b.dataset.v === "1" }));
+    $$("#stk button").forEach(b => b.onclick = () => upd({ stack: b.dataset.v === "1" }));
     $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) + (ON.r.white || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
     $$("#undn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.white || 0) < 1 ? { und: v, imp: 1 } : { und: v }); });
     $$("#whn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.und || 0) < 1 ? { white: v, imp: 1 } : { white: v }); });
