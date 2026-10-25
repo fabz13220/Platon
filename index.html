@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="2e1db18f12d1">
+<meta name="build" content="41335206cf6d">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <link rel="icon" type="image/png" href="icon-192.png?v=2">
@@ -331,6 +331,7 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .pur-themes { justify-content: center; }
 .pur-themes .chip.pick { padding: 10px 16px; min-height: 48px; font-size: 17px; }
 .card .pur-th { margin: 0 22px; font-weight: 800; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.jstack > .card.gone { position: absolute; inset: 0; margin: 0; z-index: 2; pointer-events: none; }
 .card .tlean { position: absolute; top: 76px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 5; }
 .card .tlean b { font-family: var(--display); font-size: 30px; padding: 2px 14px; border: 4px solid currentColor; border-radius: 14px; text-transform: uppercase; opacity: 0; transition: opacity .12s; background: rgba(0,0,0,.18); }
 .card .tlean .ty { color: #6DFFB0; transform: rotate(-12deg); }
@@ -2320,7 +2321,7 @@ function jellyStep() {
 function endBubbles(names, wait, subs) {
   return `<div class="end-bubbles${wait ? " wait" : ""}">${names.map((n, i) => `<div class="bubble" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s"><span>${esc(n)}</span>${subs ? `<small>${esc(subs[i])}</small>` : ""}</div>`).join("")}</div>`;
 }
-const bindBubbles = () => $$(".end-bubbles .bubble").forEach(b => jelly(b));
+const bindBubbles = tap => $$(".end-bubbles .bubble").forEach((b, i) => jelly(b, tap && (() => tap(i)))); // tap : toucher une bulle (sans la traîner)
 function groupSheet(done) {
   const mem = S.names.slice(); // joueurs du nouveau groupe : ceux déjà ajoutés, modifiables ici
   sheet(`
@@ -2676,7 +2677,7 @@ function cJamais(c) {
 }
 // carte qu'on jette d'un geste, à gauche ou à droite, pour passer à la suivante ; un petit coup sec suffit.
 // La carte du dessous (under) grandit à mesure qu'on tire. Renvoie fly(sens) pour le bouton.
-function swipeNext(el, under, onNext) {
+function swipeNext(el, under, onNext, onFly) {
   if (!el) return () => {};
   el.classList.add("swipe");
   let x0 = null, y0 = 0, dx = 0, done = false, pid = null, pts = [];
@@ -2700,6 +2701,7 @@ function swipeNext(el, under, onNext) {
     el.style.transition = "transform .26s cubic-bezier(.3,.6,.5,1)";
     el.style.transform = `translate3d(${d}px, ${Math.abs(d) * .08}px, 0) rotate(${d / 14}deg)`;
     lift(1, true);
+    if (onFly) onFly(dir);
     setTimeout(onNext, 240);
   };
   el.addEventListener("pointerdown", e => { if (done || e.target.closest("button")) return; x0 = e.clientX; y0 = e.clientY; dx = 0; pid = e.pointerId; pts = [[e.clientX, e.timeStamp]]; el.style.animation = "none"; });
@@ -4970,7 +4972,7 @@ function rxWait(on) {
   at(on.go, d);
   return () => ids.forEach(clearTimeout);
 }
-function rxFin(sub, best, bubbles, again, rec) {
+function rxFin(sub, best, bubbles, again, rec, tap) {
   S.inGame = false;
   try { wakeLock && wakeLock.release(); } catch (e) {}
   view(`
@@ -4983,7 +4985,7 @@ function rxFin(sub, best, bubbles, again, rec) {
     <div class="actions">
       <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
     </div>
-  `, () => { $("#again").onclick = again; $("#home").onclick = home; bindBubbles(); party(); buzz([40, 30, 80]); if (rec) stamp("Record", "green"); });
+  `, () => { $("#again").onclick = again; $("#home").onclick = home; bindBubbles(tap); party(); buzz([40, 30, 80]); if (rec) stamp("Record", "green"); });
 }
 function reflexMenu() {
   if (tutoGate("reflexe", reflexMenu)) return;
@@ -5154,8 +5156,7 @@ const purTitle = pct => pct >= 90 ? "Ange certifié" : pct >= 70 ? "Sage en appa
 const purPct = (yes, n) => Math.round((n - yes) / n * 100);
 function testIntro() {
   if (tutoGate("test", testIntro)) return;
-  if (store.get("count", 4) > 1) { S.mode = "test"; return playersScreen(); }
-  purThemes(1);
+  purThemes(1); // seul de base, quel que soit le nombre de joueurs ; « À plusieurs » passe par l'écran des joueurs
 }
 function testStart() { purThemes(S.names.length); }
 // thèmes cochés de base, on décoche ce qu'on veut pas
@@ -5164,6 +5165,7 @@ function purThemes(n) {
   const count = () => { const k = PUR.filter(t => on.has(t[0])).length * per; $("#go").disabled = !k; $("#go").innerHTML = k ? `C'est parti <small>${k} questions${n > 1 ? " chacun" : ""}</small>` : "Coche au moins un thème"; };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Test de pureté</span><span style="width:44px"></span></div>
+    <div class="seg" id="pur-who"><button data-v="1" aria-pressed="${n === 1}">Seul</button><button data-v="2" aria-pressed="${n > 1}">À plusieurs</button></div>
     <div class="section-label">Décoche ce que tu veux pas</div>
     <div class="chips pur-themes">${PUR.map(t => `<button class="chip pick" data-k="${t[0]}" aria-pressed="${on.has(t[0])}">${t[1]} ${esc(t[2])}</button>`).join("")}</div>
     <p class="hint muted" style="text-align:center;margin:0">Droite pour oui, gauche pour non. Personne voit tes réponses.</p>
@@ -5171,6 +5173,7 @@ function purThemes(n) {
     <div class="actions"><button class="btn red" id="go"></button></div>
   `, () => {
     $("#back").onclick = n > 1 ? playersScreen : home; bindTutoLink("test");
+    $$("#pur-who button").forEach(b => b.onclick = () => { buzz(10); if (b.dataset.v === "1") { if (n > 1) purThemes(1); } else if (n === 1) { S.mode = "test"; playersScreen(); } });
     $$(".pur-themes .chip").forEach(b => b.onclick = () => {
       const k = b.dataset.k; on.has(k) ? on.delete(k) : on.add(k); b.setAttribute("aria-pressed", on.has(k)); buzz(10);
       store.set("purThemes", [...on]); count();
@@ -5190,39 +5193,58 @@ function testRun(P, qs) {
   // au tour de quelqu'un : les autres regardent ailleurs
   const pass = () => {
     if (k >= P.length) return testEnd(P, qs);
-    if (solo) return ask(0, false);
+    if (solo) return ask();
     view(`
       <div class="topbar">${quitBtn()}<span class="progress">${k + 1} / ${P.length}</span><span style="width:44px"></span></div>
       <div class="stage"><div class="secret"><span class="eyebrow" style="color:var(--paper)">${k ? "Passe le téléphone à" : "Au tour de"}</span><span class="mast">${esc(P[k].name)}</span><p>Les autres, regardez ailleurs.</p></div></div>
-      <div class="actions"><button class="btn red" id="go">C'est moi, j'y vais</button></div>`, () => { bindQuit(); $("#go").onclick = () => ask(0, false); });
+      <div class="actions"><button class="btn red" id="go">C'est moi, j'y vais</button></div>`, () => { bindQuit(); $("#go").onclick = ask; });
   };
-  const face = (i, top, slid) => cardShell("test", null, `
+  const face = i => cardShell("test", null, `
       <p class="pur-th">${qs[i].t[1]} ${esc(qs[i].t[2])}</p>
       <p class="text">${esc(qs[i].q)}</p>
       <p class="sub">${i < 2 && k === 0 ? "Droite pour oui, gauche pour non." : "&nbsp;"}</p>
-      <span class="tlean" aria-hidden="true"><b class="ty">Oui</b><b class="tn">Non</b></span>`, i % 2 === 1)
-    .replace('class="card ', `class="card ${top ? "top " + (slid ? "still " : "") : "under "}`);
-  const ask = (i, slid) => {
-    if (i >= qs.length) { k++; return pass(); }
+      <span class="tlean" aria-hidden="true"><b class="ty">Oui</b><b class="tn">Non</b></span>`, i % 2 === 1);
+  // l'écran est dessiné une fois par joueur ; ensuite les cartes s'enchaînent sur place, sans redessiner la page :
+  // dès qu'une carte part (geste ou bouton), la suivante est déjà là et répond tout de suite
+  const ask = () => {
+    let i = 0;
     view(`
-      <div class="topbar">${quitBtn()}<span class="progress">${solo ? "" : esc(P[k].name) + " · "}${i + 1} / ${qs.length}</span><span style="width:44px"></span></div>
-      <div class="stage jstack">${i + 1 < qs.length ? face(i + 1, false) : ""}${face(i, true, slid)}</div>
+      <div class="topbar">${quitBtn()}<span class="progress" id="pur-n"></span><span style="width:44px"></span></div>
+      <div class="stage jstack">${qs.length > 1 ? face(1).replace('class="card ', 'class="card under ') : ""}${face(0).replace('class="card ', 'class="card top ')}</div>
       <div class="actions"><div class="row"><button class="btn white" id="n">Non</button><button class="btn red" id="y">Oui</button></div></div>`, () => {
       bindQuit();
-      const tEl = $(".jstack .top");
-      const fly = swipeNext(tEl, $(".jstack .under"), () => {
-        if (parseFloat(tEl.style.transform.slice(12)) > 0) P[k].yes.add(i);
-        ask(i + 1, true);
-      });
-      // pendant le geste, la carte affiche Oui ou Non selon le côté
-      let x0 = null;
-      tEl.addEventListener("pointerdown", e => { x0 = e.clientX; });
-      tEl.addEventListener("pointermove", e => { if (x0 !== null) tEl.dataset.lean = e.clientX - x0 > 24 ? "y" : e.clientX - x0 < -24 ? "n" : ""; });
-      const up = () => { x0 = null; later(() => { if (Math.abs(parseFloat(tEl.style.transform.slice(12)) || 0) < 1) tEl.dataset.lean = ""; }, 260); }; // revenue au milieu : plus rien
-      tEl.addEventListener("pointerup", up); tEl.addEventListener("pointercancel", up);
-      $("#y").onclick = () => { tEl.dataset.lean = "y"; fly(1); };
-      $("#n").onclick = () => { tEl.dataset.lean = "n"; fly(-1); };
+      const stack = $(".jstack"), fit = () => [...stack.querySelector(".card").classList].filter(c => /^tight/.test(c)); // resserrée par fitStage : les suivantes pareil
+      const count = () => { $("#pur-n").textContent = `${solo ? "" : P[k].name + " · "}${i + 1} / ${qs.length}`; };
+      const arm = () => {
+        const tEl = $(".jstack > .card.top"); let went = false;
+        const go = dir => {
+          if (went) return; went = true;
+          if (dir > 0) P[k].yes.add(i);
+          tEl.classList.add("gone"); i++;
+          if (i >= qs.length) return later(() => { k++; pass(); }, 200);
+          // la carte du dessous passe dessus, une nouvelle se glisse en dessous
+          const nx = $(".jstack > .card.under");
+          $$(".under-shade", nx).forEach(x => x.remove());
+          nx.classList.remove("under"); nx.classList.add("top", "still"); nx.style.filter = "";
+          if (i + 1 < qs.length) {
+            stack.insertAdjacentHTML("afterbegin", face(i + 1).replace('class="card ', `class="card under ${fit().join(" ")} `));
+          }
+          count(); arm();
+        };
+        const fly = swipeNext(tEl, $(".jstack > .card.under"), () => tEl.remove(), go);
+        // pendant le geste, la carte affiche Oui ou Non selon le côté
+        let x0 = null;
+        tEl.addEventListener("pointerdown", e => { x0 = e.clientX; });
+        tEl.addEventListener("pointermove", e => { if (x0 !== null) tEl.dataset.lean = e.clientX - x0 > 24 ? "y" : e.clientX - x0 < -24 ? "n" : ""; });
+        const up = () => { x0 = null; later(() => { if (!went) tEl.dataset.lean = ""; }, 260); }; // revenue au milieu : plus rien
+        tEl.addEventListener("pointerup", up); tEl.addEventListener("pointercancel", up);
+        tEl.flyTo = d => { tEl.dataset.lean = d > 0 ? "y" : "n"; fly(d); };
+      };
+      $("#y").onclick = () => { const t = $(".jstack > .card.top:not(.gone)"); if (t && t.flyTo) t.flyTo(1); };
+      $("#n").onclick = () => { const t = $(".jstack > .card.top:not(.gone)"); if (t && t.flyTo) t.flyTo(-1); };
+      count(); arm();
     });
+    $(".jstack > .card.top").classList.add(...[...$(".jstack .card").classList].filter(c => /^tight/.test(c)));
   };
   pass();
 }
@@ -5249,10 +5271,10 @@ function testEnd(P, qs) {
     const L = P.slice().sort((a, b) => a.R.pct - b.R.pct), min = L[0].R.pct, w = L.filter(p => p.R.pct === min).map(p => p.name);
     const best = min < 100 ? `<p class="mbest"><span>😈 Le moins pur</span><b>${esc(w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0])}</b><small>pur à ${min} %</small></p>`
       : `<p class="mbest">😇 Que des anges. Ou des menteurs.</p>`;
-    rxFin("", best, [L.map(p => p.name), L.map(p => p.R.pct + " %")], again);
-    $(".rx-fin .rank-date").textContent = "Touche une bulle pour voir le détail"; // à la place de la date
     // toucher une bulle : les % par thème de ce joueur
-    $$(".end-bubbles .bubble").forEach((b, i) => { b.style.cursor = "pointer"; b.onclick = () => sheet(`<span class="mast" style="font-size:30px">${esc(L[i].name)}</span>${purDetail(L[i].R)}<button class="btn" id="pur-ok">Fermer</button>`, x => { $("#pur-ok", x).onclick = () => x.remove(); }); });
+    rxFin("", best, [L.map(p => p.name), L.map(p => p.R.pct + " %")], again, false,
+      i => sheet(`<span class="mast" style="font-size:30px">${esc(L[i].name)}</span>${purDetail(L[i].R)}<button class="btn" id="pur-ok">Fermer</button>`, x => { $("#pur-ok", x).onclick = () => x.remove(); }));
+    $(".rx-fin .rank-date").textContent = "Touche une bulle pour voir le détail"; // à la place de la date
     return;
   }
   view(`
