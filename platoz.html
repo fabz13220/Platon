@@ -1106,15 +1106,43 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .uno.no { filter: brightness(.42) saturate(.6); }
 .uno.ok { z-index: 1; transform: translateY(-6px); box-shadow: 0 0 0 3px rgba(255,255,255,.45), 0 12px 22px -8px rgba(0,0,0,.7); }
 .uno.new { outline: 3px dashed rgba(255,255,255,.85); outline-offset: 3px; }
-.uno-table { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.uno-top { display: flex; align-items: center; gap: 14px; }
-.uno-col { padding: 6px 12px; border-radius: 999px; color: #1A0F2E; font-weight: 900; text-transform: uppercase; font-size: 13px; letter-spacing: .08em; }
-.uno-players { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.uno-players span { padding: 5px 11px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-weight: 800; font-size: 14px; }
-.uno-players span.on { background: #fff; color: var(--ink); }
-.uno-log { margin: 0; text-align: center; color: var(--muted); font-weight: 700; font-size: 14.5px; padding: 0 12px; }
-.uno-sub { text-align: center; margin: 0; }
-.uno-hand { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 0 4px; width: 100%; }
+.uno-col { padding: 6px 12px; border-radius: 999px; color: #1A0F2E; font-weight: 900; text-transform: uppercase; font-size: 13px; letter-spacing: .08em; transition: background .25s; }
+.uno.back { display: block; background: radial-gradient(circle at 30% 20%, #3A2370, #160D2E 70%); box-shadow: 0 4px 10px -4px rgba(0,0,0,.7); }
+.uno.back b { position: absolute; inset: 24% 16%; border-radius: 22%; background: linear-gradient(135deg, #E8343B 0 25%, #F6C800 25% 50%, #2DAA4F 50% 75%, #1E78D2 75%); box-shadow: 0 0 0 2px rgba(255,255,255,.85); rotate: -10deg; }
+/* table : joueurs, pioche, tas, main */
+.vm { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.vm-opps { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.vm-opp { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px 4px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); font-size: 14px; font-weight: 800; white-space: nowrap; transition: background .25s, color .25s, box-shadow .25s; }
+.vm-opps.many { gap: 4px; }
+.vm-opps.many .vm-opp { font-size: 12.5px; padding: 3px 8px 3px 9px; gap: 5px; }
+.vm-opps.many .vm-mini i { width: 8px; height: 12px; margin-left: -5px; }
+.vm-opp em { font-style: normal; font-family: var(--display); font-size: 13px; }
+.vm-opp.on { background: #fff; color: var(--ink); box-shadow: 0 0 20px rgba(255,255,255,.35); }
+.vm-mini { display: inline-flex; padding-left: 6px; }
+.vm-mini i { width: 11px; height: 16px; margin-left: -7px; border-radius: 2.5px; border: 1.5px solid #fff; background: #2B1858; box-shadow: 1px 0 2px rgba(0,0,0,.5); }
+.vm-opp.on .vm-mini i { border-color: #2B1858; background: #fff; }
+.vm-mid { display: flex; align-items: center; justify-content: center; gap: 22px; padding: 6px 0 14px; }
+.vm-pile { --cw: 60px; position: relative; width: 60px; height: 87px; padding: 0; border: 0; background: none; color: inherit; }
+.vm-pile .uno { position: absolute; left: 0; top: 0; }
+.vm-pile .p2 { translate: -3px -3px; } .vm-pile .p1 { translate: -6px -6px; }
+.vm-pile small { position: absolute; left: -10px; right: -10px; bottom: -19px; text-align: center; font-size: 12px; font-weight: 800; color: var(--muted); }
+.vm-pile.go .p1 { animation: vmNudge 1.1s ease-in-out infinite; box-shadow: 0 0 0 3px #fff, 0 0 24px rgba(255,255,255,.55); }
+@keyframes vmNudge { 50% { translate: -6px -12px; } }
+.vm-disc { --cw: 84px; --ring: #fff; }
+.vm-disc .uno { box-shadow: 0 0 0 4px var(--ring), 0 0 34px -2px var(--ring); transition: box-shadow .3s; }
+.vm-side { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 64px; }
+.vm-dir { font-size: 30px; line-height: 1; opacity: .8; animation: vmSpin 6s linear infinite; }
+.vm-dir.ccw { animation-direction: reverse; }
+@keyframes vmSpin { to { rotate: 360deg; } }
+.vm-log { margin: 0; min-height: 1.3em; text-align: center; color: var(--muted); font-weight: 700; font-size: 14.5px; padding: 0 12px; }
+.vm-sub { margin: 0; min-height: 1.4em; text-align: center; font-weight: 800; padding: 2px 12px; border-radius: 999px; }
+.vm-sub.warn { background: #E8343B; color: #fff; }
+.vm-hand { flex: 1; min-height: 150px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 8px 0 4px; }
+.vm-cover { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 26px; border: 2px dashed rgba(255,255,255,.35); background: rgba(255,255,255,.05); color: #fff; padding: 12px; }
+.vm-cover small { font-size: 15px; font-weight: 800; opacity: .75; }
+.vm-act:empty { display: none; }
+.vm-fly { position: fixed; z-index: 80; pointer-events: none; }
+.vm-fly .uno { width: 100%; height: 100%; }
 .uno-row { display: flex; justify-content: center; }
 .uno-colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .uno-colors button { min-height: 70px; border: 0; border-radius: 18px; color: #1A0F2E; font-weight: 900; font-size: 18px; text-transform: capitalize; }
@@ -4527,35 +4555,105 @@ const unoLabel = v => ({ skip: "⊘", rev: "⇄", w: UNO_DOTS, "+4": "+4" + UNO_
 const unoCorner = v => ({ skip: "⊘", rev: "⇄", w: "" }[v] ?? v);
 const unoSay = (k, col) => k.v === "w" ? `un joker, ${UNO_NAMES[col]}` : k.v === "+4" ? `un +4, ${UNO_NAMES[col]}` : `un ${{ skip: "stop", rev: "demi-tour" }[k.v] || k.v} ${UNO_NAMES[k.c]}`;
 const unoAria = k => k.v === "w" ? "joker" : k.v === "+4" ? "plus 4" : `${{ skip: "stop", rev: "demi-tour" }[k.v] || k.v} ${UNO_NAMES[k.c]}`;
-const unoCard = (k, cls = "", i) => `<button class="uno${k.c === "w" ? " wild" : ""}${k.v === "+4" ? " plus" : ""}${/^\d$/.test(k.v) ? "" : " sp"} ${cls}" ${i != null ? `data-i="${i}"` : ""} style="--uc:${UNO_COLS[k.c] || "#1A0F2E"}" aria-label="${unoAria(k)}"><i>${unoCorner(k.v)}</i><span>${unoLabel(k.v)}</span><i>${unoCorner(k.v)}</i></button>`;
-const unoTop = (k, color) => `<div class="uno-top">${unoCard(k, "big")}<span class="uno-col" style="background:${UNO_COLS[color]};color:${color === "y" ? "#1A0F2E" : "#fff"}">${UNO_NAMES[color]}</span></div>`;
-// la main tient toujours sur l'écran : rangées de cartes qui se chevauchent, cartes plus petites quand il y en a beaucoup
+const unoCard = (k, cls = "", i, key) => `<button class="uno${k.c === "w" ? " wild" : ""}${k.v === "+4" ? " plus" : ""}${/^\d$/.test(k.v) ? "" : " sp"} ${cls}" ${i != null ? `data-i="${i}"` : ""} ${key != null ? `data-k="${key}"` : ""} style="--uc:${UNO_COLS[k.c] || "#1A0F2E"}" aria-label="${unoAria(k)}"><i>${unoCorner(k.v)}</i><span>${unoLabel(k.v)}</span><i>${unoCorner(k.v)}</i></button>`;
+const unoBack = (cls = "") => `<span class="uno back ${cls}"><b></b></span>`;
+// pourquoi une carte ne se pose pas (un toucher sur une carte grisée l'explique)
+const unoWhy = (top, color, pen) => pen ? "Pour renvoyer, il faut un +2 ou un +4. Sinon, touche la pioche."
+  : `Il faut du ${UNO_NAMES[color]}${top.c === "w" ? "" : ` ou ${top.v === "skip" ? "un stop" : top.v === "rev" ? "un demi-tour" : "un " + top.v}`}, ou un joker.`;
+// la main tient toujours sur l'écran : rangées en éventail, qui se chevauchent quand il y a beaucoup de cartes
 function unoLay(box) {
   if (!box) return;
-  const cs = $$(".uno", box), n = cs.length, W = box.clientWidth;
-  if (!n || !W) return;
-  // jusqu'à 3 rangées sans chevauchement, ensuite les cartes se chevauchent (une 4e rangée si elles se cachent trop)
-  const cw = n <= 15 ? 60 : n <= 18 ? 52 : 46, free = Math.max(1, Math.floor((W + 6) / (cw + 6)));
-  let rows = Math.min(3, Math.ceil(n / free)), k = Math.ceil(n / rows);
-  if ((W - cw) / Math.max(1, k - 1) < cw * .6) { rows = 4; k = Math.ceil(n / rows); }
-  const step = Math.min(cw + 6, (W - cw) / Math.max(1, k - 1));
+  const cs = $$(".uno", box), n = cs.length, W = box.clientWidth - 14; // marge pour les cartes penchées des bords
+  if (!n || W <= 0) return;
+  // une main en éventail : les cartes se chevauchent un peu ; plus de rangées et des cartes plus petites quand il y en a beaucoup
+  let cw, per, rows;
+  for (const w of [70, 56, 46]) { cw = w; per = Math.max(1, Math.floor((W - cw) / (cw * .55)) + 1); rows = Math.ceil(n / per); if (rows <= (w === 70 ? 2 : 3)) break; }
+  const k = Math.ceil(n / rows), step = Math.min(cw + 4, (W - cw) / Math.max(1, k - 1));
   box.style.setProperty("--cw", cw + "px");
   box.textContent = "";
   for (let r = 0; r < rows; r++) {
-    const row = document.createElement("div"); row.className = "uno-row";
-    cs.slice(r * k, r * k + k).forEach((c, j) => { c.style.marginLeft = j ? (step - cw).toFixed(1) + "px" : ""; row.appendChild(c); });
+    const row = document.createElement("div"), list = cs.slice(r * k, r * k + k), mid = (list.length - 1) / 2;
+    row.className = "uno-row";
+    list.forEach((c, j) => {
+      c.style.marginLeft = j ? (step - cw).toFixed(1) + "px" : "";
+      c.style.rotate = ((j - mid) * Math.min(4, 22 / list.length)).toFixed(1) + "deg";
+      c.style.marginTop = (Math.min(10, (j - mid) ** 2 * .9)).toFixed(1) + "px";
+      row.appendChild(c);
+    });
     box.appendChild(row);
   }
 }
 const unoStack = () => store.get("unoStack", true);
 const unoSeg = () => `<div class="section-label">Cumuler les +2 et +4</div><div class="seg" id="vm-stack"><button data-v="1" aria-pressed="${unoStack()}">Activé</button><button data-v="0" aria-pressed="${!unoStack()}">Désactivé</button></div>`;
 const bindUnoSeg = () => $$("#vm-stack button").forEach(b => b.onclick = () => { store.set("unoStack", b.dataset.v === "1"); buzz(10); $$("#vm-stack button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+
+/* la table, commune au mode un téléphone et au mode en ligne : joueurs avec leurs cartes en éventail, pioche, tas, main */
+const vmShell = top => `${top}<div class="vm">
+    <div class="vm-opps" id="vm-opps"></div>
+    <div class="vm-mid">
+      <button class="vm-pile" id="vm-pile" aria-label="Pioche">${unoBack("p3")}${unoBack("p2")}${unoBack("p1")}<small>Pioche</small></button>
+      <div class="vm-disc" id="vm-disc"></div>
+      <div class="vm-side"><span class="uno-col" id="vm-col"></span><span class="vm-dir" id="vm-dir"></span></div>
+    </div>
+    <p class="vm-log" id="vm-log"></p>
+    <p class="vm-sub" id="vm-sub"></p>
+    <div class="vm-hand" id="vm-hand"></div>
+    <div class="actions vm-act" id="vm-act"></div>
+  </div>`;
+// m : { players: [{ name, n, on }], top, topKey, color, dir, log, sub, warn, pileGo }
+function vmPaint(m) {
+  $("#vm-opps").classList.toggle("many", m.players.length > 6);
+  $("#vm-opps").innerHTML = m.players.map(p => `<span class="vm-opp${p.on ? " on" : ""}"><b>${esc(p.name)}</b><span class="vm-mini">${"<i></i>".repeat(Math.min(p.n, 8))}</span><em>${p.n}</em></span>`).join("");
+  const d = $("#vm-disc");
+  if (d.dataset.k !== m.topKey) {
+    const first = !d.dataset.k; d.dataset.k = m.topKey; d.innerHTML = unoCard(m.top);
+    if (!first && !m.quiet && !calm()) d.firstChild.animate([{ scale: 1.5, rotate: "-14deg", opacity: 0 }, { scale: 1, rotate: "0deg", opacity: 1 }], { duration: 260, easing: "cubic-bezier(.2,1.4,.4,1)" });
+  }
+  d.style.setProperty("--ring", UNO_COLS[m.color]);
+  const col = $("#vm-col"); col.textContent = UNO_NAMES[m.color]; col.style.background = UNO_COLS[m.color]; col.style.color = m.color === "y" ? "#1A0F2E" : "#fff";
+  $("#vm-dir").textContent = m.dir > 0 ? "↻" : "↺";
+  $("#vm-dir").classList.toggle("ccw", m.dir < 0);
+  $("#vm-log").textContent = m.log || "";
+  const s = $("#vm-sub"); s.textContent = m.sub || ""; s.classList.toggle("warn", !!m.warn);
+  $("#vm-pile").classList.toggle("go", !!m.pileGo);
+}
+// main : cartes [{ k, key, cls }] ; les cartes déjà là glissent à leur nouvelle place, les nouvelles arrivent
+function vmHand(cards, deal) {
+  const box = $("#vm-hand"), old = {};
+  $$(".uno", box).forEach(b => { old[b.dataset.k] = b.getBoundingClientRect(); });
+  const had = Object.keys(old).length;
+  box.innerHTML = cards.map((c, i) => unoCard(c.k, c.cls, i, c.key)).join("");
+  unoLay(box);
+  if (calm()) return;
+  $$(".uno", box).forEach((b, j) => {
+    const o = old[b.dataset.k];
+    if (o) {
+      const n = b.getBoundingClientRect(), dx = o.left - n.left, dy = o.top - n.top;
+      if (Math.abs(dx) + Math.abs(dy) > 1) b.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" });
+    } else if (deal || had) b.animate([{ opacity: 0, translate: "0 50px", scale: .6 }, { opacity: 1, translate: "0 0", scale: 1 }], { duration: 280, delay: deal ? j * 22 : 60, easing: "cubic-bezier(.2,1.2,.4,1)", fill: "backwards" });
+  });
+}
+// une carte vole d'un endroit à l'autre de l'écran
+function vmFly(html, from, to, dur = 280) {
+  if (!from || !to || calm()) return Promise.resolve();
+  const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), w = document.createElement("div");
+  w.className = "vm-fly"; w.innerHTML = html;
+  Object.assign(w.style, { left: a.left + "px", top: a.top + "px", width: a.width + "px", height: a.height + "px", "--cw": a.width + "px" });
+  document.body.appendChild(w);
+  const dx = b.left + b.width / 2 - a.left - a.width / 2, dy = b.top + b.height / 2 - a.top - a.height / 2, s = b.width / a.width;
+  const an = w.animate([{ transform: "none" }, { transform: `translate(${dx}px, ${dy}px) scale(${s}) rotate(${Math.random() < .5 ? -8 : 8}deg)` }], { duration: dur, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" });
+  return new Promise(res => { an.onfinish = () => { w.remove(); res(); }; });
+}
+const vmChoose = then => sheet(`<span class="mast" style="font-size:28px">Quelle couleur ?</span>
+    <div class="uno-colors">${Object.keys(UNO_COLS).map(c => `<button data-c="${c}" style="background:${UNO_COLS[c]};color:${c === "y" ? "#1A0F2E" : "#fff"}">${UNO_NAMES[c]}</button>`).join("")}</div>`,
+    w => $$("[data-c]", w).forEach(b => b.onclick = () => { w.remove(); then(b.dataset.c); }));
+
 function unoStart() {
   if (S.names.length > 10) { toast("10 joueurs maximum à Vide ta main."); return; }
   if (tutoGate("uno", unoStart)) return;
   const P = shuffle(S.names).map(n => ({ name: n, hand: [] })), stack = unoStack();
   stat("start", "uno", P.length, "un");
-  let pile = unoDeck(), disc = [], color, dir = 1, cur = 0, log = "", locked = false, pen = 0; // pen : cartes à prendre en attente (cumul)
+  let id = 0, pile = unoDeck().map(k => Object.assign(k, { id: id++ })), disc = [], color, dir = 1, cur = 0, log = "", pen = 0, busy = true, drew = false; // pen : cartes à prendre en attente (cumul)
   const pick = () => { if (!pile.length) { const top = disc.pop(); pile = shuffle(disc); disc = [top]; } return pile.pop(); };
   const give = (p, n) => { for (let i = 0; i < n; i++) { const k = pick(); if (k) p.hand.push(k); } p.hand.sort(unoSort); };
   P.forEach(p => give(p, 7));
@@ -4571,74 +4669,74 @@ function unoStart() {
     if (stack) { pen = 2; log = `${P[0].name} prend 2 cartes, sauf s'il renvoie.`; }
     else { give(P[0], 2); log = `${P[0].name} prend 2 cartes.`; cur = nextIdx(); }
   }
-  const table = () => `<div class="uno-table">
-      ${unoTop(top(), color)}
-      <div class="uno-players">${P.map((p, i) => `<span class="${i === cur ? "on" : ""}">${esc(p.name)} <b>${p.hand.length}</b></span>`).join("")}</div>
-      ${log ? `<p class="uno-log">${esc(log)}</p>` : ""}
-    </div>`;
-  const head = t => `<div class="topbar">${quitBtn()}<span class="progress">${t}</span><span style="width:44px"></span></div>`;
-  const turn = () => {
+  const paint = (sub, warn, pileGo, quiet) => vmPaint({ players: P.map((p, i) => ({ name: p.name, n: p.hand.length, on: i === cur })), top: top(), topKey: "" + top().id, color, dir, log, sub, warn, pileGo, quiet });
+  // entre deux joueurs, la main est cachée : on passe le tel
+  const cover = () => {
+    busy = false; drew = false;
     const p = P[cur];
-    view(`
-      ${head(`Vide ta main ${dir > 0 ? "→" : "←"}`)}
-      ${table()}
-      <div class="stage" id="reveal"><div class="secret"><span class="eyebrow" style="color:var(--paper)">Passe le tel à</span><span class="mast">${esc(p.name)}</span><p>Les autres, regardez pas ses cartes.</p></div></div>
-      <div class="actions"><button class="btn" id="show">Touche pour voir tes cartes</button></div>
-    `, () => { bindQuit(); $("#reveal").onclick = $("#show").onclick = () => play(null); });
+    paint(pen ? `${pen} cartes pour ${p.name}, sauf s'il renvoie.` : "", !!pen);
+    $("#vm-hand").innerHTML = `<button class="vm-cover" id="vm-cov"><span class="eyebrow">Passe le tel à</span><span class="mast">${esc(p.name)}</span><small>Touche pour voir tes cartes</small></button>`;
+    $("#vm-act").innerHTML = "";
+    $("#vm-cov").onclick = () => show(true);
   };
-  // drawn : la carte qu'on vient de piocher (seule jouable ensuite)
-  const play = drawn => {
-    const p = P[cur]; locked = false;
-    const can = drawn ? ok(drawn) : p.hand.some(ok);
-    const sub = pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, tu prends ${pen} cartes.`)
-      : drawn ? (can ? "Tu peux la poser direct, ou la garder." : "Elle passe pas, tour suivant.")
-      : can ? "Pose une carte qui brille." : "Rien à poser, pioche.";
-    const mark = k => (drawn ? k === drawn && can : ok(k)) ? "ok" : "no";
-    view(`
-      ${head(`Main de ${esc(p.name)}`)}
-      ${table()}
-      <p class="sub uno-sub">${sub}</p>
-      <div class="uno-hand">${p.hand.map((k, i) => unoCard(k, mark(k) + (k === drawn ? " new" : ""), i)).join("")}</div>
-      <div class="actions">${pen ? `<button class="btn white" id="take">Prendre ${pen} cartes</button>` : drawn ? (can ? `<button class="btn white" id="keep">La garder</button>` : "") : `<button class="btn white" id="draw">Piocher</button>`}</div>
-    `, () => {
-      bindQuit(); unoLay($(".uno-hand"));
-      const d = $("#draw"); if (d) d.onclick = () => {
-        if (locked) return; locked = true; buzz(10);
-        const k = pick(); if (!k) { log = `${p.name} passe.`; cur = nextIdx(); return turn(); }
-        p.hand.push(k); p.hand.sort(unoSort);
-        if (ok(k)) return play(k);
-        log = `${p.name} pioche et passe.`; play(k); locked = true; cur = nextIdx(); later(turn, 1300);
-      };
-      const kp = $("#keep"); if (kp) kp.onclick = () => { if (locked) return; locked = true; log = `${p.name} pioche et passe.`; cur = nextIdx(); turn(); };
-      const tk = $("#take"); if (tk) tk.onclick = () => { if (locked) return; locked = true; give(p, pen); log = `${p.name} prend ${pen} cartes.`; pen = 0; cur = nextIdx(); buzz(30); turn(); };
-      $$(".uno-hand .uno.ok").forEach(b => b.onclick = () => {
-        const k = p.hand[+b.dataset.i];
-        if (!k || locked) return; // pas de double carte sur un double appui
-        if (k.c === "w") return chooseColor(col => { if (!locked) { locked = true; put(k, col); } });
-        locked = true;
-        put(k, k.c);
-      });
+  const show = deal => {
+    const p = P[cur], can = p.hand.some(ok);
+    busy = false;
+    paint(pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, touche la pioche : ${pen} cartes.`)
+      : drew ? "Pose une carte, ou passe." : can ? "Pose une carte qui brille." : "Rien à poser, touche la pioche.", !!pen, !can || !!pen, true);
+    vmHand(p.hand.map(k => ({ k, key: k.id, cls: ok(k) ? "ok" : "no" })), deal);
+    $("#vm-act").innerHTML = drew ? `<button class="btn white" id="vm-pass">Passer</button>` : pen ? `<button class="btn white" id="vm-take">Prendre ${pen} cartes</button>` : "";
+    const ps = $("#vm-pass"); if (ps) ps.onclick = () => { if (busy) return; busy = true; log = `${p.name} pioche et passe.`; cur = nextIdx(); cover(); };
+    const tk = $("#vm-take"); if (tk) tk.onclick = take;
+    $$("#vm-hand .uno").forEach(b => b.onclick = () => {
+      if (busy) return;
+      const k = p.hand.find(x => "" + x.id === b.dataset.k);
+      if (!k) return;
+      if (!ok(k)) { toast(unoWhy(top(), color, pen)); buzz(8); return; }
+      if (k.c === "w") return vmChoose(col => { if (!busy) put(k, col, b); });
+      put(k, k.c, b);
     });
   };
-  const chooseColor = then => sheet(`<span class="mast" style="font-size:28px">Quelle couleur ?</span>
-    <div class="uno-colors">${Object.keys(UNO_COLS).map(c => `<button data-c="${c}" style="background:${UNO_COLS[c]};color:${c === "y" ? "#1A0F2E" : "#fff"}">${UNO_NAMES[c]}</button>`).join("")}</div>`,
-    w => $$("[data-c]", w).forEach(b => b.onclick = () => { w.remove(); then(b.dataset.c); }));
-  const put = (k, col) => {
-    const p = P[cur];
-    p.hand.splice(p.hand.indexOf(k), 1); disc.push(k); color = col; buzz(20);
-    if (!p.hand.length) return end(p);
-    log = `${p.name} pose ${unoSay(k, col)}.`;
-    if (p.hand.length === 1) { stamp("Dernière carte !", "green"); log += ` Plus qu'une carte !`; }
-    if (k.v === "rev") { dir = -dir; if (P.length === 2) cur = nextIdx(); }
-    if (k.v === "skip") { cur = nextIdx(); log += ` ${P[cur].name} passe son tour.`; }
-    if (k.v === "+2" || k.v === "+4") {
-      const n = k.v === "+2" ? 2 : 4;
+  const drawFx = n => { for (let i = 0; i < Math.min(n, 4); i++) later(() => vmFly(unoBack(), $("#vm-pile .p1"), $("#vm-hand"), 300), i * 90); buzz(10); };
+  const draw = () => {
+    const p = P[cur]; busy = true; drew = true;
+    const k = pick(); drawFx(1);
+    later(() => {
+      if (k) { p.hand.push(k); p.hand.sort(unoSort); }
+      if (k && p.hand.some(ok)) return show(false);
+      log = `${p.name} pioche et passe.`;
+      show(false); busy = true; $("#vm-sub").textContent = "Rien à poser, ça passe."; $("#vm-act").innerHTML = "";
+      cur = nextIdx(); later(cover, 900);
+    }, 260);
+  };
+  const take = () => {
+    if (busy) return;
+    const p = P[cur], n = pen; busy = true; drawFx(n);
+    later(() => { give(p, n); log = `${p.name} prend ${n} cartes.`; pen = 0; show(false); busy = true; $("#vm-act").innerHTML = ""; $("#vm-sub").textContent = ""; buzz(30); cur = nextIdx(); later(cover, 800); }, 380);
+  };
+  const put = (k, col, el) => {
+    const p = P[cur]; busy = true;
+    el.style.visibility = "hidden";
+    vmFly(unoCard(k), el, $("#vm-disc .uno")).then(() => {
+      p.hand.splice(p.hand.indexOf(k), 1); disc.push(k); color = col; buzz(20);
+      log = `${p.name} pose ${unoSay(k, col)}.`;
+      paint("", false, false, true);
+      vmHand(p.hand.map(x => ({ k: x, key: x.id, cls: "no" })));
+      $("#vm-act").innerHTML = "";
+      if (!p.hand.length) return later(() => end(p), 500);
+      if (p.hand.length === 1) { stamp("Dernière carte !", "green"); log += " Plus qu'une carte !"; }
+      if (k.v === "rev") { dir = -dir; if (P.length === 2) cur = nextIdx(); }
+      if (k.v === "skip") { cur = nextIdx(); log += ` ${P[cur].name} passe son tour.`; }
+      if (k.v === "+2" || k.v === "+4") {
+        const n = k.v === "+2" ? 2 : 4;
+        cur = nextIdx();
+        if (stack) { pen += n; log += ` ${P[cur].name} prend ${pen}, sauf s'il renvoie.`; return later(cover, p.hand.length === 1 ? 1000 : 600); }
+        give(P[cur], n); log += ` ${P[cur].name} prend ${n} cartes et passe.`;
+      }
       cur = nextIdx();
-      if (stack) { pen += n; log += ` ${P[cur].name} prend ${pen}, sauf s'il renvoie.`; return later(turn, p.hand.length === 1 ? 900 : 250); }
-      give(P[cur], n); log += ` ${P[cur].name} prend ${n} cartes et passe.`;
-    }
-    cur = nextIdx();
-    later(turn, p.hand.length === 1 ? 900 : 250);
+      paint("", false, false, true);
+      later(cover, p.hand.length === 1 ? 1000 : 600);
+    });
   };
   const end = p => {
     stat("end", "uno", P.length, "un");
@@ -4647,7 +4745,16 @@ function unoStart() {
     rxFin("Vide ta main", `<p class="mbest"><span>🏆 Victoire</span><b>${esc(p.name)}</b><small>A vidé sa main</small></p>`,
       [L.map(x => x.name), L.map(x => x.hand.length ? `${x.hand.length} carte${x.hand.length > 1 ? "s" : ""}` : "🏆")], unoStart);
   };
-  turn();
+  view(vmShell(`<div class="topbar">${quitBtn()}<span class="progress">Vide ta main</span><span style="width:44px"></span></div>`), () => {
+    bindQuit();
+    $("#vm-pile").onclick = () => {
+      if (busy || !$("#vm-hand .uno")) return; // main cachée : rien
+      if (pen) return take();
+      if (drew) { toast("T'as déjà pioché : pose une carte ou passe."); return; }
+      draw();
+    };
+    cover();
+  });
 }
 
 /* -------- PAUSE -------- */
@@ -6457,54 +6564,62 @@ function roomRenderX(r, h) {
   if (T === "uno") {
     const P = c.order, curU = P[c.cur], top = unoDec(c.top), pen = c.pen || 0;
     const ok = k => pen ? k.v === "+4" || (k.v === "+2" && (top.v === "+2" || k.c === c.color)) : k.c === "w" || k.c === c.color || k.v === top.v;
-    const hand = (c.hands[uid] || []).map(unoDec), isMe = !over && curU === uid, drawn = c.drew && isMe ? c.drawn : null;
-    const mine = (k, i) => (drawn == null || c.hands[uid][i] === drawn) && ok(k); // après la pioche, seule la carte piochée se pose
-    const can = hand.some(mine);
-    const table = `<div class="uno-table">
-      ${unoTop(top, c.color)}
-      <div class="uno-players">${P.map((u, i) => `<span class="${i === c.cur && !over ? "on" : ""}">${N(u)} <b>${(c.hands[u] || []).length}</b></span>`).join("")}</div>
-      ${c.log ? `<p class="uno-log">${esc(c.log)}</p>` : ""}</div>`;
     if (over) {
       const w = r.res && r.res.winner;
       return show(cardShell("uno", { label: "Victoire de", name: pname(r, w) }, `${h.rows(P.filter(u => u !== w).sort((a, b) => c.hands[a].length - c.hands[b].length).map(u => [u, c.hands[u].length + " carte" + (c.hands[u].length > 1 ? "s" : "")]))}
         ${rulePts(`+3 points pour ${N(w)}`)}`) + scores, h.nextBtn);
     }
-    const sub = isMe ? (pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, tu prends ${pen} cartes.`)
-      : c.drew ? "Tu peux la poser direct, ou la garder." : can ? "Pose une carte qui brille." : "Rien à poser, pioche.")
-      : P.includes(uid) ? `Au tour de ${N(curU)}.` : "Tu regardes la partie.";
-    let acts = isMe ? (pen ? `<button class="btn white" id="take">Prendre ${pen} cartes</button>` : c.drew ? `<button class="btn white" id="pass">La garder</button>` : `<button class="btn white" id="draw">Piocher</button>`) : "";
+    const codes = c.hands[uid] || [], hand = codes.map(unoDec), isMe = curU === uid, can = hand.some(ok);
+    // clé de chaque carte : son code et son rang parmi les cartes identiques, pour la faire glisser plutôt que la redessiner
+    const seen = {}, keys = codes.map(x => x + "~" + (seen[x] = (seen[x] || 0) + 1));
+    const tid = ON.ctx.code + ":" + r.round;
+    if (!$(".vm") || $(".vm").dataset.id !== tid) {
+      view(vmShell(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="progress">Vide ta main · ${r.round} / ${r.rounds}</span><span class="on-pill">${ON.ctx.code}</span></div>`));
+      $(".vm").dataset.id = tid; bindLeave(); ON.ctx.vmLog = c.log;
+    }
+    if (c.log !== ON.ctx.vmLog) { ON.ctx.vmLog = c.log; if (/Plus qu'une carte/.test(c.log || "")) stamp("Dernière carte !", "green"); }
+    const sub = isMe ? (pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, touche la pioche : ${pen} cartes.`)
+      : c.drew ? "Pose une carte, ou passe." : can ? "Pose une carte qui brille." : "Rien à poser, touche la pioche.")
+      : P.includes(uid) ? (pen && curU ? `${pname(r, curU)} doit prendre ${pen} cartes, ou renvoyer.` : `Au tour de ${pname(r, curU)}.`) : "Tu regardes la partie.";
+    vmPaint({ players: P.map((u, i) => ({ name: pname(r, u) + (u === uid ? " (toi)" : ""), n: (c.hands[u] || []).length, on: i === c.cur })), top, topKey: c.top + ":" + (c.disc || []).length, color: c.color, dir: c.dir, log: c.log, sub, warn: isMe && !!pen, pileGo: isMe && (!can || !!pen), quiet: ON.ctx.vmQuiet === c.top });
+    vmHand(hand.map((k, i) => ({ k, key: keys[i], cls: isMe ? (ok(k) ? "ok" : "no") : "" })), !$("#vm-hand .uno"));
+    let acts = isMe ? (c.drew ? `<button class="btn white" id="vm-pass">Passer</button>` : pen ? `<button class="btn white" id="vm-take">Prendre ${pen} cartes</button>` : "") : "";
     if (!isMe && h.host && !r.players[curU]) acts = `<button class="btn white" id="skipgone">Passer son tour</button>`;
-    return view(`<div class="topbar"><button class="iconbtn" id="leave" aria-label="Quitter">×</button><span class="progress">Vide ta main ${c.dir > 0 ? "→" : "←"} · ${r.round} / ${r.rounds}</span><span class="on-pill">${ON.ctx.code}</span></div>
-      ${table}<p class="sub uno-sub">${sub}</p>
-      <div class="uno-hand">${hand.map((k, i) => unoCard(k, isMe ? (mine(k, i) ? "ok" : "no") + (drawn != null && c.hands[uid][i] === drawn ? " new" : "") : "", i)).join("")}</div>
-      <div class="actions">${acts}</div>`, () => {
-      bindLeave(); unoLay($(".uno-hand"));
-      let locked = false;
-      const st = JSON.parse(JSON.stringify(c)), me = pname(r, uid);
-      st.pen = st.pen || 0;
-      const pick = () => { if (!st.pile.length) { st.pile = shuffle(st.disc); st.disc = []; } return st.pile.pop(); };
-      const sortH = u => st.hands[u].sort((a, b) => unoSort(unoDec(a), unoDec(b)));
-      const give = (u, n) => { for (let j = 0; j < n; j++) { const x = pick(); if (x) st.hands[u].push(x); } sortH(u); };
-      const step = i => { let j = i; for (let k = 0; k < P.length; k++) { j = ((j + st.dir) % P.length + P.length) % P.length; if (r.players[P[j]]) return j; } return i; };
-      const save = () => upd({ card: st });
-      const sk = $("#skipgone"); if (sk) sk.onclick = () => { if (st.pen) { give(curU, st.pen); st.pen = 0; } st.cur = step(st.cur); st.drew = false; st.drawn = null; st.log = `${pname(r, curU)} est parti, on passe.`; save(); };
-      if (!isMe) return;
-      const d = $("#draw"); if (d) d.onclick = () => {
-        if (locked) return; locked = true; buzz(10);
-        const x = pick();
-        if (x) { st.hands[uid].push(x); sortH(uid); }
-        if (x && ok(unoDec(x))) { st.drew = true; st.drawn = x; }
-        else { st.drew = false; st.drawn = null; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); }
-        save();
-      };
-      const ps = $("#pass"); if (ps) ps.onclick = () => { if (locked) return; locked = true; st.drew = false; st.drawn = null; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); save(); };
-      const tk = $("#take"); if (tk) tk.onclick = () => { if (locked) return; locked = true; give(uid, st.pen); st.log = `${me} prend ${st.pen} cartes.`; st.pen = 0; st.cur = step(st.cur); buzz(30); save(); };
-      const put = (i, col) => {
-        const code = st.hands[uid][i], k = unoDec(code);
-        st.hands[uid].splice(i, 1); st.disc.push(st.top); st.top = code; st.color = col; st.drew = false; st.drawn = null; buzz(20);
+    $("#vm-act").innerHTML = acts;
+    let locked = false;
+    const st = JSON.parse(JSON.stringify(c)), me = pname(r, uid);
+    st.pen = st.pen || 0;
+    const pick = () => { if (!st.pile.length) { st.pile = shuffle(st.disc); st.disc = []; } return st.pile.pop(); };
+    const sortH = u => st.hands[u].sort((a, b) => unoSort(unoDec(a), unoDec(b)));
+    const give = (u, n) => { for (let j = 0; j < n; j++) { const x = pick(); if (x) st.hands[u].push(x); } sortH(u); };
+    const step = i => { let j = i; for (let k = 0; k < P.length; k++) { j = ((j + st.dir) % P.length + P.length) % P.length; if (r.players[P[j]]) return j; } return i; };
+    const save = () => upd({ card: st });
+    const drawFx = n => { for (let i = 0; i < Math.min(n, 4); i++) setTimeout(() => vmFly(unoBack(), $("#vm-pile .p1"), $("#vm-hand"), 300), i * 90); buzz(10); };
+    const sk = $("#skipgone"); if (sk) sk.onclick = () => { if (st.pen) { give(curU, st.pen); st.pen = 0; } st.cur = step(st.cur); st.drew = false; st.log = `${pname(r, curU)} est parti, on passe.`; save(); };
+    const take = () => { if (locked) return; locked = true; drawFx(st.pen); give(uid, st.pen); st.log = `${me} prend ${st.pen} cartes.`; st.pen = 0; st.cur = step(st.cur); buzz(30); setTimeout(save, 300); };
+    $("#vm-pile").onclick = () => {
+      if (!isMe || locked) return;
+      if (st.pen) return take();
+      if (st.drew) { toast("T'as déjà pioché : pose une carte ou passe."); return; }
+      locked = true; drawFx(1);
+      const x = pick();
+      if (x) { st.hands[uid].push(x); sortH(uid); }
+      if (x && st.hands[uid].some(y => ok(unoDec(y)))) st.drew = true;
+      else { st.drew = false; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); }
+      setTimeout(save, 260);
+    };
+    if (!isMe) { $$("#vm-hand .uno").forEach(b => b.onclick = () => toast(`C'est au tour de ${pname(r, curU)}.`)); return; }
+    const ps = $("#vm-pass"); if (ps) ps.onclick = () => { if (locked) return; locked = true; st.drew = false; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); save(); };
+    const tk = $("#vm-take"); if (tk) tk.onclick = take;
+    const put = (i, col, el) => {
+      const code = st.hands[uid][i], k = unoDec(code);
+      el.style.visibility = "hidden";
+      ON.ctx.vmQuiet = code; // déjà animée ici : pas de deuxième effet quand la base répond
+      vmFly(unoCard(k), el, $("#vm-disc .uno")).then(() => {
+        st.hands[uid].splice(i, 1); st.disc.push(st.top); st.top = code; st.color = col; st.drew = false; buzz(20);
         if (!st.hands[uid].length) { st.log = `${me} a vidé sa main !`; return roomFinish({ card: st, phase: "reveal", res: { winner: uid } }, { [uid]: 3 }); }
         st.log = `${me} pose ${unoSay(k, col)}.`;
-        if (st.hands[uid].length === 1) { stamp("Dernière carte !", "green"); st.log += ` Plus qu'une carte !`; }
+        if (st.hands[uid].length === 1) st.log += " Plus qu'une carte !";
         const alive = P.filter(u => r.players[u]).length;
         if (k.v === "rev") { st.dir = -st.dir; if (alive === 2) st.cur = step(st.cur); }
         if (k.v === "skip") { st.cur = step(st.cur); st.log += ` ${pname(r, P[st.cur])} passe son tour.`; }
@@ -6517,16 +6632,16 @@ function roomRenderX(r, h) {
         }
         st.cur = step(st.cur);
         save();
-      };
-      $$(".uno-hand .uno.ok").forEach(b => b.onclick = () => {
-        if (locked) return;
-        const i = +b.dataset.i, k = hand[i];
-        if (k.c === "w") return sheet(`<span class="mast" style="font-size:28px">Quelle couleur ?</span>
-          <div class="uno-colors">${Object.keys(UNO_COLS).map(x => `<button data-c="${x}" style="background:${UNO_COLS[x]};color:${x === "y" ? "#1A0F2E" : "#fff"}">${UNO_NAMES[x]}</button>`).join("")}</div>`,
-          w => $$("[data-c]", w).forEach(z => z.onclick = () => { w.remove(); if (!locked) { locked = true; put(i, z.dataset.c); } }));
-        locked = true; put(i, k.c);
       });
+    };
+    $$("#vm-hand .uno").forEach(b => b.onclick = () => {
+      if (locked) return;
+      const i = +b.dataset.i, k = hand[i];
+      if (!ok(k)) { toast(unoWhy(top, c.color, pen)); buzz(8); return; }
+      if (k.c === "w") return vmChoose(col => { if (!locked) { locked = true; put(i, col, b); } });
+      locked = true; put(i, k.c, b);
     });
+    return;
   }
 
   // Sans le dire
