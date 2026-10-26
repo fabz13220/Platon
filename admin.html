@@ -135,8 +135,10 @@ const NOMS_X = { verite: "Action ou vérité : vérités", action: "Action ou v�
 const CHAMPS_X = { taboo: ["Mot à faire deviner", "Interdit", "Interdit", "Interdit", "Interdit", "Interdit"], deux: ["Qui de nous deux…"] };
 const gameName = k => NOMS_X[k] || (DEF.noms[k]) || k;
 const fields = k => CHAMPS_X[k] || DEF.champs[k] || ["Texte"];
+// même identifiant de carte que dans l'appli
+const cardKey = (k, c) => k + ":" + c.slice(1).join("|");
 const fromPub = () => {
-  const w = { cartes: clone(DEF.cartes), deux: clone(DEF.deux), desc: clone(DEF.desc), levels: clone(DEF.levels), tuto: clone(DEF.tuto) };
+  const w = { cartes: clone(DEF.cartes), deux: clone(DEF.deux), desc: clone(DEF.desc), levels: clone(DEF.levels), tuto: clone(DEF.tuto), auteurs: clone(pub.auteurs || {}) };
   for (const k in pub.cartes || {}) w.cartes[k] = clone(pub.cartes[k]);
   if (pub.deux) w.deux = clone(pub.deux);
   Object.assign(w.desc, pub.desc || {}); (pub.levels || []).forEach((x, i) => { if (x) w.levels[i] = x; }); Object.assign(w.tuto, pub.tuto || {});
@@ -150,6 +152,10 @@ const toPub = w => {
   for (const k in w.desc) if (w.desc[k] !== DEF.desc[k]) o.desc[k] = w.desc[k];
   for (const k in w.tuto) if (w.tuto[k] !== DEF.tuto[k]) o.tuto[k] = w.tuto[k];
   if (!same(w.levels, DEF.levels)) o.levels = w.levels;
+  // « Proposé par » : seulement pour les cartes encore présentes telles qu'elles ont été ajoutées
+  const au = {};
+  for (const id in w.auteurs) { const k = id.slice(0, id.indexOf(":")); if ((w.cartes[k] || []).some(c => cardKey(k, c) === id)) au[id] = w.auteurs[id]; }
+  if (Object.keys(au).length) o.auteurs = au;
   return o;
 };
 const dirty = () => work && !same(toPub(work), toPub(fromPub()));
@@ -278,7 +284,7 @@ function viewProps() {
   const when = t => t ? new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
   return `
     <section class="panel"><h2>Cartes proposées (${cards.length})</h2>
-      ${cards.map(p => `<div class="card" style="grid-template-columns:1fr auto"><div><span class="tag">${esc(gameName(p.type))}</span> <span class="tag">${esc(DEF.levelNames[(p.lvl || 1) - 1] || "")}</span> <span class="muted" style="font-size:13px">${when(p.at)}</span><p style="margin-top:6px">${esc(p.card)}</p></div>
+      ${cards.map(p => `<div class="card" style="grid-template-columns:1fr auto"><div><span class="tag">${esc(gameName(p.type))}</span> <span class="tag">${esc(DEF.levelNames[(p.lvl || 1) - 1] || "")}</span> <span class="muted" style="font-size:13px">${when(p.at)} · ${p.par ? "par " + esc(p.par) : "anonyme"}</span><p style="margin-top:6px">${esc(p.card)}</p></div>
         <div class="votes">${list(p.type) ? `<button class="btn small" data-addp="${esc(p.id)}">Ajouter au jeu</button>` : ""}<button class="btn ghost small" data-hide="${esc(p.id)}">Masquer</button></div></div>`).join("") || `<p class="muted">Rien pour l'instant.</p>`}</section>
     <section class="panel"><h2>Idées (${ideas.length})</h2>
       ${ideas.map(p => `<div class="card" style="grid-template-columns:1fr auto"><div><span class="muted" style="font-size:13px">${when(p.at)}</span><p style="margin-top:4px">${esc(p.card)}</p></div><div class="votes"><button class="btn ghost small" data-hide="${esc(p.id)}">Masquer</button></div></div>`).join("") || `<p class="muted">Rien pour l'instant.</p>`}</section>`;
@@ -287,7 +293,9 @@ function bindProps() {
   document.querySelectorAll("[data-hide]").forEach(b => b.onclick = () => { hidden.add(b.dataset.hide); localStorage.setItem("admin:hidden", JSON.stringify([...hidden])); render(); });
   document.querySelectorAll("[data-addp]").forEach(b => b.onclick = () => {
     const p = PROPS.find(x => x.id === b.dataset.addp), parts = String(p.card).split(" / "), L = list(p.type);
-    L.unshift([p.lvl || 1, ...fields(p.type).map((_, i) => parts[i] || "")]);
+    const c = [p.lvl || 1, ...fields(p.type).map((_, i) => parts[i] || "")];
+    L.unshift(c);
+    if (p.par) work.auteurs[cardKey(p.type, c)] = String(p.par).slice(0, 14);
     hidden.add(p.id); localStorage.setItem("admin:hidden", JSON.stringify([...hidden]));
     syncBar(); render(); toast("Ajoutée aux cartes. Pense à publier.");
   });

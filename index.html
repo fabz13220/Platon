@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="9502f8dc0bfa">
+<meta name="build" content="19972d1be4e5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <link rel="icon" type="image/png" href="icon-192.png?v=5">
@@ -292,6 +292,7 @@ p { margin: 0; }
   box-shadow: inset 0 2px 8px rgba(0,0,0,.25);
 }
 .field input::placeholder, .duo-in::placeholder { color: rgba(220,212,255,.66); font-weight: 700; }
+.duo-in:disabled { opacity: .45; }
 .field input:focus, .duo-in:focus { border-color: var(--red); box-shadow: 0 0 0 4px rgba(255,59,110,.22); outline: none; }
 .field .btn { width: auto; padding: 0 22px; min-height: 58px; font-size: 17px; }
 .chips { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -1094,6 +1095,8 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .card:has(> .card-rate)::after { flex-basis: 0 !important; }
 .card .card-rate button { flex: none; width: 44px; min-height: 44px; height: 44px; padding: 0; font-size: 20px; line-height: 1; border-radius: 50%; background: var(--hl); border: 1px solid rgba(255,255,255,.28); color: #fff; display: grid; place-items: center; }
 .card .card-rate button[aria-pressed="false"] { filter: grayscale(.35); }
+.card .card-rate .card-by { align-self: center; max-width: 150px; font-size: 12px; line-height: 1.25; opacity: .8; overflow-wrap: normal; }
+.card .card-rate .card-by b { font-weight: 800; white-space: nowrap; }
 .vote-list { display: flex; flex-direction: column; gap: 8px; }
 .vote-list > div { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--hair); }
 .vote-list p { flex: 1; margin: 0; font-weight: 800; font-size: 15px; }
@@ -2590,6 +2593,9 @@ const S = {
 const used = new Set(store.get("used", []));
 const ban = new Set(store.get("ban", []));
 const cardId = (type, c) => type + ":" + c.slice(1).join("|");
+// cartes de joueurs validées sur la page admin : identifiant de la carte → prénom de celui qui l'a proposée
+const AUTEURS = {};
+const byHtml = c => c && AUTEURS[c.id] ? `<span class="card-by">Proposé par <b>${esc(AUTEURS[c.id])}</b></span>` : "";
 // cartes proposées sur ce téléphone : jouables tout de suite
 store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => cardId(o.type, c) === cardId(o.type, o.card))) C[o.type].push(o.card); });
 
@@ -3228,13 +3234,13 @@ function bindHeader() {
   // la carte du dessous porte les mêmes boutons (inactifs) : quand elle passe dessus, rien ne bouge dans la carte ni n'apparaît / disparaît
   const under = $(".stage .card.under"), nc = S.deck && S.deck[S.idx + 1];
   // seulement si cette carte aura vraiment un vote une fois dessus
-  if (under && nc && nc.id && C[nc.type] && !$(".card-rate", under)) under.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate" aria-hidden="true"><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "top")}">🔥</button><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "mew")}">😑</button></div>`);
+  if (under && nc && nc.id && C[nc.type] && !$(".card-rate", under)) under.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate" aria-hidden="true"><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "top")}">🔥</button><button tabindex="-1" aria-pressed="${!!(nc && votes[nc.id] === "mew")}">😑</button>${byHtml(nc)}</div>`);
   bindRate();
 }
 // boutons 🔥 / 😑 posés sur une carte (un téléphone comme plusieurs téléphones)
 function cardRate(card, c) {
   if (card && c && !$(".card-rate", card)) {
-    card.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate"><button data-v="top" aria-label="Carte lourde" aria-pressed="${votes[c.id] === "top"}">🔥</button><button data-v="mew" aria-label="Carte bof" aria-pressed="${votes[c.id] === "mew"}">😑</button></div>`);
+    card.insertAdjacentHTML("beforeend", `<div class="ratebar card-rate"><button data-v="top" aria-label="Carte lourde" aria-pressed="${votes[c.id] === "top"}">🔥</button><button data-v="mew" aria-label="Carte bof" aria-pressed="${votes[c.id] === "mew"}">😑</button>${byHtml(c)}</div>`);
     $$(".card-rate button", card).forEach(b => {
       ["pointerdown", "touchstart", "mousedown"].forEach(t => b.addEventListener(t, e => e.stopPropagation())); // toucher le vote ne lance pas le swipe
       b.addEventListener("click", () => { // le bouton saute et trois petits emojis s'envolent
@@ -4240,7 +4246,8 @@ const devId = store.get("dev", null) || (() => { const d = Math.random().toStrin
 let dbP = null;
 const getClaudeDb = () => dbP || (dbP = Promise.resolve().then(() => window.claude && window.claude.use ? window.claude.use("db") : null).catch(() => null));
 // Base Firebase partagée (votes et propositions de tous les téléphones, sur le site comme dans Claude)
-const FS = "https://firestore.googleapis.com/v1/projects/platoz-3abf9/databases/(default)/documents/";
+// en test (réglage emu), tout part vers l'émulateur, jamais vers la vraie base
+const FS = (store.get("emu", 0) ? "http://127.0.0.1:8080" : "https://firestore.googleapis.com") + "/v1/projects/platoz-3abf9/databases/(default)/documents/";
 const fsVal = v => typeof v === "number" ? { integerValue: String(Math.round(v)) } : typeof v === "boolean" ? { booleanValue: v } : { stringValue: String(v) };
 const fsPlain = f => Object.fromEntries(Object.entries(f || {}).map(([k, v]) => [k, "integerValue" in v ? +v.integerValue : "doubleValue" in v ? v.doubleValue : "booleanValue" in v ? v.booleanValue : v.stringValue]));
 const fsDb = {
@@ -4379,6 +4386,7 @@ const PROPOSE = {
 };
 function proposeTool() {
   let t = store.get("propType", "jamais"), lv = 2;
+  let by = store.get("propBy", (store.get("me", {}) || {}).name || ""), anon = store.get("propAnon", false);
   const mine = () => store.get("custom", []);
   tool({ title: "Proposer une carte", body: `<div class="propose" id="pp"></div>` }, w => {
     const draw = () => {
@@ -4391,21 +4399,27 @@ function proposeTool() {
         ${t === "verite" || t === "action" || t === "menteur" ? "" : `<p class="hint muted" style="margin:0">${t === "jamais" ? "Écris seulement la suite : « fumé de la beuh »." : t === "qui" ? "Écris seulement la suite : « finir en garde à vue »." : t === "classement" ? "Exemple : « le plus radin »." : ""}</p>`}
         <div class="section-label">Intensité</div>
         <div class="seg" id="plv">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === lv}">${l.name}</button>`).join("")}</div>
+        <div class="section-label">Ton nom sur la carte</div>
+        <input class="duo-in" id="pby" maxlength="14" placeholder="Ton prénom" value="${esc(by)}" autocomplete="off" autocapitalize="words" ${anon ? "disabled" : ""}>
+        <div class="chips"><button class="chip pick" id="panon" aria-pressed="${anon}">Rester anonyme</button></div>
+        <p class="hint muted" style="margin:0">${anon ? "Ton nom ne sera pas affiché." : "Si elle est gardée, la carte affichera « Proposé par » et ton prénom."}</p>
         <button class="btn red" id="send">Ajouter la carte</button>
         <p class="hint muted" style="margin:0;text-align:center">Elle est jouable tout de suite sur ce téléphone et elle est envoyée pour qu'on la relise. Tu as proposé ${mine().length} carte${mine().length > 1 ? "s" : ""}.</p>`;
       $$("[data-k]", w).forEach(b => b.onclick = () => { t = b.dataset.k; store.set("propType", t); draw(); });
       $$("#plv button", w).forEach(b => b.onclick = () => { lv = +b.dataset.l; $$("#plv button", w).forEach(x => x.setAttribute("aria-pressed", +x.dataset.l === lv)); });
-      $$(".duo-in", w).forEach(inp => inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const nx = $(`.duo-in[data-i="${+inp.dataset.i + 1}"]`, w); nx ? nx.focus() : send(); } });
+      $$(".duo-in[data-i]", w).forEach(inp => inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const nx = $(`.duo-in[data-i="${+inp.dataset.i + 1}"]`, w); nx ? nx.focus() : send(); } });
+      $("#pby", w).oninput = e => { by = e.target.value; store.set("propBy", by); };
+      $("#panon", w).onclick = () => { anon = !anon; store.set("propAnon", anon); const v = $$(".duo-in[data-i]", w).map(i => i.value); draw(); $$(".duo-in[data-i]", w).forEach((i, k) => i.value = v[k] || ""); };
       $("#send", w).onclick = send;
     };
     const send = () => {
-      const vals = $$(".duo-in", w).map(i => i.value.trim().replace(/\s+/g, " ").replace(/^je n'ai jamais\s+/i, "").replace(/^qui pourrait\s+/i, "").replace(/[.?]$/, t === "verite" || t === "menteur" || t === "ouinon" ? "$&" : ""));
+      const vals = $$(".duo-in[data-i]", w).map(i => i.value.trim().replace(/\s+/g, " ").replace(/^je n'ai jamais\s+/i, "").replace(/^qui pourrait\s+/i, "").replace(/[.?]$/, t === "verite" || t === "menteur" || t === "ouinon" ? "$&" : ""));
       if (vals.some(v => !v)) { toast(vals.length > 1 ? "Remplis les deux champs." : "Écris ta carte d'abord."); return; }
-      const card = [lv, ...vals];
+      const card = [lv, ...vals], par = anon ? "" : by.trim().replace(/\s+/g, " ").slice(0, 14);
       if (C[t].some(c => cardId(t, c) === cardId(t, card))) { toast("Cette carte existe déjà."); return; }
       C[t].push(card);
       const list = mine(); list.push({ type: t, card }); store.set("custom", list);
-      getDb().then(db => db && db.doc("propositions/" + devId + "_" + hashId(cardId(t, card))).set({ type: t, card: card.slice(1).join(" / "), lvl: lv, at: Date.now() })).catch(() => {});
+      getDb().then(db => db && db.doc("propositions/" + devId + "_" + hashId(cardId(t, card))).set({ type: t, card: card.slice(1).join(" / "), lvl: lv, at: Date.now(), ...(par ? { par } : {}) })).catch(() => {});
       buzz(30); toast("Carte ajoutée au jeu."); draw();
     };
     w.style.overflowY = "auto";
@@ -7039,6 +7053,8 @@ function applyContenu(d) {
     if (d.desc) for (const k in d.desc) if (TYPES[k] && typeof d.desc[k] === "string") TYPES[k].desc = d.desc[k];
     if (Array.isArray(d.levels)) d.levels.forEach((x, i) => { if (LEVELS[i] && x) LEVELS[i].desc = x; });
     if (d.tuto) for (const k in d.tuto) if (d.tuto[k]) TUTO[k] = d.tuto[k];
+    for (const k in AUTEURS) delete AUTEURS[k];
+    if (d.auteurs) for (const k in d.auteurs) if (typeof d.auteurs[k] === "string" && d.auteurs[k].trim()) AUTEURS[k] = d.auteurs[k].trim().slice(0, 14);
     store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => cardId(o.type, c) === cardId(o.type, o.card))) C[o.type].push(o.card); });
   } catch (e) {}
 }
