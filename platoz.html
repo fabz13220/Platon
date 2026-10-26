@@ -2,7 +2,20 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600..900&family=Unbounded:wght@600..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600..900&family=Unbounded:wght@600..900&family=Outfit:wght@500..900&display=swap">
+<script>
+// mode clair (Dégradé vif) ou sombre (Aurore) : choisi dans Réglages, sinon celui du téléphone ; posé avant le premier affichage
+function applyTheme() {
+  let t = "auto"; try { t = JSON.parse(localStorage.getItem("scandale:theme")) || "auto"; } catch (e) {}
+  if (t === "auto") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.dataset.theme = t;
+  let m = document.querySelector('meta[name="theme-color"]');
+  if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
+  m.content = t === "dark" ? "#061224" : "#FFF4F0";
+}
+applyTheme();
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
+</script>
 <style>
 /* =====================================================================
    PLATOZ · skin "NÉON" — night-club party energy
@@ -1437,6 +1450,569 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tuto-btns { display: flex; gap: 8px; }
 .tuto-btns .btn { flex: 1; min-height: 56px; padding: 0 10px; font-size: 17px; }
 .tuto-btns #tuto-skip { flex: 1.25; }
+/* THEMES-START */
+/* =====================================================================
+   MODE CLAIR · « Dégradé vif » (choisi le 26/10/2026)
+   Fond clair avec des taches orange, rose, violet et bleu ; cartes et tuiles
+   blanches teintées de la couleur du jeu, texte foncé, boutons en dégradé vif.
+   Police Outfit. Le menu du bas reste celui d'origine.
+   ===================================================================== */
+html[data-theme="light"] {
+  --display: "Outfit", "Arial Black", sans-serif;
+  --body: "Outfit", "Helvetica Neue", Arial, sans-serif;
+  --night: #FFF4F0;
+  --night-2: #FFFFFF;
+  --paper: #1B1030;
+  --text: #1B1030;
+  --muted: #6A5C7E;
+  --glass: rgba(255,255,255,.7);
+  --glass-2: rgba(255,255,255,.9);
+  --hair: rgba(27,16,48,.12);
+  --vivid: linear-gradient(100deg, #FF7A00 0%, #FF2E93 52%, #7B2FFF 100%);
+  --holo: linear-gradient(135deg, #FFE7D6 0%, #FFE0F0 50%, #ECE2FF 100%);
+  --holo2: linear-gradient(135deg, #FFF0E4 0%, #FFE8F3 50%, #F0E9FF 100%);
+  --shine: linear-gradient(transparent, transparent);
+  --chrome-dk: var(--vivid);
+  --chrome-lt: #FFFFFF;
+  --lift: 0 1px 2px rgba(60,20,70,.07), 0 8px 22px -10px rgba(120,30,90,.28);
+  --deep: #E01F7E;
+  color-scheme: light;
+}
+
+:where(html[data-theme="light"]) body { font-weight: 600; }
+
+:where(html[data-theme="light"]) body::after {
+  background:
+    radial-gradient(75% 40% at 0% 0%, rgba(255,154,0,.55), transparent 70%),
+    radial-gradient(70% 42% at 105% 22%, rgba(255,46,147,.42), transparent 70%),
+    radial-gradient(80% 45% at 0% 88%, rgba(123,47,255,.32), transparent 70%),
+    radial-gradient(70% 40% at 105% 105%, rgba(0,179,255,.42), transparent 70%),
+    #FFF4F0;
+}
+
+:where(html[data-theme="light"]) ::selection { background: #FFC2E0; color: var(--text); }
+
+:where(html[data-theme="light"]) button:focus-visible, :where(html[data-theme="light"]) input:focus-visible { outline-color: var(--deep); }
+
+:where(html[data-theme="light"]) .mast { font-weight: 800; letter-spacing: -.02em; }
+
+:where(html[data-theme="light"]) .topbar .title { font-weight: 800; }
+
+:where(html[data-theme="light"]) .rail-title { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -.01em; }
+
+:where(html[data-theme="light"]) .masthead .logo, :where(html[data-theme="light"]) .home-head .logo {
+  font-family: "Unbounded", "Arial Black", sans-serif; font-weight: 900;
+  background: linear-gradient(100deg, #FF7A00 0%, #FF2E93 50%, #7B2FFF 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: none;
+}
+
+:where(html[data-theme="light"]) .masthead .rule span + span::before { color: var(--deep); }
+
+:where(html[data-theme="light"]) .iconbtn, :where(html[data-theme="light"]) .changebtn { background: #fff; border: 0; color: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .btn { --bg: var(--chrome-lt); --fg: var(--text); --gl: transparent; box-shadow: var(--lift), inset 0 0 0 1px rgba(27,16,48,.06); text-shadow: none; font-weight: 800; }
+
+:where(html[data-theme="light"]) .btn.red { --bg: var(--vivid); --fg: #fff; box-shadow: 0 12px 26px -12px rgba(224,31,126,.7), inset 0 1px 0 rgba(255,255,255,.25); text-shadow: none; }
+
+:where(html[data-theme="light"]) .btn.ink, :where(html[data-theme="light"]) .btn.white { --bg: #fff; --fg: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .btn.green { --bg: linear-gradient(180deg, #7DF2C2, #2FD3A0); --fg: #0B2A20; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .btn.blue { --bg: linear-gradient(180deg, #5C8DFF, #3355E8); --fg: #fff; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .actions .row > .btn.white:first-child:has(+ .btn:not(.green)) { --bg: #fff; --fg: var(--text); box-shadow: var(--lift); text-shadow: none; }
+
+:where(html[data-theme="light"]) .btn:disabled, :where(html[data-theme="light"]) .btn.red:disabled { --bg: rgba(27,16,48,.06); --fg: rgba(27,16,48,.5); box-shadow: inset 0 0 0 1.5px rgba(27,16,48,.08); }
+
+:where(html[data-theme="light"]) .linkbtn { color: var(--muted); }
+
+:where(html[data-theme="light"]) .sheet .linkbtn { color: var(--deep); }
+
+:where(html[data-theme="light"]) .stepper, :where(html[data-theme="light"]) .where-seg { background: rgba(255,255,255,.7); border: 0; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .stepper button { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(30,40,70,.16); }
+
+:where(html[data-theme="light"]) .where-seg button { color: var(--muted); }
+
+:where(html[data-theme="light"]) .where-seg button[aria-pressed="true"] { background: var(--chrome-dk); color: #fff; }
+
+:where(html[data-theme="light"]) .tile.rt { background: radial-gradient(85% 70% at 85% 12%, color-mix(in srgb, var(--rc) 55%, transparent), transparent 72%), #fff; color: var(--text); box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--rc) 70%, transparent), inset 0 0 0 1px rgba(27,16,48,.05); }
+
+:where(html[data-theme="light"]) .tile.rt .mast { color: var(--text); }
+
+:where(html[data-theme="light"]) .tile.rt .ill { filter: drop-shadow(0 6px 10px rgba(80,20,60,.2)); }
+
+:where(html[data-theme="light"]) .multi-note { background: var(--holo2); color: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .friends-btn { background: #fff; border: 0; color: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .tabbar { font-family: Nunito, sans-serif; }
+
+:where(html[data-theme="light"]) .tabbar > button { color: #C9C0F2; font-family: Nunito, sans-serif; }
+
+:where(html[data-theme="light"]) .tabbar > button.on { color: #FF3B6E; }
+
+:where(html[data-theme="light"]) .tab-mix { box-shadow: 0 0 0 6px #FFF4F0, 0 10px 30px -6px rgba(255,59,110,.6); }
+
+:where(html[data-theme="light"]) .field input, :where(html[data-theme="light"]) .duo-in, :where(html[data-theme="light"]) .idea-in { background: #fff; border: 1.5px solid rgba(27,16,48,.1); color: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .field input::placeholder, :where(html[data-theme="light"]) .duo-in::placeholder, :where(html[data-theme="light"]) .idea-in::placeholder { color: #8A91A8; }
+
+:where(html[data-theme="light"]) .field input:focus, :where(html[data-theme="light"]) .duo-in:focus { border-color: var(--deep); box-shadow: 0 0 0 4px rgba(176,18,138,.14); }
+
+:where(html[data-theme="light"]) .chip { background: #fff; border: 0; color: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .chip .x { background: rgba(27,16,48,.08); color: var(--text); }
+
+:where(html[data-theme="light"]) #chips .chip { color: #fff; }
+
+:where(html[data-theme="light"]) #chips .chip .x { background: rgba(255,255,255,.25); color: #fff; }
+
+:where(html[data-theme="light"]) #chips .chip:nth-child(5n+5), :where(html[data-theme="light"]) #chips .chip:nth-child(5n+5) .x { color: var(--ink); }
+
+:where(html[data-theme="light"]) .chip.pick[aria-pressed="true"] { background: var(--chrome-dk); color: #fff; box-shadow: 0 8px 18px -8px rgba(27,16,48,.5); }
+
+:where(html[data-theme="light"]) #app:has(#chips) .actions::before { -webkit-text-stroke: 2px rgba(176,18,138,.35); filter: none; opacity: 1; }
+
+:where(html[data-theme="light"]) .opt { background: rgba(255,255,255,.72); border: 0; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .opt[aria-pressed="true"] { background: var(--chrome-dk); color: #fff; box-shadow: 0 12px 28px -12px rgba(27,16,48,.6); }
+
+:where(html[data-theme="light"]) .opt .pepper { background: rgba(27,16,48,.05); }
+
+:where(html[data-theme="light"]) .opt[data-l] .pepper::before { filter: none; }
+
+:where(html[data-theme="light"]) .opts .opt[data-solo] { background: rgba(255,255,255,.72); box-shadow: inset 4px 0 0 var(--c), var(--lift); }
+
+:where(html[data-theme="light"]) .opt[data-solo] .pepper { background: rgba(27,16,48,.05); box-shadow: none; }
+
+:where(html[data-theme="light"]) .opt[data-solo] .pepper::before { filter: none; }
+
+:where(html[data-theme="light"]) .seg { background: rgba(255,255,255,.7); border: 0; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .seg button[aria-pressed="true"] { background: var(--chrome-dk); color: #fff; box-shadow: none; }
+
+:where(html[data-theme="light"]) .bubble, :where(html[data-theme="light"]) .fin-jamais .bubble {
+  color: var(--text); text-shadow: none; border: 1.5px solid #fff;
+  background: radial-gradient(circle at 30% 25%, #fff, rgba(255,255,255,.75) 36%, rgba(214,190,255,.9) 100%);
+  box-shadow: 0 12px 26px -10px rgba(120,80,220,.55), inset 0 -6px 14px rgba(255,120,200,.3), inset 0 2px 0 #fff;
+}
+
+:where(html[data-theme="light"]) .end-bubbles .bubble:nth-child(3n+2), :where(html[data-theme="light"]) #bubbles .bubble:nth-child(3n+2) { background: radial-gradient(circle at 30% 25%, #fff, rgba(255,255,255,.75) 36%, rgba(170,225,255,.95) 100%); }
+
+:where(html[data-theme="light"]) .end-bubbles .bubble:nth-child(3n), :where(html[data-theme="light"]) #bubbles .bubble:nth-child(3n) { background: radial-gradient(circle at 30% 25%, #fff, rgba(255,255,255,.75) 36%, rgba(255,190,225,.95) 100%); }
+
+:where(html[data-theme="light"]) .bubble.held { box-shadow: 0 22px 44px -12px rgba(120,80,220,.7), inset 0 2px 0 #fff; }
+
+:where(html[data-theme="light"]) .fin-jamais .end-bubbles { background: radial-gradient(closest-side, rgba(220,200,255,.7), transparent); }
+
+:where(html[data-theme="light"]) .fin-jamais .mast { text-shadow: none; }
+
+:where(html[data-theme="light"]) .fin-jamais .rank-date { color: var(--muted); }
+
+:where(html[data-theme="light"]) .mbest { border: 0; background: var(--shine), var(--holo2); color: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .mbest b { color: var(--deep); text-shadow: none; }
+
+:where(html[data-theme="light"]) .mbest.rx-out { background: #fff; }
+
+:where(html[data-theme="light"]) .mbest.rx-out b { color: var(--text); }
+
+:where(html[data-theme="light"]) .grp-row, :where(html[data-theme="light"]) .gm-row { background: rgba(27,16,48,.05); }
+
+:where(html[data-theme="light"]) .grp-row button, :where(html[data-theme="light"]) .gm-btn { background: #fff; border: 0; color: var(--text); box-shadow: 0 1px 4px rgba(30,40,70,.16); }
+
+:where(html[data-theme="light"]) .gm-btn.red { background: var(--red); color: #fff; }
+
+:where(html[data-theme="light"]) #app .card {
+  --glow: rgba(255,46,147,.4);
+  --tx: #1B1030; --tx2: #2B3040; --panel: rgba(255,255,255,.55); --chipbg: rgba(255,255,255,.7); --chipbd: rgba(27,16,48,.12);
+  --hl: #1B1030; --mk: var(--deep); --tube: rgba(27,16,48,.07); --tglow: transparent; --tglow2: transparent;
+  background: radial-gradient(95% 55% at 0% 0%, var(--glow), transparent 72%), radial-gradient(70% 45% at 100% 100%, color-mix(in srgb, var(--glow) 55%, transparent), transparent 72%), #fff;
+  box-shadow: 0 22px 50px -24px var(--glow), inset 0 0 0 1px rgba(27,16,48,.05);
+}
+
+:where(html[data-theme="light"]) #app .card::before { display: none; }
+
+:where(html[data-theme="light"]) #app .card .text { font-family: var(--display); font-weight: 800; letter-spacing: -.02em; }
+
+:where(html[data-theme="light"]) #app .card .band .mast { font-family: var(--body); font-weight: 800; letter-spacing: .06em; }
+
+:where(html[data-theme="light"]) #app .card .band .mast { box-shadow: 0 2px 8px rgba(30,40,70,.14); }
+
+:where(html[data-theme="light"]) #app .card .chip.pick { background: var(--chipbg); border: 0; color: var(--tx); box-shadow: inset 0 0 0 1.5px var(--chipbd); }
+
+:where(html[data-theme="light"]) #app .card .chip.pick[aria-pressed="true"] { background: #1B1030; color: #fff; box-shadow: none; }
+
+:where(html[data-theme="light"]) #app .card .btn.white { --bg: #fff; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) #app .card .tlean .ty { color: #0A9E6A; }
+
+:where(html[data-theme="light"]) #app .card .tlean .tn { color: #1B1030; }
+
+:where(html[data-theme="light"]) #app .card .tlean b { background: rgba(255,255,255,.7); }
+
+:where(html[data-theme="light"]) #app .card .swipe-tag.oui { color: #0A9E6A; border-color: #0A9E6A; }
+
+:where(html[data-theme="light"]) #app .card .swipe-tag.non { color: #D0105E; border-color: #D0105E; }
+
+:where(html[data-theme="light"]) #app .card .pts-rule { background: rgba(255,255,255,.55); color: var(--text); box-shadow: inset 0 0 0 1px rgba(27,16,48,.08); }
+
+:where(html[data-theme="light"]) #app .card .bar { background: rgba(27,16,48,.12); }
+
+:where(html[data-theme="light"]) #app .card .bar i { background: #1B1030; box-shadow: none; }
+
+:where(html[data-theme="light"]) #app .card .qcount { border-color: rgba(27,16,48,.15); background: rgba(255,255,255,.7); color: var(--text); }
+
+:where(html[data-theme="light"]) #app .card .qcount.on { background: #1B1030; color: #fff; }
+
+:where(html[data-theme="light"]) #app .card .card-rate button { border-color: transparent; }
+
+:where(html[data-theme="light"]) #app .card .avpick button { background: rgba(255,255,255,.7); border-color: rgba(27,16,48,.12); }
+
+:where(html[data-theme="light"]) #app .card .avother { background: rgba(255,255,255,.7); border-color: rgba(27,16,48,.12); }
+
+:where(html[data-theme="light"]) #app .card .tb-forbid, :where(html[data-theme="light"]) #app .card.tb-play .tb-forbid { background: rgba(255,255,255,.6); }
+
+:where(html[data-theme="light"]) #app .card .tb-forbid span { background: none; color: var(--text); }
+
+:where(html[data-theme="light"]) #app .card.tb-play .tb-forbid small { color: #D0105E; }
+
+:where(html[data-theme="light"]) #app .card .tb-goldtag { background: #1B1030; color: #FFE27A; }
+
+:where(html[data-theme="light"]) #app .card .tb-defi { background: rgba(255,255,255,.6); }
+
+:where(html[data-theme="light"]) #app .card .tb-defi b { background: rgba(27,16,48,.1); }
+
+:where(html[data-theme="light"]) #app .card .radar-res div, :where(html[data-theme="light"]) #app .card .rank-order > div { background: rgba(255,255,255,.6); }
+
+:where(html[data-theme="light"]) #app .card .rank-order b { background: #1B1030; color: #fff; }
+
+:where(html[data-theme="light"]) #app .card .rank-opts .btn { background: #fff; color: var(--text); }
+
+:where(html[data-theme="light"]) #app .card .rank-opts .btn[aria-pressed="true"] { background: #1B1030; color: #fff; box-shadow: 0 0 0 3px var(--deep); }
+
+:where(html[data-theme="light"]) #app .card .vs .opt-a, :where(html[data-theme="light"]) #app .card .vs .opt-b { box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) #app .card .vs .or { box-shadow: 0 0 0 5px rgba(255,255,255,.8); }
+
+:where(html[data-theme="light"]) .dial .needle { stroke: #1B1030; filter: none; }
+
+:where(html[data-theme="light"]) .dial .hub, :where(html[data-theme="light"]) .dial .rz { fill: #1B1030; }
+
+:where(html[data-theme="light"]) .radar-res .guide i { box-shadow: inset 0 0 0 2px #1B1030; }
+
+:where(html[data-theme="light"]) #app .jstack .card.avw { --tx: #1B1030; --tx2: #2B3040; --panel: rgba(255,255,255,.55); --chipbg: rgba(255,255,255,.7); --chipbd: rgba(27,16,48,.12); --hl: #1B1030; --mk: var(--deep); --tube: rgba(27,16,48,.07); }
+
+:where(html[data-theme="light"]) #app .jstack .card.avduo { --g: linear-gradient(165deg, #FFD3EC, #FFE0CC) right / 50% 100% no-repeat, linear-gradient(165deg, #C7E6FF, #D8D2FF) left / 50% 100% no-repeat; }
+
+:where(html[data-theme="light"]) #app .jstack .card.av-v, :where(html[data-theme="light"]) #app .jstack .card.avq.show-v { --g: linear-gradient(165deg, #C7E6FF, #DCD4FF); }
+
+:where(html[data-theme="light"]) #app .jstack .card.av-a, :where(html[data-theme="light"]) #app .jstack .card.avq.show-a { --g: linear-gradient(165deg, #FFD3EC, #FFE2CC); }
+
+:where(html[data-theme="light"]) #app .jstack .card.avduo .avpick button { background: rgba(255,255,255,.75); border-color: rgba(27,16,48,.12); color: var(--text); }
+
+:where(html[data-theme="light"]) #app .card.tb-play.tbgold { --g: linear-gradient(165deg, #FFF1B8 0%, #FFD86E 55%, #F5B83D 100%); box-shadow: 0 0 0 3px #FFD86E, 0 20px 50px -18px rgba(200,140,0,.5); }
+
+:where(html[data-theme="light"]) #app .tbgold .tb-word { text-shadow: none; }
+
+:where(html[data-theme="light"]) .jstack::before { background: rgba(255,255,255,.75); box-shadow: 0 6px 14px -8px rgba(30,40,70,.3); }
+
+:where(html[data-theme="light"]) .jstack::after { background: rgba(255,255,255,.5); }
+
+:where(html[data-theme="light"]) .jstack > .card.under { filter: none; }
+
+:where(html[data-theme="light"]) .jstack > .card.under > .under-shade { background: #E9ECF4; opacity: .5; }
+
+:where(html[data-theme="light"]) .secret, :where(html[data-theme="light"]) .impx {
+  --paper: #1B1030; --yellow: var(--deep); --red: #D0105E;
+  color: var(--text); border: 0;
+  background: var(--shine), var(--holo2);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.9), 0 22px 50px -24px rgba(30,40,70,.45);
+}
+
+:where(html[data-theme="light"]) .secret::before, :where(html[data-theme="light"]) .secret::after { display: none; }
+
+:where(html[data-theme="light"]) .secret .mast { color: var(--deep); text-shadow: none; }
+
+:where(html[data-theme="light"]) .imphold .imp-face { background: #fff; }
+
+:where(html[data-theme="light"]) .impx .ttl { color: color-mix(in srgb, var(--bd) 45%, #1B1030); text-shadow: none; }
+
+:where(html[data-theme="light"]) .impx .big { filter: none; }
+
+:where(html[data-theme="light"]) .impx .ln b { color: var(--deep); text-shadow: none; }
+
+:where(html[data-theme="light"]) .impx .roles span { background: rgba(255,255,255,.7); border: 0; }
+
+:where(html[data-theme="light"]) .impx #wait { color: var(--text); }
+
+:where(html[data-theme="light"]) .impx.clsx .rank-order > div { background: rgba(255,255,255,.6); color: var(--text); }
+
+:where(html[data-theme="light"]) .impx.clsx .rank-order b { background: #1B1030; color: #fff; }
+
+:where(html[data-theme="light"]) .poles span { color: #fff; background: #1B1030; text-shadow: none; box-shadow: none; }
+
+:where(html[data-theme="light"]) .clsq { background: #1B1030; }
+
+:where(html[data-theme="light"]) .clsq b { color: #FFE27A; }
+
+:where(html[data-theme="light"]) .tb-c { color: var(--text); background: rgba(255,255,255,.7); }
+
+:where(html[data-theme="light"]) .tb-c i { box-shadow: inset 0 0 0 2px rgba(27,16,48,.25); }
+
+:where(html[data-theme="light"]) .tb-c.ok { background: rgba(46,230,160,.22); }
+
+:where(html[data-theme="light"]) .tb-c:not(.ok) span { text-decoration-color: rgba(27,16,48,.35); }
+
+:where(html[data-theme="light"]) .tb-team, :where(html[data-theme="light"]) .tb-score span, :where(html[data-theme="light"]) .tb-endhead { background: rgba(255,255,255,.7); }
+
+:where(html[data-theme="light"]) .tb-team.drop { background: #fff; }
+
+:where(html[data-theme="light"]) .tb-name { background: #fff; color: var(--text); }
+
+:where(html[data-theme="light"]) .tb-name.drag { color: #fff; }
+
+:where(html[data-theme="light"]) .tb-step button { background: #fff; color: var(--text); box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .tb-top .tb-timer { background: #fff; }
+
+:where(html[data-theme="light"]) .tb-minus.plus, :where(html[data-theme="light"]) .tb-endsub.dwin { color: #0A9E6A; }
+
+:where(html[data-theme="light"]) .tb-defi { background: rgba(255,255,255,.6); }
+
+:where(html[data-theme="light"]) .tb-defi.won { background: rgba(46,230,160,.22); }
+
+:where(html[data-theme="light"]) .tb-no { --bg: #FFE3EC !important; --fg: #B0103F !important; box-shadow: inset 0 0 0 1.5px #FF3B6E !important; }
+
+:where(html[data-theme="light"]) .rank-list li, :where(html[data-theme="light"]) .rx-list > div, :where(html[data-theme="light"]) .vote-list > div, :where(html[data-theme="light"]) .fr-row, :where(html[data-theme="light"]) .on-row, :where(html[data-theme="light"]) .on-card, :where(html[data-theme="light"]) .mission-row, :where(html[data-theme="light"]) .vm-opp, :where(html[data-theme="light"]) .banrow { background: rgba(255,255,255,.72); border: 0; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .rank-list .rk, :where(html[data-theme="light"]) .fr-av { background: rgba(27,16,48,.08); }
+
+:where(html[data-theme="light"]) .fr-av::after { border-color: #fff; }
+
+:where(html[data-theme="light"]) .mini-rank div { background: rgba(255,255,255,.7); color: var(--text); }
+
+:where(html[data-theme="light"]) .rx-list .top { background: rgba(46,230,160,.2); }
+
+:where(html[data-theme="light"]) .rx-list .top b { color: #0A7A52; }
+
+:where(html[data-theme="light"]) .rx-list .bad b { color: #D0105E; }
+
+:where(html[data-theme="light"]) .rx-list .slow b { color: #B26B00; }
+
+:where(html[data-theme="light"]) .rx-list .out { text-decoration-color: rgba(27,16,48,.5); }
+
+:where(html[data-theme="light"]) .rank-say { color: var(--deep); }
+
+:where(html[data-theme="light"]) .pur-row, :where(html[data-theme="light"]) .pur-row > *, :where(html[data-theme="light"]) .pur-def { color: var(--text); }
+
+:where(html[data-theme="light"]) .pur-row i { background: rgba(27,16,48,.1); }
+
+:where(html[data-theme="light"]) .pur-row u { box-shadow: none; }
+
+:where(html[data-theme="light"]) .pur-how { color: var(--muted); }
+
+:where(html[data-theme="light"]) .progress { background: #fff; border: 0; box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .bar { background: rgba(27,16,48,.1); box-shadow: none; }
+
+:where(html[data-theme="light"]) .bar i { background: #1B1030; box-shadow: none; }
+
+:where(html[data-theme="light"]) .big-count { color: var(--text); text-shadow: 0 0 30px rgba(255,59,110,.35); }
+
+:where(html[data-theme="light"]) .stage:has(.big-count)::before { border-color: rgba(176,18,138,.5); box-shadow: none; }
+
+:where(html[data-theme="light"]) .stage:has(.big-count)::after { border-color: rgba(27,16,48,.1); background: radial-gradient(closest-side, rgba(255,170,230,.45), transparent); }
+
+:where(html[data-theme="light"]) .timer { text-shadow: none; }
+
+:where(html[data-theme="light"]) .on-code { color: var(--deep); }
+
+:where(html[data-theme="light"]) .fr-txt small.on { color: #0A9E6A; }
+
+:where(html[data-theme="light"]) .tag.lose { background: #5E6680; }
+
+:where(html[data-theme="light"]) .stamp { color: var(--text); background: #fff; text-shadow: none; box-shadow: 0 12px 34px -10px rgba(30,40,70,.45); }
+
+:where(html[data-theme="light"]) .stamp.green, :where(html[data-theme="light"]) .stamp.blue { text-shadow: none; box-shadow: 0 12px 34px -10px rgba(30,40,70,.45); }
+
+:where(html[data-theme="light"]) .toast { background: #1B1030; color: #fff; box-shadow: 0 12px 30px -10px rgba(27,16,48,.6); }
+
+:where(html[data-theme="light"]) .wheel-glow { background: radial-gradient(closest-side, rgba(255,170,230,.7), rgba(150,225,255,.35) 70%, transparent); }
+
+:where(html[data-theme="light"]) .chooser { border-color: rgba(27,16,48,.18); background: radial-gradient(circle at 50% 50%, rgba(255,170,230,.3), transparent 70%); }
+
+:where(html[data-theme="light"]) .chooser.live { border-color: rgba(27,16,48,.35); }
+
+:where(html[data-theme="light"]) .dwrap { filter: drop-shadow(0 10px 18px rgba(30,40,70,.3)); }
+
+:where(html[data-theme="light"]) .vm-cover { border-color: rgba(27,16,48,.25); background: rgba(255,255,255,.5); color: var(--text); }
+
+:where(html[data-theme="light"]) .vm-opp.on { background: #1B1030; color: #fff; box-shadow: none; }
+
+:where(html[data-theme="light"]) .vm-opp.on .vm-mini i { border-color: #fff; background: #1B1030; }
+
+:where(html[data-theme="light"]) .p4 i { background: #E9ECF4; }
+
+:where(html[data-theme="light"]) .une { color: var(--text); border: 0; background: #fff; box-shadow: var(--lift), 0 30px 60px -30px rgba(30,40,70,.4); }
+
+:where(html[data-theme="light"]) .une .aw { box-shadow: inset 0 0 0 1px rgba(27,16,48,.08); }
+
+:where(html[data-theme="light"]) .une .aw::before { box-shadow: none; }
+
+:where(html[data-theme="light"]) .une .aw:nth-child(4n+2) { --ac: #D99A00; }
+
+:where(html[data-theme="light"]) .une .aw:nth-child(4n+3) { --ac: #0E9F8A; }
+
+:where(html[data-theme="light"]) .une .stats div { background: var(--holo2); box-shadow: none; }
+
+:where(html[data-theme="light"]) .une .stats b { color: var(--deep); text-shadow: none; }
+
+:where(html[data-theme="light"]) .une .stats span { color: var(--muted); }
+
+:where(html[data-theme="light"]) .une .head .kicker { box-shadow: none; }
+
+:where(html[data-theme="light"]) .preview-img { box-shadow: var(--lift); }
+
+:where(html[data-theme="light"]) .sheet-wrap, :where(html[data-theme="light"]) .tuto-wrap { background: rgba(30,35,55,.32); }
+
+:where(html[data-theme="light"]) .sheet, :where(html[data-theme="light"]) .tuto { background: linear-gradient(180deg, #FFFFFF 0%, #F1F3F8 100%); color: var(--text); box-shadow: 0 -20px 60px -20px rgba(30,40,70,.4); }
+
+:where(html[data-theme="light"]) .sheet::before { background: rgba(27,16,48,.2); }
+
+:where(html[data-theme="light"]) .sheet .text, :where(html[data-theme="light"]) .banrow p { color: var(--text); }
+
+:where(html[data-theme="light"]) .tuto-head b { color: var(--deep); }
+
+:where(html[data-theme="light"]) .tuto-ico { background: var(--holo2); box-shadow: inset 0 0 0 2px #fff; }
+
+:where(html[data-theme="light"]) .tuto-step h3, :where(html[data-theme="light"]) .tuto-step p { color: var(--text); }
+
+:where(html[data-theme="light"]) .tuto-dots i { background: rgba(27,16,48,.18); }
+
+:where(html[data-theme="light"]) .tuto-dots i.on { background: #1B1030; box-shadow: none; }
+
+:where(html[data-theme="light"]) .tuto-never input { accent-color: #1B1030; }
+
+:where(html[data-theme="light"]) .dice-sum { background: linear-gradient(90deg, #B0128A, #3355E8); -webkit-background-clip: text; background-clip: text; }
+
+:where(html[data-theme="light"]) .pad.idle, :where(html[data-theme="light"]) .half.pause { background: var(--shine), var(--holo2); color: var(--text); }
+
+:where(html[data-theme="light"]) .pad.idle .pad-name, :where(html[data-theme="light"]) .half.pause .pad-name { color: var(--text); }
+
+:where(html[data-theme="light"]) #splash { background: #FFF4F0; }
+
+:where(html[data-theme="light"]) #splash::before { background: radial-gradient(circle at 30% 30%, rgba(255,154,0,.5), transparent 40%), radial-gradient(circle at 70% 65%, rgba(123,47,255,.4), transparent 42%), radial-gradient(circle at 60% 30%, rgba(255,46,147,.4), transparent 36%); }
+
+:where(html[data-theme="light"]) #splash .spl-logo { background: linear-gradient(100deg, #FF7A00 0%, #FF2E93 50%, #7B2FFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: none; }
+
+:where(html[data-theme="light"]) #splash .spl-dots i { box-shadow: none; }
+
+:where(html[data-theme="light"]) #app > .where-seg { flex: none; }
+
+:where(html[data-theme="light"]) #app:has(#chips) .actions::before { display: none; }
+
+:where(html[data-theme="light"]) .vm-cover .mast { font-size: 30px; }
+
+:where(html[data-theme="light"]) .dial .needle { filter: drop-shadow(0 1px 2px rgba(30,40,70,.3)); }
+
+:where(html[data-theme="light"]) .pad-big { font-weight: 700; overflow-wrap: normal; word-break: normal; font-size: clamp(30px, 9vw, 56px); }
+
+/* =====================================================================
+   MODE SOMBRE · « Aurore » (choisi le 26/10/2026)
+   Fond nuit avec des lumières vertes, violettes et roses fixes ; cartes et tuiles
+   sombres teintées de la couleur du jeu, boutons vert → violet. Police Outfit.
+   Le menu du bas reste celui d'origine.
+   ===================================================================== */
+html[data-theme="dark"] {
+  --display: "Outfit", "Arial Black", sans-serif;
+  --body: "Outfit", "Helvetica Neue", Arial, sans-serif;
+  --night: #061224;
+  --night-2: #0D1A30;
+  --text: #F2F6FF;
+  --muted: #A9C4E8;
+  --hair: rgba(255,255,255,.16);
+  --aur: linear-gradient(100deg, #1FC98C 0%, #8C50FF 100%);
+  --g-signature: linear-gradient(120deg, #2EE6A0 0%, #8C50FF 55%, #FF6FB5 100%);
+  --panel-dk: #0F1D35;
+}
+
+:where(html[data-theme="dark"]) body::after {
+  background:
+    radial-gradient(90% 38% at 0% 6%, rgba(46,230,160,.32), transparent 70%),
+    radial-gradient(80% 42% at 105% 30%, rgba(140,80,255,.42), transparent 70%),
+    radial-gradient(75% 36% at 30% 104%, rgba(255,79,166,.28), transparent 70%),
+    #061224;
+}
+
+:where(html[data-theme="dark"]) ::selection { background: #8C50FF; color: #fff; }
+
+:where(html[data-theme="dark"]) button:focus-visible, :where(html[data-theme="dark"]) input:focus-visible { outline-color: #7DF2C2; }
+
+:where(html[data-theme="dark"]) .mast { letter-spacing: -.02em; }
+
+:where(html[data-theme="dark"]) .rail-title { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -.01em; }
+
+:where(html[data-theme="dark"]) .masthead .logo, :where(html[data-theme="dark"]) .home-head .logo {
+  font-family: "Unbounded", "Arial Black", sans-serif; font-weight: 900;
+  background: linear-gradient(100deg, #7DF2C2 0%, #B79CFF 55%, #FF8FC8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: none;
+}
+
+:where(html[data-theme="dark"]) .btn { --bg: linear-gradient(180deg, #A4F7D8 0%, #5BE3B0 100%); --fg: #062A26; --gl: rgba(46,230,160,.35); }
+
+:where(html[data-theme="dark"]) .btn.blue, :where(html[data-theme="dark"]) .actions .row > .btn.white:first-child:has(+ .btn:not(.green)) { --bg: rgba(255,255,255,.1); --fg: #fff; --gl: transparent; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.34); text-shadow: none; }
+
+:where(html[data-theme="dark"]) .btn.red { --bg: var(--aur); --fg: #fff; --gl: rgba(140,80,255,.5); text-shadow: none; }
+
+:where(html[data-theme="dark"]) .seg button[aria-pressed="true"], :where(html[data-theme="dark"]) .where-seg button[aria-pressed="true"] { background: var(--aur); box-shadow: 0 8px 20px -8px rgba(140,80,255,.7); }
+
+:where(html[data-theme="dark"]) .opt[aria-pressed="true"] { background: var(--aur); border-color: transparent; box-shadow: 0 12px 28px -12px rgba(140,80,255,.75); }
+
+:where(html[data-theme="dark"]) .field input:focus, :where(html[data-theme="dark"]) .duo-in:focus { border-color: #7DF2C2; box-shadow: 0 0 0 4px rgba(46,230,160,.2); }
+
+:where(html[data-theme="dark"]) .tile.rt { background: radial-gradient(85% 70% at 85% 12%, color-mix(in srgb, var(--rc) 60%, transparent), transparent 72%), #11203B; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 12px 24px -14px color-mix(in srgb, var(--rc) 80%, transparent); }
+
+:where(html[data-theme="dark"]) .tile.rt .mast { color: #fff; }
+
+:where(html[data-theme="dark"]) .multi-note { background: rgba(255,255,255,.08); border: 1px solid var(--hair); }
+
+:where(html[data-theme="dark"]) .tab-mix { box-shadow: 0 0 0 6px #061224, 0 10px 30px -6px rgba(255,59,110,.6); }
+
+:where(html[data-theme="dark"]) #app .card, :where(html[data-theme="dark"]) #app .card[style*="--yellow"], :where(html[data-theme="dark"]) #app .card[style*="--green"] {
+  --tx: #fff; --tx2: #E6EEFF; --panel: rgba(255,255,255,.08); --chipbg: rgba(255,255,255,.1); --chipbd: rgba(255,255,255,.3);
+  --hl: rgba(0,0,0,.3); --mk: #FF8FC8; --pill-ink: #3B1C8C;
+  background: radial-gradient(95% 55% at 0% 0%, var(--glow), transparent 72%), radial-gradient(70% 45% at 100% 100%, color-mix(in srgb, var(--glow) 55%, transparent), transparent 72%), #0F1D35;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), 0 24px 60px -26px var(--glow);
+}
+
+:where(html[data-theme="dark"]) #app .card::before { display: none; }
+
+:where(html[data-theme="dark"]) #app .card .text { font-family: var(--display); font-weight: 800; letter-spacing: -.02em; }
+
+:where(html[data-theme="dark"]) .jstack > .card.under > .under-shade { background: #061224; }
+
+:where(html[data-theme="dark"]) .secret { background: radial-gradient(100% 60% at 0% 0%, rgba(46,230,160,.22), transparent 70%), linear-gradient(#0F1D35, #0A1528) padding-box, var(--g-signature) border-box; box-shadow: 0 0 50px -14px rgba(140,80,255,.6); }
+
+:where(html[data-theme="dark"]) .secret::before { background: radial-gradient(closest-side, rgba(140,80,255,.28), transparent); }
+
+:where(html[data-theme="dark"]) .secret .mast { color: #7DF2C2; }
+
+:where(html[data-theme="dark"]) .impx { background: radial-gradient(120% 70% at 50% 0%, var(--gl), transparent 62%), radial-gradient(90% 50% at 50% 100%, rgba(140,80,255,.24), transparent 70%), linear-gradient(#0F1D35, #081326); }
+
+:where(html[data-theme="dark"]) .une { background: linear-gradient(180deg, #0F1D35 0%, #0A1528 100%) padding-box, var(--g-signature) border-box; }
+
+:where(html[data-theme="dark"]) .sheet { background: linear-gradient(180deg, #13243F 0%, #0C1830 100%); box-shadow: 0 -20px 60px -20px rgba(140,80,255,.45), inset 0 1px 0 rgba(255,255,255,.14); }
+
+:where(html[data-theme="dark"]) .tuto { background: linear-gradient(180deg, #13243F 0%, #0C1830 100%); }
+
+:where(html[data-theme="dark"]) #splash { background: #061224; }
+
+:where(html[data-theme="dark"]) #splash::before { background: radial-gradient(circle at 30% 30%, rgba(46,230,160,.32), transparent 40%), radial-gradient(circle at 70% 65%, rgba(140,80,255,.42), transparent 42%), radial-gradient(circle at 55% 25%, rgba(255,79,166,.2), transparent 30%); }
+
+:where(html[data-theme="dark"]) #splash .spl-logo { background: linear-gradient(100deg, #7DF2C2 0%, #B79CFF 55%, #FF8FC8 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 22px rgba(140,80,255,.55)); }
+/* THEMES-END */
 </style>
 
 <script>window.THEME = {
@@ -2176,14 +2752,18 @@ function settingsSheet() {
   sheet(`<span class="mast" style="font-size:28px">Réglages</span>
     <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
     <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
+    <div class="seg" id="theme-seg" aria-label="Apparence"><button data-v="light">☀️ Clair</button><button data-v="dark">🌙 Sombre</button><button data-v="auto">Auto</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 25 octobre (Mix 2)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 26 octobre (clair et sombre)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
     $("#idea", w).onclick = ideaSheet;
     $("#close", w).onclick = () => w.remove();
+    const ts = $("#theme-seg", w), paintT = () => $$("button", ts).forEach(b => b.setAttribute("aria-pressed", b.dataset.v === store.get("theme", "auto")));
+    $$("button", ts).forEach(b => b.onclick = () => { store.set("theme", b.dataset.v); applyTheme(); paintT(); });
+    paintT();
     $("#admin-btn", w).onclick = () => { w.remove(); adminOpen(); };
     adminCheck().then(ok => { const b = $("#admin-btn", w); if (b) b.hidden = !ok; });
   });
@@ -3215,10 +3795,10 @@ function dial(opts) {
   const wedge = (a, b, fill) => { a = Math.max(0, a); b = Math.min(100, b); const [x0, y0] = P(a, r), [x1, y1] = P(b, r); return `<path d="M${cx},${cy} L${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1} Z" fill="${fill}"/>`; };
   const zones = opts.target == null ? "" : [[16, "#FFB34A"], [10, "#FF6A3D"], [4, "#FF2E7A"]].map(([w, f]) => wedge(opts.target - w, opts.target + w, f)).join("")
     + (() => { const [tx, ty] = P(opts.target, r - 22); return `<text x="${tx}" y="${ty}" class="rz">3</text>`; })();
-  const needles = (opts.needles || (opts.needle == null ? [] : [{ v: opts.needle, col: "#FFFFFF" }]))
+  const needles = (opts.needles || (opts.needle == null ? [] : [{ v: opts.needle, col: document.documentElement.dataset.theme === "light" ? "#1B1030" : "#FFFFFF" }]))
     .map(n => { const [nx, ny] = P(n.v, r - 10); return `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" class="needle" style="stroke:${n.col}"/>`; }).join("");
   return `<svg class="dial" viewBox="0 0 300 168" aria-hidden="true">
-    ${wedge(0, 100, "rgba(255,255,255,.16)")}
+    ${wedge(0, 100, document.documentElement.dataset.theme === "light" ? "rgba(27,16,48,.07)" : "rgba(255,255,255,.16)")}
     ${zones}${needles}
     ${needles ? `<circle cx="${cx}" cy="${cy}" r="11" class="hub"/>` : ""}
   </svg>`;
