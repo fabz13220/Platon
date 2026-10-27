@@ -4687,7 +4687,7 @@ function tabooSetup() {
     const old = {}; if (anim) $$("#teams .tb-name").forEach(b => { old[b.dataset.n] = b.getBoundingClientRect(); });
     $("#teams").innerHTML = TB.teams.map((t, i) => `<div class="tb-team" data-t="${i}" style="--tc:${TB_COLS[i]}">
       <label class="tb-thead"><input class="tb-tname" data-t="${i}" value="${esc(tbName(i))}" maxlength="18" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Nom de l'équipe"></label>
-      <div class="tb-names">${t.map(n => `<button class="tb-name${TB.only.includes(n) ? " only" : ""}" data-n="${esc(n)}">${esc(n)}${TB.only.includes(n) ? " 👂" : ""}</button>`).join("")}</div></div>`).join("");
+      <div class="tb-names">${t.map(n => `<button class="tb-name${TB.only.includes(n) ? " only" : ""}" data-n="${esc(n)}">${esc(n)}${TB.only.includes(n) ? " 🎤" : ""}</button>`).join("")}</div></div>`).join("");
     $$("#teams .tb-tname").forEach(f => {
       f.oninput = () => { const i = +f.dataset.t; TB.names = [tbName(0), tbName(1)]; TB.names[i] = f.value.trim().replace(/\s+/g, " ") || TB_NAMES[i]; store.set("tbNames", TB.names); };
       f.onblur = () => { f.value = tbName(+f.dataset.t); };
@@ -4708,7 +4708,7 @@ function tabooSetup() {
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Sans le dire</span><span style="width:44px"></span></div>
     <p class="hint muted" style="text-align:center;margin:0">Fais glisser ou touche un prénom pour le changer d'équipe. Touche le nom d'une équipe pour le changer.</p>
     <div id="teams" class="tb-teams"></div>
-    <p class="tb-links"><button class="linkbtn" id="mix">Refaire au hasard</button><button class="linkbtn" id="only">👂 Qui ne fait que deviner ?</button></p>
+    <p class="tb-links"><button class="linkbtn" id="mix">Refaire au hasard</button><button class="linkbtn" id="only">🎤 Qui fait toujours deviner ?</button></p>
     <div class="section-label">Chrono</div>
     <div class="tb-step"><button id="tm" aria-label="Moins de temps">−</button><b id="tsec"></b><button id="tp" aria-label="Plus de temps">+</button></div>
     <div class="section-label">Tours par équipe</div>
@@ -4717,10 +4717,10 @@ function tabooSetup() {
   `, () => {
     $("#back").onclick = playersScreen;
     $("#mix").onclick = () => { tabooSplit(); buzz(10); draw(); };
-    // certains joueurs ne font que deviner : ils ne prennent jamais le téléphone pour faire deviner
+    // certains joueurs font toujours deviner leur équipe : à chaque tour de leur équipe, c'est eux qui prennent le téléphone
     $("#only").onclick = () => sheet(`
-      <span class="mast" style="font-size:28px">Que deviner</span>
-      <p class="hint muted" style="margin:0">Touche ceux qui ne veulent jamais faire deviner. Ils devinent avec leur équipe.</p>
+      <span class="mast" style="font-size:28px">Toujours faire deviner</span>
+      <p class="hint muted" style="margin:0">Touche ceux qui font deviner à chaque tour de leur équipe. Ils ne devinent jamais. S'ils sont plusieurs dans une équipe, ils se relaient.</p>
       <div class="chips" id="onl">${S.names.map(n => `<button class="chip pick" data-n="${esc(n)}" aria-pressed="${TB.only.includes(n)}">${esc(n)}</button>`).join("")}</div>
       <button class="btn red" id="onl-ok">C'est bon</button>`, w => {
       $$("#onl .chip", w).forEach(b => b.onclick = () => {
@@ -4782,7 +4782,7 @@ const tbDefiTxt = d => `🎯 Défi : ${d.txt} → ${d.gain}`;
 // réussi ? les défis de fin de tour se recalculent si on corrige un mot
 const tbDefiOk = (d, log, fouls, won) => !!d && (d.k === "found" ? log.filter(x => x.r === "ok").length >= d.n : d.k === "clean" ? !fouls && log.filter(x => x.r === "ok").length >= d.n : won);
 function tabooTurn() {
-  const t = TB.turns % 2, team = TB.teams[t], can = team.filter(n => !TB.only.includes(n)), pick = can.length ? can : team, g = pick[TB.giver[t] % pick.length];
+  const t = TB.turns % 2, team = TB.teams[t], can = team.filter(n => TB.only.includes(n)), pick = can.length ? can : team, g = pick[TB.giver[t] % pick.length];
   const d = TB.turns > 0 && Math.random() < .35 ? rnd(tbDefis()) : null;
   view(`
     <div class="topbar">${quitBtn()}<span class="progress">Tour ${Math.floor(TB.turns / 2) + 1} / ${TB.max}</span><span style="width:44px"></span></div>
