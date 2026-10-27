@@ -104,6 +104,7 @@ html.in-app h1 { display: none; }
       <button role="tab" data-t="cartes" aria-selected="false">Cartes</button>
       <button role="tab" data-t="textes" aria-selected="false">Textes</button>
       <button role="tab" data-t="props" aria-selected="false">Propositions</button>
+      <button role="tab" data-t="bugs" aria-selected="false">Signalements</button>
       <button role="tab" data-t="comptes" aria-selected="false">Comptes</button>
     </div>
     <div id="view" style="display:flex;flex-direction:column;gap:14px;margin-top:14px"></div>
@@ -280,7 +281,7 @@ function bindTextes() {
 const hidden = new Set(JSON.parse(localStorage.getItem("admin:hidden") || "[]"));
 function viewProps() {
   if (!PROPS) { F.getDocs(F.collection(db, "propositions")).then(s => { PROPS = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.at || 0) - (a.at || 0)); render(); }, () => { PROPS = []; render(); }); return `<p class="muted">Chargement…</p>`; }
-  const L = PROPS.filter(p => !hidden.has(p.id)), ideas = L.filter(p => p.type === "idee"), cards = L.filter(p => p.type !== "idee");
+  const L = PROPS.filter(p => !hidden.has(p.id)), ideas = L.filter(p => p.type === "idee"), cards = L.filter(p => p.type !== "idee" && p.type !== "bug");
   const when = t => t ? new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
   return `
     <section class="panel"><h2>Cartes proposées (${cards.length})</h2>
@@ -288,6 +289,16 @@ function viewProps() {
         <div class="votes">${list(p.type) ? `<button class="btn small" data-addp="${esc(p.id)}">Ajouter au jeu</button>` : ""}<button class="btn ghost small" data-hide="${esc(p.id)}">Masquer</button></div></div>`).join("") || `<p class="muted">Rien pour l'instant.</p>`}</section>
     <section class="panel"><h2>Idées (${ideas.length})</h2>
       ${ideas.map(p => `<div class="card" style="grid-template-columns:1fr auto"><div><span class="muted" style="font-size:13px">${when(p.at)}</span><p style="margin-top:4px">${esc(p.card)}</p></div><div class="votes"><button class="btn ghost small" data-hide="${esc(p.id)}">Masquer</button></div></div>`).join("") || `<p class="muted">Rien pour l'instant.</p>`}</section>`;
+}
+// signalements envoyés depuis l'appli (Réglages ou pendant une partie) : rangés dans propositions, type bug
+function viewBugs() {
+  if (!PROPS) return viewProps();
+  const L = PROPS.filter(p => p.type === "bug" && !hidden.has(p.id));
+  const when = t => t ? new Date(t).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+  return `<section class="panel"><h2>Signalements (${L.length})</h2>
+    ${L.map(p => `<div class="card" style="grid-template-columns:1fr auto"><div>${p.jeu ? `<span class="tag">${esc(p.jeu === "mix" ? "Mix" : gameName(p.jeu))}</span> ` : ""}<span class="muted" style="font-size:13px">${when(p.at)} · ${esc(p.tel || "?")}${p.app ? " (appli)" : ""} · version du ${esc(p.v || "?")}</span>
+      <p style="margin-top:6px">${esc(p.card)}</p>${p.carte ? `<p class="muted" style="margin-top:4px;font-size:14px">Carte : ${esc(p.carte)}</p>` : ""}</div>
+      <div class="votes"><button class="btn ghost small" data-hide="${esc(p.id)}">Masquer</button></div></div>`).join("") || `<p class="muted">Rien pour l'instant.</p>`}</section>`;
 }
 function bindProps() {
   document.querySelectorAll("[data-hide]").forEach(b => b.onclick = () => { hidden.add(b.dataset.hide); localStorage.setItem("admin:hidden", JSON.stringify([...hidden])); render(); });
@@ -303,13 +314,13 @@ function bindProps() {
 
 // ---------- affichage ----------
 function render() {
-  const V = { stats: viewStats, cartes: viewCartes, textes: viewTextes, props: viewProps, comptes: viewComptes }[tab];
+  const V = { stats: viewStats, cartes: viewCartes, textes: viewTextes, props: viewProps, bugs: viewBugs, comptes: viewComptes }[tab];
   $("#view").innerHTML = V();
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.t === tab)));
   if (tab === "stats" && STATS) { $("#period").onchange = e => { period = +e.target.value; render(); }; $("#reload").onclick = () => { STATS = null; render(); }; }
   if (tab === "cartes") bindCartes();
   if (tab === "textes") bindTextes();
-  if (tab === "props" && PROPS) bindProps();
+  if ((tab === "props" || tab === "bugs") && PROPS) bindProps();
   if (tab === "comptes") bindComptes();
 }
 // ---------- comptes : remettre un ancien compte (pseudo, amis) sur le compte d'aujourd'hui, par exemple après avoir réinstallé l'appli ----------

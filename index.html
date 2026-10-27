@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="94d651ce698f">
+<meta name="build" content="4d21ad65ec62">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -3351,11 +3351,13 @@ function settingsSheet() {
     <div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Son</button><button data-v="0">🔇 Muet</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (son réparé)</p>`, w => {
+    <button class="linkbtn" id="report">Signaler un problème</button>
+    <p class="hint muted" style="text-align:center;margin:0">Version du ${VERSION}</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
     $("#idea", w).onclick = ideaSheet;
+    $("#report", w).onclick = () => reportSheet();
     $("#close", w).onclick = () => w.remove();
     const ts = $("#theme-seg", w), paintT = () => $$("button", ts).forEach(b => b.setAttribute("aria-pressed", b.dataset.v === store.get("theme", "auto")));
     $$("button", ts).forEach(b => b.onclick = () => { store.set("theme", b.dataset.v); applyTheme(); paintT(); });
@@ -3386,6 +3388,32 @@ function adminOpen() {
     try { if (f.adminDirty && f.adminDirty() && !confirm("Des changements ne sont pas publiés. Fermer quand même ?")) return; } catch (e) {}
     w.remove();
   };
+}
+const VERSION = "27 octobre (son réparé)";
+// un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
+const telName = () => {
+  const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
+  return m ? `${m[1]} iOS ${m[2]}.${m[3]}` : a ? "Android " + a[1] : /Mac OS X/.test(u) ? "Mac" : /Windows/.test(u) ? "PC Windows" : "Autre";
+};
+function reportSheet(inGame) {
+  // la carte affichée seulement si elle vient du jeu en cours (le paquet d'une partie d'avant peut rester en mémoire)
+  const k = inGame ? curCard() : null, g = inGame ? S.mode || "" : "";
+  const c = k && (g === "mix" || k.type === g || g === "av" && (k.type === "verite" || k.type === "action")) ? k : null;
+  const carte = c ? cardText(c).replace(/\{[pq]\}/g, "[un joueur]") : "";
+  sheet(`<span class="mast" style="font-size:28px">Un problème ?</span>
+    <p class="hint">Dis-nous ce qui ne va pas : un bug, une carte bizarre, un mot coupé…</p>
+    ${carte ? `<p class="hint muted" style="margin:0">On joint la carte affichée : « ${esc(carte)} »</p>` : ""}
+    <textarea class="idea-in" id="rep-in" maxlength="600" rows="5" placeholder="Ex : le bouton ne marche pas quand…" aria-label="Le problème"></textarea>
+    <button class="btn red" id="send">Envoyer</button>
+    <button class="btn" id="close">Annuler</button>`, w => {
+    $("#close", w).onclick = () => w.remove();
+    $("#send", w).onclick = () => {
+      const v = $("#rep-in", w).value.trim(); if (!v) { toast("Écris le problème d'abord."); return; }
+      getDb().then(db => db && db.doc("propositions/bug_" + devId + "_" + Date.now()).set({ type: "bug", card: v, lvl: 0, at: Date.now(),
+        jeu: g, carte, v: VERSION, tel: telName(), app: standalone })).catch(() => {});
+      w.remove(); toast("Merci, c'est envoyé.");
+    };
+  });
 }
 // une idée de jeu ou d'amélioration, envoyée pour être lue
 function ideaSheet() {
@@ -5738,11 +5766,13 @@ function pauseMenu() {
     <div class="seg" id="lvl">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === S.level}">${l.name}</button>`).join("")}</div>
     <button class="btn ink" id="end">Terminer la partie <small>${noPts() ? "Fin de la partie" : "Voir le classement"}</small></button>
     <button class="linkbtn" id="quit">Abandonner et revenir à l'accueil</button>
+    <button class="linkbtn" id="report">Signaler un problème</button>
   `, w => {
     $("#resume", w).onclick = () => w.remove();
     bindTools(w);
     $("#end", w).onclick = () => { w.remove(); ranking(); };
     $("#quit", w).onclick = () => { w.remove(); home(); };
+    $("#report", w).onclick = () => reportSheet(true);
     $$("#lvl button", w).forEach(b => b.onclick = () => {
       S.level = +b.dataset.l; store.set("level", S.level);
       $$("#lvl button", w).forEach(x => x.setAttribute("aria-pressed", +x.dataset.l === S.level));
@@ -6146,8 +6176,9 @@ const PUR = [
 function quitBtn() { return `<button class="iconbtn" id="quit" aria-label="Quitter">×</button>`; }
 function bindQuit() {
   $("#quit").onclick = () => sheet(`<span class="mast" style="font-size:30px">Quitter la partie ?</span>
-    <div class="row"><button class="btn white" id="stay">Continuer</button><button class="btn ink" id="leave">Quitter</button></div>`,
-    w => { $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; });
+    <div class="row"><button class="btn white" id="stay">Continuer</button><button class="btn ink" id="leave">Quitter</button></div>
+    <button class="linkbtn" id="report">Signaler un problème</button>`,
+    w => { $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; $("#report", w).onclick = () => reportSheet(true); });
 }
 function resultActions(again) {
   return `<div class="actions"><button class="btn red" id="save">Enregistrer en image <small>Au format story, prête à poster</small></button>
