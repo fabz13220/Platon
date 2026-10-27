@@ -2763,9 +2763,11 @@ const store = {
 const SFX = { ctx: null, out: null, wet: null, q: null, last: {} };
 const sfxOn = () => store.get("sound", 1) === 1;
 function sfxCtx() {
+  if (SFX.ctx && SFX.ctx.state === "closed") SFX.ctx = null;
   if (!SFX.ctx) {
     const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
     try { SFX.ctx = new A(); } catch (e) { return null; }
+    SFX.ctx.onstatechange = () => { if (SFX.ctx && SFX.ctx.state === "interrupted") sfxDrop(); };
     const c = SFX.ctx, comp = c.createDynamicsCompressor(), lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5000;
     SFX.out = c.createGain(); SFX.out.gain.value = .9; SFX.out.connect(lp); lp.connect(comp); comp.connect(c.destination);
     // petit écho de pièce, fabriqué sur place
@@ -2776,6 +2778,11 @@ function sfxCtx() {
   if (SFX.ctx.state !== "running") SFX.ctx.resume().catch(() => {});
   return SFX.ctx;
 }
+// iPhone : quand l'appli passe en arrière-plan (écran verrouillé, autre appli, appel), le son peut rester bloqué
+// même après resume(). On ferme alors le son et on le recrée au toucher suivant.
+const sfxDrop = () => { if (!SFX.ctx) return; try { SFX.ctx.close(); } catch (e) {} SFX.ctx = null; };
+document.addEventListener("visibilitychange", () => { if (document.hidden) sfxDrop(); });
+addEventListener("pagehide", sfxDrop);
 const sfxUnlock = () => { if (!sfxOn()) return; const c = sfxCtx(); if (!c) return; const b = c.createBufferSource(); b.buffer = c.createBuffer(1, 1, 22050); b.connect(c.destination); b.start(0); };
 ["pointerdown", "touchend", "click"].forEach(t => document.addEventListener(t, sfxUnlock, { capture: true, passive: true }));
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button:not(:disabled), .tile, .chip")) haptic(10); }, true);
@@ -3051,7 +3058,7 @@ function settingsSheet() {
     <div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Son</button><button data-v="0">🔇 Muet</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (nouveaux sons)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (son réparé)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
