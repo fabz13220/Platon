@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="cd3604c4af18">
+<meta name="build" content="acb1d8cb416b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <link rel="icon" type="image/png" href="icon-192.png?v=5">
@@ -2046,6 +2046,8 @@ html[data-theme="dark"] {
 
 :where(html[data-theme="dark"]) #splash .spl-logo { background: linear-gradient(100deg, #7DF2C2 0%, #B79CFF 55%, #FF8FC8 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 22px rgba(140,80,255,.55)); }
 /* THEMES-END */
+.hx { position: absolute; inset: 0; z-index: 9; touch-action: manipulation; -webkit-tap-highlight-color: transparent; border-radius: inherit; }
+.hx input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; visibility: hidden; }
 </style>
 
 <script>window.THEME = {
@@ -2757,17 +2759,25 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const rnd = a => a[Math.floor(Math.random() * a.length)];
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-// vibration : l'iPhone n'a pas navigator.vibrate, mais Safari (iOS 18 et plus) fait un petit retour haptique
-// quand on bascule un interrupteur <input switch> : on en bascule un invisible, seulement pendant un toucher
-let hxAt = 0;
-function haptic(p) {
-  if (navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} return; }
-  const now = performance.now(); if (now - hxAt < 40) return; hxAt = now;
-  try {
+// vibration : l'iPhone n'a pas navigator.vibrate, mais Safari vibre quand on bascule un interrupteur <input switch>.
+// Depuis iOS 26, il faut que ce soit le doigt qui le bascule : chaque bouton reçoit un <label> transparent par-dessus,
+// relié à un interrupteur caché. Le toucher passe par le label (vibration), puis remonte au bouton comme d'habitude.
+// Hors boutons (swipe, bulles), l'iPhone ne peut pas vibrer.
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function haptic(p) { if (navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} }
+function hxArm() {
+  $$("button").forEach(b => {
+    if (b.querySelector(":scope > .hx")) return;
     const l = document.createElement("label"), i = document.createElement("input");
-    i.type = "checkbox"; i.setAttribute("switch", ""); l.appendChild(i); l.style.display = "none";
-    document.body.appendChild(l); l.click(); l.remove();
-  } catch (e) {}
+    l.className = "hx"; l.setAttribute("aria-hidden", "true");
+    i.type = "checkbox"; i.setAttribute("switch", ""); i.tabIndex = -1; i.addEventListener("click", e => e.stopPropagation());
+    l.append(i); if (getComputedStyle(b).position === "static") b.style.position = "relative"; b.append(l);
+  });
+}
+if (IOS && !navigator.vibrate) {
+  let hxQ = 0;
+  new MutationObserver(() => { if (!hxQ) hxQ = requestAnimationFrame(() => { hxQ = 0; hxArm(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener("DOMContentLoaded", hxArm);
 }
 // snd : le son à jouer à la place de celui du motif (false : aucun)
 const buzz = (p, snd) => { haptic(p); if (snd !== false) sfx(snd || sfxOf(p)); };
