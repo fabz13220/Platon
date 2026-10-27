@@ -3023,9 +3023,11 @@ const store = {
 // iPhone : le son ne démarre qu'après un premier toucher, et l'interrupteur silencieux le coupe.
 const SFX = { ctx: null, out: null, wet: null, q: null, last: {} };
 const sfxOn = () => store.get("sound", 1) === 1;
-function sfxCtx() {
+// make : créer le son s'il n'existe pas. Seulement pendant un toucher : créé hors toucher, l'iPhone le laisse muet.
+function sfxCtx(make) {
   if (SFX.ctx && SFX.ctx.state === "closed") SFX.ctx = null;
   if (!SFX.ctx) {
+    if (!make) return null;
     const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
     try { SFX.ctx = new A(); } catch (e) { return null; }
     SFX.ctx.onstatechange = () => { if (SFX.ctx && SFX.ctx.state === "interrupted") sfxDrop(); };
@@ -3036,7 +3038,11 @@ function sfxCtx() {
     for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
     const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .12; SFX.wet.connect(cv); cv.connect(SFX.out);
   }
-  if (SFX.ctx.state !== "running") SFX.ctx.resume().catch(() => {});
+  if (make && SFX.ctx.state !== "running") {
+    const c = SFX.ctx;
+    // si l'iPhone refuse de le relancer, on le jette : le toucher suivant en crée un neuf
+    c.resume().then(() => { if (c.state !== "running" && SFX.ctx === c) setTimeout(() => { if (c.state !== "running" && SFX.ctx === c) sfxDrop(); }, 300); }, () => { if (SFX.ctx === c) sfxDrop(); });
+  }
   return SFX.ctx;
 }
 // iPhone : quand l'appli passe en arrière-plan (écran verrouillé, autre appli, appel), le son peut rester bloqué
@@ -3044,7 +3050,9 @@ function sfxCtx() {
 const sfxDrop = () => { if (!SFX.ctx) return; try { SFX.ctx.close(); } catch (e) {} SFX.ctx = null; };
 document.addEventListener("visibilitychange", () => { if (document.hidden) sfxDrop(); });
 addEventListener("pagehide", sfxDrop);
-const sfxUnlock = () => { if (!sfxOn()) return; const c = sfxCtx(); if (!c) return; const b = c.createBufferSource(); b.buffer = c.createBuffer(1, 1, 22050); b.connect(c.destination); b.start(0); };
+// iPhone : le son se mélange à la musique des autres applis et suit le bouton silencieux
+try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch (e) {}
+const sfxUnlock = () => { if (!sfxOn()) return; const c = sfxCtx(true); if (!c) return; const b = c.createBufferSource(); b.buffer = c.createBuffer(1, 1, 22050); b.connect(c.destination); b.start(0); };
 ["pointerdown", "touchend", "click"].forEach(t => document.addEventListener(t, sfxUnlock, { capture: true, passive: true }));
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button:not(:disabled), .tile, .chip")) haptic(10); }, true);
 const sfxT = at => SFX.ctx.currentTime + .02 + at;
@@ -3089,8 +3097,11 @@ function sfx(name, arg) {
   SFX.qt = setTimeout(() => {
     const [n, a] = SFX.q; SFX.q = null; SFX.qt = 0;
     const now = performance.now(); if (now - (SFX.last[n] || 0) < (n === "bounce" ? 120 : 40)) return; SFX.last[n] = now;
-    if (!sfxCtx()) return;
-    try { SOUNDS[n][1](a); } catch (e) {}
+    const c = sfxCtx(), play = () => { try { SOUNDS[n][1](a); } catch (e) {} };
+    if (!c) return;
+    if (c.state === "running") return play();
+    // le son est en train de repartir (premier toucher) : on joue s'il repart vite, sinon rien plutôt qu'un son en retard
+    const t0 = performance.now(); c.resume().then(() => { if (c.state === "running" && SFX.ctx === c && performance.now() - t0 < 250) play(); }, () => {});
   }, 0);
 }
 let timers = [];
