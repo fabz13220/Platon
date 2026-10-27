@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="acb1d8cb416b">
+<meta name="build" content="28f62fef67f1">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <link rel="icon" type="image/png" href="icon-192.png?v=5">
@@ -2785,7 +2785,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("scandale:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem("scandale:" + k, JSON.stringify(v)); } catch (e) {} }
 };
-// sons « Feutre » (choisis par Fabio) : marimba étouffée avec un léger écho, fabriquée sur place (Web Audio), rien à télécharger.
+// sons doux : notes pures et « frrt » de papier pour les cartes (d'après la vidéo de Fabio), avec un léger écho, fabriqués sur place (Web Audio), rien à télécharger.
 // Chaque vibration joue le son qui va avec ; les boutons vibrent sans faire de son (Fabio : pas de son partout). Les sons d'un même geste sont regroupés : seul le plus important est joué.
 // iPhone : le son ne démarre qu'après un premier toucher, et l'interrupteur silencieux le coupe.
 const SFX = { ctx: null, out: null, wet: null, q: null, last: {} };
@@ -2799,7 +2799,7 @@ function sfxCtx() {
     // petit écho de pièce, fabriqué sur place
     const n = Math.floor(c.sampleRate * 1.4), ir = c.createBuffer(2, n, c.sampleRate);
     for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
-    const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .22; SFX.wet.connect(cv); cv.connect(SFX.out);
+    const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .12; SFX.wet.connect(cv); cv.connect(SFX.out);
   }
   if (SFX.ctx.state !== "running") SFX.ctx.resume().catch(() => {});
   return SFX.ctx;
@@ -2810,36 +2810,32 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 const sfxT = at => SFX.ctx.currentTime + .02 + at;
 function sfxEnv(g, t, vol, a, dur) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0004, t + dur); }
 function sfxSend(node, wet) { const c = SFX.ctx, w = c.createGain(); node.connect(SFX.out); w.gain.value = wet; node.connect(w); w.connect(SFX.wet); }
-// une lame de marimba feutrée, avec une octave grave très douce dessous
-function felt(f, vol, at = 0, dur = .5) {
-  const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain();
-  o.type = "triangle"; o.frequency.value = f; lp.type = "lowpass"; lp.frequency.setValueAtTime(f * 3, t); lp.frequency.exponentialRampToValueAtTime(f * 1.1, t + .15);
-  sfxEnv(g, t, vol, .005, dur); o.connect(lp); lp.connect(g); sfxSend(g, .8); o.start(t); o.stop(t + dur + .05);
-  const s = c.createOscillator(), sg = c.createGain(); s.frequency.value = f / 2;
-  sfxEnv(sg, t, vol * .35, .005, dur * .6); s.connect(sg); sfxSend(sg, 1); s.start(t); s.stop(t + dur + .05);
+// note pure (sinus), qui arrive en douceur et s'éteint lentement, comme les sons de jeu que Fabio aime (modèle : sa vidéo du 27/10)
+function note(f, vol, at = 0, dur = .6) {
+  const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), g = c.createGain();
+  o.frequency.value = f; sfxEnv(g, t, vol, .025, dur); o.connect(g); sfxSend(g, .5); o.start(t); o.stop(t + dur + .05);
 }
-// souffle léger quand une carte part
-function air(vol, dur, f) {
+// petit « frrt » de papier quand une carte part : bruit aigu très court
+function flick(vol, dur = .18) {
   const c = SFX.ctx, t = sfxT(0), n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.Q.value = .8;
-  bp.frequency.setValueAtTime(f * .7, t); bp.frequency.linearRampToValueAtTime(f, t + dur);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * .45); g.gain.linearRampToValueAtTime(0, t + dur);
-  s.connect(bp); bp.connect(g); sfxSend(g, .5); s.start(t); s.stop(t + dur + .02);
+  const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.Q.value = .9;
+  bp.frequency.setValueAtTime(4200, t); bp.frequency.linearRampToValueAtTime(6200, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .03); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+  s.connect(bp); bp.connect(g); sfxSend(g, .2); s.start(t); s.stop(t + dur + .02);
 }
+// notes de sol majeur : tout sonne bien ensemble
 const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
-  tap:    [2, () => felt(523, .12, 0, .25)],
-  // bulles : une note ronde au hasard dans une gamme douce, pour que plusieurs bulles sonnent bien ensemble
-  bounce: [1, () => felt(rnd([784, 880, 1047, 1175, 1319]), .05, 0, .2)],
-  bubble: [2, () => felt(rnd([523, 587, 659, 784, 880]), .11, 0, .3)],
-  pop:    [4, () => { felt(659, .12, 0, .3); felt(880, .1, .06, .4); }],
-  reveal: [6, () => { felt(784, .15, 0, .6); felt(1047, .13, .08, .7); }],
-  spin:   [5, (d = 3.6) => { for (let k = 0, N = 40; k < N; k++) felt(k % 2 ? 1047 : 988, .05, d * (1 - Math.pow(1 - k / N, .25)), .09); }],
-  swish:  [3, () => air(.04, .2, 900)],
-  win:    [6, () => { felt(659, .16); felt(988, .14, .09, .6); }],
-  fail:   [6, () => { felt(392, .16); felt(330, .14, .13, .6); }],
-  timeup: [7, () => { felt(587, .16); felt(440, .15, .16, .7); }],
-  end:    [8, () => [523, 659, 784, 1047].forEach((f, i) => felt(f, .14, i * .1, .9))]
+  bounce: [1, () => note(rnd([587, 659, 784, 880]), .05, 0, .3)],
+  bubble: [2, () => note(rnd([392, 440, 494, 587, 659]), .14, 0, .4)],
+  pop:    [4, () => { note(494, .14, 0, .25); note(587, .14, .1, .5); }],
+  reveal: [6, () => { note(587, .16, 0, .35); note(784, .16, .11, .8); }],
+  spin:   [5, (d = 3.6) => { for (let k = 0, N = 40; k < N; k++) note(k % 2 ? 1175 : 988, .035, d * (1 - Math.pow(1 - k / N, .25)), .07); }],
+  swish:  [3, () => flick(.5)],
+  win:    [6, () => { note(392, .16, 0, .2); note(494, .16, .11, .2); note(587, .18, .22, .8); }],
+  fail:   [6, () => { note(494, .15, 0, .25); note(392, .15, .13, .7); }],
+  timeup: [7, () => { note(587, .17, 0, .3); note(440, .17, .16, .9); }],
+  end:    [8, () => { [392, 494, 587].forEach((f, i) => note(f, .16, i * .11, .25)); note(784, .18, .33, 1.4); note(392, .08, .33, 1.4); }]
 };
 // vibration → son : le motif dit ce qui se passe (réussite, raté, chrono…)
 const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,40": "win", "40,30,80": "end", "60,40,140": "end",
@@ -3083,7 +3079,7 @@ function settingsSheet() {
     <div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Son</button><button data-v="0">🔇 Muet</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (sons Feutre, roue et bulles)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (nouveaux sons)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
