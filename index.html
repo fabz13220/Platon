@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="137ffc7b43ba">
+<meta name="build" content="3c58f1659fdd">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <link rel="icon" type="image/png" href="icon-192.png?v=5">
@@ -2887,6 +2887,9 @@ const S = {
   players: [], deck: [], idx: 0, inGame: false, lastGame: null
 };
 const used = new Set(store.get("used", []));
+// cartes déjà sorties pendant la partie en cours : elles ne ressortent pas avant que tout le paquet soit passé
+const seen = new Set();
+const useCard = id => { used.add(id); seen.add(id); };
 const ban = new Set(store.get("ban", []));
 const cardId = (type, c) => type + ":" + c.slice(1).join("|");
 // cartes de joueurs validées sur la page admin : identifiant de la carte → prénom de celui qui l'a proposée
@@ -2930,7 +2933,8 @@ function pool(type) {
   const all = src.map(c => ({ type, id: cardId(type, c), lvl: c[0], data: c }))
     .filter(c => c.lvl <= lv && (S.hot || !isHot(c.data.slice(1))));
   // les cartes retirées par le groupe ne reviennent plus (sauf s'il n'en reste presque plus)
-  const kept = all.filter(c => !ban.has(c.id)), list = kept.length >= 3 ? kept : all;
+  const kept = all.filter(c => !ban.has(c.id)), keep = kept.length >= 3 ? kept : all;
+  const unseen = keep.filter(c => !seen.has(c.id)), list = unseen.length >= 3 ? unseen : keep;
   // priorité aux cartes jamais vues et au niveau choisi
   const fresh = list.filter(c => !used.has(c.id)), stale = list.filter(c => used.has(c.id));
   if (fresh.length < 3) list.forEach(c => used.delete(c.id));
@@ -3422,6 +3426,7 @@ function ambiance() {
 
 /* -------- DÉMARRAGE -------- */
 function startGame() {
+  seen.clear();
   if (tutoGate(S.mode, startGame)) return;
   stat("start", S.mode, S.names.length, "un");
   S.players = shuffle(S.names).map(n => ({ name: n, pts: 0 }));
@@ -3559,7 +3564,8 @@ function skipCard(msg, force) {
   S.changed = true;
   if (S.avPick && S.avRedo) { const r = S.avRedo; S.avPick = null; toast("Nouvelle carte."); return r(); }
   S.avPick = null; S.avRedo = null;
-  const c = S.deck[S.idx], rep = c && c.type !== "av" ? pool(c.type).find(x => x.id !== c.id && !S.deck.some(d => d.id === x.id)) : (c ? { type: "av" } : null);
+  const c = S.deck[S.idx]; if (c && c.id) seen.add(c.id); // la carte écartée ne revient pas dans la partie
+  const rep = c && c.type !== "av" ? pool(c.type).find(x => x.id !== c.id && !S.deck.some(d => d.id === x.id)) : (c ? { type: "av" } : null);
   if (rep) S.deck.splice(S.idx, 1, rep); else S.deck.splice(S.idx, 1);
   if (S.idx >= S.deck.length) return endDeck();
   toast(typeof msg === "string" ? msg : "Carte écartée."); card();
@@ -3567,7 +3573,7 @@ function skipCard(msg, force) {
 function next() {
   S.avPick = null; S.avRedo = null; S.changed = false;
   const c = S.deck[S.idx];
-  if (c && c.id) { used.add(c.id); store.set("used", [...used]); }
+  if (c && c.id) { useCard(c.id); store.set("used", [...used]); }
   S.idx++;
   if (S.idx >= S.deck.length) return endDeck();
   card();
@@ -3739,7 +3745,7 @@ function cAvSwipe(c) {
   const qcard = ks => cardShell("av", null, `${ks.map(quest).join("")}<button class="avother">Autre carte</button>`, S.idx % 2 === 1).replace('class="card ', `class="card avw${ks.length === 1 ? " av-" + ks[0] : ""} `);
   const nx = S.deck[S.idx + 1];
   const done = c.kind || c.sp === "tous";
-  if (c.sp === "tous") { tous(c, S.idx); if (c.tq.pk) { used.add(c.tq.pk.id); store.set("used", [...used]); S.avPick = c.tq.pk; } }
+  if (c.sp === "tous") { tous(c, S.idx); if (c.tq.pk) { useCard(c.tq.pk.id); store.set("used", [...used]); S.avPick = c.tq.pk; } }
   const top = c.kind ? qcard([c.kind]) : ask(c, S.idx);
   const under = done ? (nx ? ask(nx, S.idx + 1).replace('class="card ', 'class="card under ') : "")
     : qcard(["v", "a"]).replace('class="card ', 'class="card under avq show-a ');
@@ -3756,14 +3762,14 @@ function cAvSwipe(c) {
     if (done) {
       const fly = swipeNext(tEl, uEl, () => { S.jSlid = true; next(); });
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      if (c.kind) $(".avother", tEl).onclick = () => { draw(c.kind); used.add(c[c.kind].pk.id); store.set("used", [...used]); S.avPick = c[c.kind].pk; S.jSlid = true; cAvSwipe(c); };
+      if (c.kind) $(".avother", tEl).onclick = () => { draw(c.kind); useCard(c[c.kind].pk.id); store.set("used", [...used]); S.avPick = c[c.kind].pk; S.jSlid = true; cAvSwipe(c); };
       return;
     }
     // à droite : action, à gauche : vérité
     const side = k => { uEl.classList.add("peek"); uEl.classList.toggle("show-v", k === "v"); uEl.classList.toggle("show-a", k === "a"); };
     const fly = swipeNext(tEl, uEl, () => {
       const k = parseFloat(tEl.style.transform.slice(12)) < 0 ? "v" : "a";
-      c.kind = k; used.add(c[k].pk.id); store.set("used", [...used]); S.avPick = c[k].pk;
+      c.kind = k; useCard(c[k].pk.id); store.set("used", [...used]); S.avPick = c[k].pk;
       S.jSlid = true; cAvSwipe(c);
     });
     let x0 = null;
@@ -3899,7 +3905,7 @@ function cMentSolo(c) {
       bindHeader(); if (fooled) party();
       const fly = swipeNext($(".stage .impx"), null, next);
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+      $("#stop").onclick = () => { if (c.id) { useCard(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     });
   };
 }
@@ -4112,7 +4118,7 @@ function cImpSolo(c) {
       <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Manche suivante</button></div></div>`, () => {
       bindHeader(); party(); impFit();
       $("#ok").onclick = next;
-      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+      $("#stop").onclick = () => { if (c.id) { useCard(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     }), 900);
   };
   reveal(0);
@@ -4200,7 +4206,7 @@ function cRadarSolo(c) {
       bindHeader(); if (hit) party();
       const fly = swipeNext($(".stage .impx"), null, next);
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+      $("#stop").onclick = () => { if (c.id) { useCard(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     });
   }
 }
@@ -4325,7 +4331,7 @@ function cClassSolo(c) {
       bindHeader(); noSkip(); clsFit($(".stage .impx")); if (ok) party();
       const fly = swipeNext($(".stage .impx"), null, next);
       $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
-      $("#stop").onclick = () => { if (c.id) { used.add(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
+      $("#stop").onclick = () => { if (c.id) { useCard(c.id); store.set("used", [...used]); } S.idx++; ranking(); };
     });
   }
 }
@@ -4793,7 +4799,7 @@ function tabooSetup() {
     $("#tm").onclick = () => step(-15); $("#tp").onclick = () => step(15);
     const rounds = d => { TB.max = Math.max(1, Math.min(10, TB.max + d)); store.set("tbMax", TB.max); buzz(8); draw(); };
     $("#rm").onclick = () => rounds(-1); $("#rp").onclick = () => rounds(1);
-    $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.found = {}; TB.deck = shuffle(tbPool()); S.inGame = true; keepAwake(); tabooTurn(); };
+    $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.found = {}; seen.clear(); TB.deck = tbPool().reverse(); S.inGame = true; keepAwake(); tabooTurn(); };
     draw();
     tbFit();
   });
@@ -4825,7 +4831,8 @@ function tbDrag(b, move) {
 function tabooSplit() { const n = shuffle(S.names); TB.teams = [n.filter((_, i) => i % 2 === 0), n.filter((_, i) => i % 2 === 1)]; }
 // tous les mots, sans tenir compte de l'intensité ni du réglage ex et sexe des autres jeux
 const tbPool = () => { const l = S.level, h = S.hot; S.level = 3; S.hot = true; try { return pool("taboo"); } finally { S.level = l; S.hot = h; } };
-const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = shuffle(tbPool()); const c = TB.deck.pop(); used.add(c.id); store.set("used", [...used]); return c; };
+const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = tbPool().reverse(); // les jamais vues sortent en premier (pop prend la fin)
+  const c = TB.deck.pop(); useCard(c.id); store.set("used", [...used]); return c; };
 const tbBoard = (cur, sc = TB.score) => `<div class="tb-score">${[0, 1].map(i => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${esc(tbName(i))} <b>${sc[i]}</b></span>`).join("")}</div>`;
 const tbPts = log => log.reduce((a, x) => a + (x.r === "ok" ? (x.gold ? 2 : 1) : 0), 0);
 const tbSign = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
@@ -6679,7 +6686,7 @@ async function roomNext(r) {
   if (!r.round) stat("start", r.game, n, "multi");
   const ok = Object.keys(ON_GAMES).filter(t => t !== "mix" && !ONE_PHONE.includes(t) && !LONG.includes(t) && ON_GAMES[t][1] <= n);
   const t = r.game === "mix" ? rnd(ok.length > 1 && r.card ? ok.filter(x => x !== r.card.type) : ok) : r.game;
-  const c = t === "av" || NEWG.includes(t) ? null : pool(t)[0]; if (c) { used.add(c.id); store.set("used", [...used]); }
+  const c = t === "av" || NEWG.includes(t) ? null : pool(t)[0]; if (c) { useCard(c.id); store.set("used", [...used]); }
   S.players = all.map(u => ({ name: r.players[u].name, pts: 0 }));
   const turnOf = all[r.round % n], pl = u => S.players[all.indexOf(u)];
   let card, phase = "vote";
@@ -6699,7 +6706,7 @@ async function roomNext(r) {
   }
   else if (t === "deux") {
     const qs = DEUX.filter(q => q[0] <= S.level && (S.hot || !isHot([q[1]]))), fresh = qs.filter(q => !used.has("deux:" + q[1]));
-    const q = rnd(fresh.length ? fresh : qs); used.add("deux:" + q[1]); store.set("used", [...used]);
+    const q = rnd(fresh.length ? fresh : qs); useCard("deux:" + q[1]); store.set("used", [...used]);
     card = { type: t, pair: [turnOf, all[(r.round + 1) % n]], text: q[1] };
   }
   else if (t === "reflexe") {
@@ -7011,7 +7018,7 @@ function roomRender(r) {
     $$(".on-choices [data-v]").forEach(x => x.onclick = () => {
       buzz(15);
       if (T === "av" && r.phase === "choose") {
-        const pick = pool(x.dataset.v === "v" ? "verite" : "action")[0]; used.add(pick.id); store.set("used", [...used]);
+        const pick = pool(x.dataset.v === "v" ? "verite" : "action")[0]; useCard(pick.id); store.set("used", [...used]);
         return upd({ "card.kind": x.dataset.v, "card.text": fill(pick.data[1], S.players[ids(r).indexOf(uid)]), phase: "vote" });
       }
       upd({ [`acts.${uid}`]: x.dataset.v });
@@ -7338,7 +7345,7 @@ function lobbyView(r, host) {
     $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) + (ON.r.white || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
     $$("#undn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.white || 0) < 1 ? { und: v, imp: 1 } : { und: v }); });
     $$("#whn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.und || 0) < 1 ? { white: v, imp: 1 } : { white: v }); });
-    const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; upd(Object.assign({ round: 0, card: null, tb0: 0, tb1: 0 }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
+    const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; seen.clear(); upd(Object.assign({ round: 0, card: null, tb0: 0, tb1: 0 }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
     try {
       const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => ({ id: d.id, ...d.data() }));
       const box = $("#inv"); if (!box) return;
