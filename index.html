@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="d0474dd195a2">
+<meta name="build" content="855e91ea46df">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <link rel="icon" type="image/png" href="icon-192.png?v=5">
@@ -2757,65 +2757,87 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const rnd = a => a[Math.floor(Math.random() * a.length)];
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// vibration : l'iPhone n'a pas navigator.vibrate, mais Safari (iOS 18 et plus) fait un petit retour haptique
+// quand on bascule un interrupteur <input switch> : on en bascule un invisible, seulement pendant un toucher
+let hxAt = 0;
+function haptic(p) {
+  if (navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} return; }
+  const now = performance.now(); if (now - hxAt < 40) return; hxAt = now;
+  try {
+    const l = document.createElement("label"), i = document.createElement("input");
+    i.type = "checkbox"; i.setAttribute("switch", ""); l.appendChild(i); l.style.display = "none";
+    document.body.appendChild(l); l.click(); l.remove();
+  } catch (e) {}
+}
 // snd : le son à jouer à la place de celui du motif (false : aucun)
-const buzz = (p, snd) => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} if (snd !== false) sfx(snd || sfxOf(p)); };
+const buzz = (p, snd) => { haptic(p); if (snd !== false) sfx(snd || sfxOf(p)); };
 const store = {
   get(k, d) { try { const v = localStorage.getItem("scandale:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem("scandale:" + k, JSON.stringify(v)); } catch (e) {} }
 };
-// sons : fabriqués sur place (Web Audio), rien à télécharger. Chaque vibration joue le son qui va avec ;
-// un toucher de bouton fait un petit pop. Les sons d'un même geste sont regroupés : seul le plus fort est joué.
+// sons « Feutre » (choisis par Fabio) : marimba étouffée avec un léger écho, fabriquée sur place (Web Audio), rien à télécharger.
+// Chaque vibration joue le son qui va avec, un toucher de bouton fait un petit « toc ». Les sons d'un même geste sont regroupés : seul le plus important est joué.
 // iPhone : le son ne démarre qu'après un premier toucher, et l'interrupteur silencieux le coupe.
-const SFX = { ctx: null, out: null, q: null, last: {} };
+const SFX = { ctx: null, out: null, wet: null, q: null };
 const sfxOn = () => store.get("sound", 1) === 1;
 function sfxCtx() {
   if (!SFX.ctx) {
     const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
     try { SFX.ctx = new A(); } catch (e) { return null; }
-    const c = SFX.ctx, comp = c.createDynamicsCompressor(); SFX.out = c.createGain(); SFX.out.gain.value = .5;
-    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
-    SFX.out.connect(lp); lp.connect(comp); comp.connect(c.destination);
+    const c = SFX.ctx, comp = c.createDynamicsCompressor(), lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5000;
+    SFX.out = c.createGain(); SFX.out.gain.value = .9; SFX.out.connect(lp); lp.connect(comp); comp.connect(c.destination);
+    // petit écho de pièce, fabriqué sur place
+    const n = Math.floor(c.sampleRate * 1.4), ir = c.createBuffer(2, n, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
+    const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .22; SFX.wet.connect(cv); cv.connect(SFX.out);
   }
   if (SFX.ctx.state !== "running") SFX.ctx.resume().catch(() => {});
   return SFX.ctx;
 }
 const sfxUnlock = () => { if (!sfxOn()) return; const c = sfxCtx(); if (!c) return; const b = c.createBufferSource(); b.buffer = c.createBuffer(1, 1, 22050); b.connect(c.destination); b.start(0); };
 ["pointerdown", "touchend", "click"].forEach(t => document.addEventListener(t, sfxUnlock, { capture: true, passive: true }));
-function noise(dur, vol, f0, f1, at = 0) {
-  const c = SFX.ctx, t = c.currentTime + at, n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-  s.buffer = b; f.type = "lowpass"; f.Q.value = .7; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * .3); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
-  s.connect(f); f.connect(g); g.connect(SFX.out); s.start(t); s.stop(t + dur + .02);
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button:not(:disabled), .tile, .chip")) { haptic(10); sfx("tap"); } }, true);
+const sfxT = at => SFX.ctx.currentTime + .02 + at;
+function sfxEnv(g, t, vol, a, dur) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0004, t + dur); }
+function sfxSend(node, wet) { const c = SFX.ctx, w = c.createGain(); node.connect(SFX.out); w.gain.value = wet; node.connect(w); w.connect(SFX.wet); }
+// une lame de marimba feutrée, avec une octave grave très douce dessous
+function felt(f, vol, at = 0, dur = .5) {
+  const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain();
+  o.type = "triangle"; o.frequency.value = f; lp.type = "lowpass"; lp.frequency.setValueAtTime(f * 3, t); lp.frequency.exponentialRampToValueAtTime(f * 1.1, t + .15);
+  sfxEnv(g, t, vol, .005, dur); o.connect(lp); lp.connect(g); sfxSend(g, .8); o.start(t); o.stop(t + dur + .05);
+  const s = c.createOscillator(), sg = c.createGain(); s.frequency.value = f / 2;
+  sfxEnv(sg, t, vol * .35, .005, dur * .6); s.connect(sg); sfxSend(sg, 1); s.start(t); s.stop(t + dur + .05);
 }
-// sons discrets : seulement quelques moments, très bas, notes pures qui montent et s'éteignent doucement
-function soft(f, vol, at = 0, dur = .5) {
-  const c = SFX.ctx, t = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
-  o.type = "sine"; o.frequency.value = f;
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .018); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
-  o.connect(g); g.connect(SFX.out); o.start(t); o.stop(t + dur + .02);
+// souffle léger quand une carte part
+function air(vol, dur, f) {
+  const c = SFX.ctx, t = sfxT(0), n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.Q.value = .8;
+  bp.frequency.setValueAtTime(f * .7, t); bp.frequency.linearRampToValueAtTime(f, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * .45); g.gain.linearRampToValueAtTime(0, t + dur);
+  s.connect(bp); bp.connect(g); sfxSend(g, .5); s.start(t); s.stop(t + dur + .02);
 }
 const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
-  swish:  [3, () => noise(.16, .05, 700, 700)],
-  point:  [5, () => { soft(659, .07, 0, .35); soft(880, .06, .07, .45); }],
-  win:    [7, () => { soft(659, .07, 0, .4); soft(880, .06, .08, .5); soft(1047, .05, .16, .7); }],
-  timeup: [7, () => { soft(523, .09, 0, .5); soft(392, .09, .2, .7); }],
-  end:    [8, () => [523, 659, 784].forEach((f, i) => soft(f, .055, i * .07, 1.3))]
+  tap:    [2, () => felt(523, .12, 0, .25)],
+  swish:  [3, () => air(.04, .2, 900)],
+  win:    [6, () => { felt(659, .16); felt(988, .14, .09, .6); }],
+  fail:   [6, () => { felt(392, .16); felt(330, .14, .13, .6); }],
+  timeup: [7, () => { felt(587, .16); felt(440, .15, .16, .7); }],
+  end:    [8, () => [523, 659, 784, 1047].forEach((f, i) => felt(f, .14, i * .1, .9))]
 };
 // vibration → son : le motif dit ce qui se passe (réussite, raté, chrono…)
-const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,80": "end", "60,40,140": "end",
-  "40,30,40": "point", "200,80,200": "timeup" };
+const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,40": "win", "40,30,80": "end", "60,40,140": "end",
+  "80,40,80": "fail", "60,40,60": "fail", "200,80,200": "timeup" };
 const sfxOf = p => Array.isArray(p) ? SFX_OF[p.join()] : null;
 // on garde le son le plus important du geste en cours, joué juste après
-function sfx(name, arg) {
+function sfx(name) {
   if (!name || !SOUNDS[name] || !sfxOn()) return;
-  if (!SFX.q || SOUNDS[name][0] > SOUNDS[SFX.q[0]][0]) SFX.q = [name, arg];
+  if (!SFX.q || SOUNDS[name][0] > SOUNDS[SFX.q][0]) SFX.q = name;
   if (SFX.qt) return;
   SFX.qt = setTimeout(() => {
-    const [n, a] = SFX.q; SFX.q = null; SFX.qt = 0;
-        const c = sfxCtx(); if (!c) return;
-    try { SOUNDS[n][1](a); } catch (e) {}
+    const n = SFX.q; SFX.q = null; SFX.qt = 0;
+    if (!sfxCtx()) return;
+    try { SOUNDS[n][1](); } catch (e) {}
   }, 0);
 }
 let timers = [];
@@ -3044,7 +3066,7 @@ function settingsSheet() {
     <div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Son</button><button data-v="0">🔇 Muet</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (sons discrets)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (sons Feutre et vibrations)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -3426,7 +3448,7 @@ function wheel(auto) {
       const jitter = (Math.random() - .5) * seg * .6, stop = 360 - (pick * seg + seg / 2) + jitter;
       turned += 360 * 6 + ((stop - turned) % 360 + 360) % 360;
       $(".actions").innerHTML = `<button class="btn red" id="spin" disabled>Ça tourne…</button>`; $("#res").textContent = "…";
-      buzz(20, false); sfx("spin", 3.6); $("#wheel").style.transform = `rotate(${turned}deg)`; $(".wheel-box").classList.add("on");
+      buzz(20, false); $("#wheel").style.transform = `rotate(${turned}deg)`; $(".wheel-box").classList.add("on");
       later(() => {
         busy = false; S.lastGame = g.t; buzz([40, 30, 60]); $(".wheel-box").classList.remove("on");
         $("#res").innerHTML = `<small>On joue à</small>${esc(TYPES[g.t] ? TYPES[g.t].label : g.short)}`;
@@ -3456,7 +3478,7 @@ function soloWheel() {
     $("#back").onclick = home;
     const pick = Math.floor(Math.random() * 2), g = games[pick];
     const rot = 360 * 5 + (360 - (pick * 180 + 90)) + (Math.random() - .5) * 90;
-    buzz(20, false); sfx("spin", 2.5);
+    buzz(20, false); 
     later(() => { $("#wheel").style.transform = `rotate(${rot}deg)`; $(".wheel-box").classList.add("on"); }, 60);
     later(() => { buzz([40, 30, 60]); $(".wheel-box").classList.remove("on"); $("#res").innerHTML = `<small>On joue à</small>${esc(g.short)}`; }, 2700);
     later(() => g.run(), 3900);
