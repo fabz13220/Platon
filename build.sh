@@ -19,8 +19,8 @@ cat <<'H'
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
 <meta name="build" content="@BUILD@">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png?v=5">
-<link rel="icon" type="image/png" href="icon-192.png?v=5">
+<link rel="apple-touch-icon" href="icon-180.png?v=6">
+<link rel="icon" type="image/png" href="icon-192.png?v=6">
 <link rel="apple-touch-startup-image" href="splash/splash-1170x2532.png?v=5" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
 <link rel="apple-touch-startup-image" href="splash/splash-1179x2556.png?v=5" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
 <link rel="apple-touch-startup-image" href="splash/splash-1284x2778.png?v=5" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
