@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="645aba0111ca">
+<meta name="build" content="0a1ce0dad227">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <link rel="icon" type="image/png" href="icon-192.png?v=5">
@@ -2773,7 +2773,8 @@ function sfxCtx() {
     const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
     try { SFX.ctx = new A(); } catch (e) { return null; }
     const c = SFX.ctx, comp = c.createDynamicsCompressor(); SFX.out = c.createGain(); SFX.out.gain.value = .5;
-    SFX.out.connect(comp); comp.connect(c.destination);
+    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3200;
+    SFX.out.connect(lp); lp.connect(comp); comp.connect(c.destination);
   }
   if (SFX.ctx.state !== "running") SFX.ctx.resume().catch(() => {});
   return SFX.ctx;
@@ -2792,26 +2793,33 @@ function noise(dur, vol, f0, f1, at = 0) {
   const c = SFX.ctx, t = c.currentTime + at, n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-  s.buffer = b; f.type = "bandpass"; f.Q.value = 1.2; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  s.buffer = b; f.type = "lowpass"; f.Q.value = .7; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * .3); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
   s.connect(f); f.connect(g); g.connect(SFX.out); s.start(t); s.stop(t + dur + .02);
 }
-const notes = (fs, step, dur, vol, type, at = 0) => fs.forEach((f, i) => tone(f, f, dur, vol, type, at + i * step));
+// sons doux, façon bois et xylophone : notes qui ne glissent pas, aigus coupés
+function mallet(f, vol, at = 0, dur = .5) { // une lame de xylophone : la note + une harmonique qui s'éteint vite
+  tone(f, f, dur, vol, "sine", at); tone(f * 4, f * 4, dur / 5, vol * .18, "sine", at);
+}
+function knock(f, vol, at = 0) { // petit coup sur du bois
+  tone(f, f, .07, vol, "sine", at); noise(.03, vol * .5, f * 2, f * 2, at);
+}
+const roll = (fs, step, vol, at = 0, dur) => fs.forEach((f, i) => mallet(f, vol, at + i * step, dur));
 const SOUNDS = { // [importance, jouer]
-  tick:   [1, () => tone(2200, 1800, .03, .08, "triangle")],
-  tap:    [2, () => tone(620, 300, .07, .22)],
-  swish:  [3, () => noise(.2, .32, 2600, 500)],
-  thump:  [4, () => { tone(180, 70, .16, .5); noise(.06, .15, 1200, 400); }],
-  go:     [4, () => tone(1320, 1320, .12, .22, "triangle")],
-  skip:   [5, () => tone(520, 330, .14, .2, "triangle")],
-  nope:   [5, () => tone(150, 110, .12, .3, "square")],
-  point:  [5, () => notes([988, 1319], .07, .14, .22, "triangle")],
-  reveal: [6, () => { noise(.3, .18, 400, 3000); notes([784, 1175], .09, .3, .2, "triangle", .2); }],
-  fail:   [6, () => { tone(330, 300, .2, .22, "sawtooth"); tone(247, 200, .34, .22, "sawtooth", .17); }],
-  win:    [7, () => { notes([523, 659, 784, 1047], .075, .22, .2, "triangle"); tone(2093, 2093, .35, .06, "sine", .3); }],
-  timeup: [7, () => [0, .22, .44].forEach(a => tone(880, 880, .16, .2, "square", a))],
-  end:    [8, () => { notes([392, 523, 659, 784], .09, .2, .2, "triangle"); [523, 659, 784, 1047].forEach(f => tone(f, f, .9, .1, "triangle", .38)); notes([2093, 2637, 3136], .08, .25, .05, "sine", .45); }],
-  spin:   [6, (d = 3.6) => { for (let k = 0, N = 44; k < N; k++) tone(1900, 1500, .025, .09, "triangle", d * (1 - Math.pow(1 - k / N, .25))); }]
+  tick:   [1, () => knock(1500, .05)],
+  tap:    [2, () => knock(640, .16)],
+  swish:  [3, () => noise(.18, .12, 900, 900)],
+  thump:  [4, () => { mallet(131, .4, 0, .3); knock(330, .1); }],
+  go:     [4, () => mallet(880, .22, 0, .35)],
+  skip:   [5, () => roll([523, 392], .09, .18, 0, .3)],
+  nope:   [5, () => knock(220, .25)],
+  point:  [5, () => roll([784, 1047], .08, .2, 0, .4)],
+  reveal: [6, () => roll([523, 659, 784], .06, .18, 0, .6)],
+  fail:   [6, () => roll([392, 311], .16, .22, 0, .6)],
+  win:    [7, () => roll([523, 659, 784, 1047], .08, .2, 0, .6)],
+  timeup: [7, () => roll([784, 784, 784], .22, .22, 0, .25)],
+  end:    [8, () => { roll([392, 523, 659, 784], .1, .2); roll([1047], 0, .2, .42, 1.2); mallet(523, .12, .42, 1.2); }],
+  spin:   [6, (d = 3.6) => { for (let k = 0, N = 44; k < N; k++) knock(1800, .04, d * (1 - Math.pow(1 - k / N, .25))); }]
 };
 // vibration → son : le motif dit ce qui se passe (réussite, raté, chrono…)
 const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,80": "end", "60,40,140": "end",
@@ -3055,7 +3063,7 @@ function settingsSheet() {
     <div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Son</button><button data-v="0">🔇 Muet</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (sons)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (sons doux)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
