@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="855e91ea46df">
+<meta name="build" content="cd3604c4af18">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <link rel="icon" type="image/png" href="icon-192.png?v=5">
@@ -2776,9 +2776,9 @@ const store = {
   set(k, v) { try { localStorage.setItem("scandale:" + k, JSON.stringify(v)); } catch (e) {} }
 };
 // sons « Feutre » (choisis par Fabio) : marimba étouffée avec un léger écho, fabriquée sur place (Web Audio), rien à télécharger.
-// Chaque vibration joue le son qui va avec, un toucher de bouton fait un petit « toc ». Les sons d'un même geste sont regroupés : seul le plus important est joué.
+// Chaque vibration joue le son qui va avec ; les boutons vibrent sans faire de son (Fabio : pas de son partout). Les sons d'un même geste sont regroupés : seul le plus important est joué.
 // iPhone : le son ne démarre qu'après un premier toucher, et l'interrupteur silencieux le coupe.
-const SFX = { ctx: null, out: null, wet: null, q: null };
+const SFX = { ctx: null, out: null, wet: null, q: null, last: {} };
 const sfxOn = () => store.get("sound", 1) === 1;
 function sfxCtx() {
   if (!SFX.ctx) {
@@ -2796,7 +2796,7 @@ function sfxCtx() {
 }
 const sfxUnlock = () => { if (!sfxOn()) return; const c = sfxCtx(); if (!c) return; const b = c.createBufferSource(); b.buffer = c.createBuffer(1, 1, 22050); b.connect(c.destination); b.start(0); };
 ["pointerdown", "touchend", "click"].forEach(t => document.addEventListener(t, sfxUnlock, { capture: true, passive: true }));
-document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button:not(:disabled), .tile, .chip")) { haptic(10); sfx("tap"); } }, true);
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button:not(:disabled), .tile, .chip")) haptic(10); }, true);
 const sfxT = at => SFX.ctx.currentTime + .02 + at;
 function sfxEnv(g, t, vol, a, dur) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0004, t + dur); }
 function sfxSend(node, wet) { const c = SFX.ctx, w = c.createGain(); node.connect(SFX.out); w.gain.value = wet; node.connect(w); w.connect(SFX.wet); }
@@ -2819,6 +2819,12 @@ function air(vol, dur, f) {
 }
 const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
   tap:    [2, () => felt(523, .12, 0, .25)],
+  // bulles : une note ronde au hasard dans une gamme douce, pour que plusieurs bulles sonnent bien ensemble
+  bounce: [1, () => felt(rnd([784, 880, 1047, 1175, 1319]), .05, 0, .2)],
+  bubble: [2, () => felt(rnd([523, 587, 659, 784, 880]), .11, 0, .3)],
+  pop:    [4, () => { felt(659, .12, 0, .3); felt(880, .1, .06, .4); }],
+  reveal: [6, () => { felt(784, .15, 0, .6); felt(1047, .13, .08, .7); }],
+  spin:   [5, (d = 3.6) => { for (let k = 0, N = 40; k < N; k++) felt(k % 2 ? 1047 : 988, .05, d * (1 - Math.pow(1 - k / N, .25)), .09); }],
   swish:  [3, () => air(.04, .2, 900)],
   win:    [6, () => { felt(659, .16); felt(988, .14, .09, .6); }],
   fail:   [6, () => { felt(392, .16); felt(330, .14, .13, .6); }],
@@ -2827,17 +2833,18 @@ const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
 };
 // vibration → son : le motif dit ce qui se passe (réussite, raté, chrono…)
 const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,40": "win", "40,30,80": "end", "60,40,140": "end",
-  "80,40,80": "fail", "60,40,60": "fail", "200,80,200": "timeup" };
+  "40,30,60": "reveal", "80,40,80": "fail", "60,40,60": "fail", "200,80,200": "timeup" };
 const sfxOf = p => Array.isArray(p) ? SFX_OF[p.join()] : null;
 // on garde le son le plus important du geste en cours, joué juste après
-function sfx(name) {
+function sfx(name, arg) {
   if (!name || !SOUNDS[name] || !sfxOn()) return;
-  if (!SFX.q || SOUNDS[name][0] > SOUNDS[SFX.q][0]) SFX.q = name;
+  if (!SFX.q || SOUNDS[name][0] > SOUNDS[SFX.q[0]][0]) SFX.q = [name, arg];
   if (SFX.qt) return;
   SFX.qt = setTimeout(() => {
-    const n = SFX.q; SFX.q = null; SFX.qt = 0;
+    const [n, a] = SFX.q; SFX.q = null; SFX.qt = 0;
+    const now = performance.now(); if (now - (SFX.last[n] || 0) < (n === "bounce" ? 120 : 40)) return; SFX.last[n] = now;
     if (!sfxCtx()) return;
-    try { SOUNDS[n][1](); } catch (e) {}
+    try { SOUNDS[n][1](a); } catch (e) {}
   }, 0);
 }
 let timers = [];
@@ -3066,7 +3073,7 @@ function settingsSheet() {
     <div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Son</button><button data-v="0">🔇 Muet</button></div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (sons Feutre et vibrations)</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du 27 octobre (sons Feutre, roue et bulles)</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
     $("#bans", w).onclick = () => { w.remove(); banList(); };
@@ -3188,7 +3195,7 @@ function jelly(el, onTap, home) { // home : la bulle sert de bouton et revient d
   let gx = 0, gy = 0, sx = 0, sy = 0, dragged = false;
   const grab = (x, y) => {
     measure(); B.x += B.fx; B.y += B.fy; B.fx = B.fy = B.fw = 0; B.held = true; dragged = false; sx = x; sy = y; gx = x - B.x; gy = y - B.y; B.tx = B.x; B.ty = B.y;
-    B.avx -= .05; B.avy += .05; el.classList.add("held"); buzz(8); wake();
+    B.avx -= .05; B.avy += .05; el.classList.add("held"); buzz(8, "bubble"); wake();
   };
   const drag = (x, y) => { if (!B.held) return; if (Math.hypot(x - sx, y - sy) > 12) dragged = true; B.tx = x - gx; B.ty = y - gy; };
   const drop = () => {
@@ -3232,7 +3239,7 @@ function jellyStep() {
     // demi-largeur et demi-hauteur réelles (une bulle avec un long prénom est plus large que haute), un peu de marge pour le flottement
     const W = document.documentElement.clientWidth || innerWidth, H = wall.b, hw = (o.hw || o.R) * Math.max(1, o.sx || 1) + 4, hh = (o.hh || o.R) * Math.max(1, o.sy || 1) + 4; // étirée, elle est plus large
     const L = o.cx + o.x + o.fx - hw, Rr = o.cx + o.x + o.fx + hw, T = o.cy + o.y + o.fy - hh, Bt = o.cy + o.y + o.fy + hh;
-    const hit = (v, axis) => { const k = Math.min(.22, Math.abs(v) * .03); if (axis === "x") o.avx += k; else o.avy += k; if (Math.abs(v) > 4) buzz(6); };
+    const hit = (v, axis) => { const k = Math.min(.22, Math.abs(v) * .03); if (axis === "x") o.avx += k; else o.avy += k; if (Math.abs(v) > 4) buzz(6, "bounce"); };
     if (L < 0) { o.x -= L; if (o.vx < 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
     if (Rr > W) { o.x -= Rr - W; if (o.vx > 0) { hit(o.vx, "x"); o.vx = -o.vx * .7; } }
     if (T < wall.t) { o.y -= T - wall.t; if (o.vy < 0) { hit(o.vy, "y"); o.vy = -o.vy * .7; } }
@@ -3353,7 +3360,7 @@ function popGroup(b, g, draw) {
   const added = S.names.length - before;
   store.set("players", S.names);
   if (S.names.length >= 16 && added < g.names.length) toast("16 joueurs maximum.");
-  buzz(20);
+  buzz(20, "pop");
   if (calm()) { draw(); return; }
   const r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   b.classList.add("pop");
@@ -3448,7 +3455,7 @@ function wheel(auto) {
       const jitter = (Math.random() - .5) * seg * .6, stop = 360 - (pick * seg + seg / 2) + jitter;
       turned += 360 * 6 + ((stop - turned) % 360 + 360) % 360;
       $(".actions").innerHTML = `<button class="btn red" id="spin" disabled>Ça tourne…</button>`; $("#res").textContent = "…";
-      buzz(20, false); $("#wheel").style.transform = `rotate(${turned}deg)`; $(".wheel-box").classList.add("on");
+      buzz(20, false); sfx("spin", 3.6); $("#wheel").style.transform = `rotate(${turned}deg)`; $(".wheel-box").classList.add("on");
       later(() => {
         busy = false; S.lastGame = g.t; buzz([40, 30, 60]); $(".wheel-box").classList.remove("on");
         $("#res").innerHTML = `<small>On joue à</small>${esc(TYPES[g.t] ? TYPES[g.t].label : g.short)}`;
@@ -3478,7 +3485,7 @@ function soloWheel() {
     $("#back").onclick = home;
     const pick = Math.floor(Math.random() * 2), g = games[pick];
     const rot = 360 * 5 + (360 - (pick * 180 + 90)) + (Math.random() - .5) * 90;
-    buzz(20, false); 
+    buzz(20, false); sfx("spin", 2.5);
     later(() => { $("#wheel").style.transform = `rotate(${rot}deg)`; $(".wheel-box").classList.add("on"); }, 60);
     later(() => { buzz([40, 30, 60]); $(".wheel-box").classList.remove("on"); $("#res").innerHTML = `<small>On joue à</small>${esc(g.short)}`; }, 2700);
     later(() => g.run(), 3900);
@@ -4755,7 +4762,7 @@ function tabooSetup() {
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
     $("#back").onclick = playersScreen;
-    $("#mix").onclick = () => { tabooSplit(); buzz(10); draw(); };
+    $("#mix").onclick = () => { tabooSplit(); buzz(10, "pop"); draw(); };
     // certains joueurs font toujours deviner leur équipe : à chaque tour de leur équipe, c'est eux qui prennent le téléphone
     $("#only").onclick = () => sheet(`
       <span class="mast" style="font-size:28px">Toujours faire deviner</span>
@@ -4784,7 +4791,7 @@ function tbDrag(b, move) {
   const at = (x, y) => $$("#teams .tb-team").findIndex(t => { const r = t.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; });
   let x0 = null, y0 = 0, drag = false, pid = null;
   const reset = () => { x0 = null; drag = false; b.classList.remove("drag"); $$("#teams .tb-team").forEach(t => t.classList.remove("drop")); };
-  b.addEventListener("pointerdown", e => { x0 = e.clientX; y0 = e.clientY; drag = false; pid = e.pointerId; try { b.setPointerCapture(pid); } catch (er) {} });
+  b.addEventListener("pointerdown", e => { x0 = e.clientX; y0 = e.clientY; drag = false; pid = e.pointerId; try { b.setPointerCapture(pid); } catch (er) {} buzz(8, "bubble"); });
   b.addEventListener("pointermove", e => {
     if (x0 === null || e.pointerId !== pid) return;
     const dx = e.clientX - x0, dy = e.clientY - y0;
@@ -4797,7 +4804,7 @@ function tbDrag(b, move) {
     if (x0 === null) return;
     const was = drag, f = from(), to = was ? at(e.clientX, e.clientY) : 1 - f;
     reset();
-    if (to >= 0 && to !== f) move(n, f, to);
+    if (to >= 0 && to !== f) { move(n, f, to); sfx("pop"); }
     else { b.style.transition = "transform .2s ease-out"; b.style.transform = ""; } // lâché dans sa propre équipe : il revient à sa place
   });
   b.addEventListener("pointercancel", reset);
