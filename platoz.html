@@ -1032,7 +1032,34 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 .finger.lose { animation: none; opacity: 0; transform: scale(.3); }
 .finger.lose .core, .finger.lose::after { animation: none; }
 .chooser.done { border-color: transparent; }
-@media (prefers-reduced-motion: reduce) { .cube { transition-duration: .01s } .dwrap.toss { animation: none } }
+.chooser { border-style: solid; }
+.tool-opts { transition: opacity .25s; }
+.tool-wrap.playing .tool-opts { opacity: 0; pointer-events: none; }
+.finger.hot { transform: scale(1.35); z-index: 2; }
+.finger.hot .ring { opacity: 0; }
+.ch-more, .ch-again { position: absolute; left: 0; right: 0; text-align: center; font-weight: 900; font-size: 16px; color: var(--muted); pointer-events: none; }
+.ch-more { top: 18px; }
+.ch-again { bottom: 18px; opacity: 0; transition: opacity .4s 1.2s; z-index: 3; }
+.chooser.done .ch-again { opacity: 1; }
+.chooser.flooded .ch-again { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+.ch-flood { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: color-mix(in srgb, var(--fc) 45%, #0B0720); animation: chflood .7s cubic-bezier(.3,.1,.3,1) forwards; pointer-events: none; z-index: 0; }
+:where(html[data-theme="light"]) .ch-flood { background: color-mix(in srgb, var(--fc) 40%, #fff); }
+:where(html[data-theme="light"]) .chooser.flooded .ch-again { color: var(--text); text-shadow: none; }
+@keyframes chflood { to { transform: scale(260); } }
+/* pile ou face */
+.coin-zone { flex: 1; display: grid; place-items: center; position: relative; perspective: 900px; -webkit-perspective: 900px; cursor: pointer; }
+.coin-up { width: 170px; height: 170px; position: relative; z-index: 1; }
+.coin-up.toss { animation: cointoss 1.3s cubic-bezier(.3,.1,.4,1); }
+@keyframes cointoss { 0% { transform: translateY(0) scale(1) } 45% { transform: translateY(-190px) scale(1.25) } 85% { transform: translateY(0) scale(1) } 92% { transform: translateY(-14px) } 100% { transform: translateY(0) } }
+.coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transition: transform 1.3s cubic-bezier(.2,.75,.3,1); }
+.cf { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: radial-gradient(circle at 34% 28%, #FFF2B0, #FFC93C 38%, #E89A0C 78%, #B86E00); box-shadow: inset 0 0 0 7px rgba(255,255,255,.35), inset 0 0 0 12px rgba(150,80,0,.35), inset 0 -8px 18px rgba(120,60,0,.45); }
+.cf span { font-family: var(--display); font-weight: 900; font-size: 34px; letter-spacing: .02em; text-transform: uppercase; color: #8A4B00; text-shadow: 0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(90,40,0,.35); }
+.cf.pile { transform: rotateX(180deg); }
+.coin-shadow { position: absolute; left: 50%; top: calc(50% + 100px); width: 130px; height: 18px; margin-left: -65px; border-radius: 50%; background: rgba(0,0,0,.35); filter: blur(8px); }
+.coin-up.toss + .coin-shadow { animation: coinshadow 1.3s cubic-bezier(.3,.1,.4,1); }
+@keyframes coinshadow { 45% { transform: scale(.45); opacity: .4 } }
+@media (prefers-reduced-motion: reduce) { .cube { transition-duration: .01s } .dwrap.toss { animation: none } .coin { transition-duration: .01s } .coin-up.toss, .coin-up.toss + .coin-shadow { animation: none } }
 
 /* Écran d'ouverture */
 #splash { position: fixed; inset: 0; z-index: 9999; background: #0B0720; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; transition: opacity .4s ease, visibility .4s; overflow: hidden; }
@@ -1378,10 +1405,15 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tab-mix { padding: 0; display: block; line-height: 76px; text-align: center; background: #FF3B6E; font-family: Nunito, sans-serif; font-size: 16px; width: 76px; height: 76px; margin-top: -34px; }
 .tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
 .rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
-.rail.few { overflow: visible; }
-.rail.few .tile.rt { flex: 1 1 0; width: auto; }
 .tile.rt.lock { --rc: #8C8AA0; }
 .tile.rt.lock > .ill, .tile.rt.lock > .mast { opacity: .5; filter: grayscale(1); }
+/* accueil : deux tuiles par ligne, rien n'est coupé sur le bord ; une tuile seule en fin de rangée prend toute la largeur */
+.rail.grid { display: grid; grid-template-columns: 1fr 1fr; margin: 0; padding: 0 0 4px; overflow: visible; }
+.rail.grid .tile.rt { width: auto; height: 128px; }
+.rail.grid .tile.rt:last-child:nth-child(odd) { grid-column: 1 / -1; height: 100px; }
+.sheet-wrap .tile.rt .ill { font-size: 40px; }
+.rail-box.short .rail.grid .tile.rt { height: 100px; }
+.tile.rt .sub { font-family: Nunito, sans-serif; font-weight: 800; font-size: 13px; line-height: 1.2; opacity: .75; }
 .tile.rt .need { position: absolute; top: 12px; left: 12px; padding: 4px 9px; border-radius: 999px; background: rgba(10,8,30,.72); color: #fff; font-family: Nunito, sans-serif; font-weight: 900; font-size: 12.5px; line-height: 1.1; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
 .jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; filter: brightness(.62); }
@@ -3265,8 +3297,8 @@ function home() {
   // un jeu qui ne va pas avec le nombre de joueurs reste visible, grisé, avec le nombre qu'il faut
   const need = t => on => on ? "" : n < minOf(t) ? `dès ${minOf(t)}` : n > maxOf(t) ? `${maxOf(t)} max` : "";
   const tile = (t, on) => { const k = need(t)(on); return `<button class="tile rt${k ? " lock" : ""}" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span>${k ? `<span class="need">${k}</span>` : ""}<span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`; };
-  // les jeux jouables d'abord ; une rangée de 1 ou 2 jeux prend toute la largeur
-  const rail = (title, list, id, on) => (list = (on ? list.filter(t => !ONE_PHONE.includes(t)) : list).map((t, i) => [t, i + (need(t)(on) ? 99 : 0)]).sort((a, b) => a[1] - b[1]).map(a => a[0])).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail${list.length < 3 ? " few" : ""}">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
+  // les jeux jouables d'abord
+  const rail = (title, list, id, on) => (list = (on ? list.filter(t => !ONE_PHONE.includes(t)) : list).map((t, i) => [t, i + (need(t)(on) ? 99 : 0)]).sort((a, b) => a[1] - b[1]).map(a => a[0])).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail grid">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   view(`
     <header class="home-head">
       <div class="logo">Bliz</div>
@@ -3333,8 +3365,9 @@ const ICONS = {
 // une illustration par jeu, sur les tuiles de l'accueil
 const ILL = { jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
 function toolsSheet() {
+  const t = (k, ill, name, sub, col) => `<button class="tile rt" data-tool="${k}" style="--rc:${col}"><span class="ill" aria-hidden="true">${ill}</span><span class="mast">${name}</span><span class="sub">${sub}</span></button>`;
   sheet(`<span class="mast" style="font-size:28px">Outils</span>
-    <div class="tools-row"><button class="btn white" data-tool="chooser">Chooser</button><button class="btn white" data-tool="dice">Dé</button></div>
+    <div class="rail grid">${t("chooser", "👆", "Chooser", "Le téléphone désigne quelqu'un", "#FF3B6E")}${t("dice", "🎲", "Dé", "Jusqu'à 3 dés", "#5B5CF0")}${t("coin", "🪙", "Pile ou face", "Une pièce à lancer", "#FFB21F")}</div>
     <button class="btn" id="close">Fermer</button>`, w => { bindTools(w); $("#close", w).onclick = () => w.remove(); });
 }
 function settingsSheet() {
@@ -4757,6 +4790,33 @@ function diceTool() {
     draw();
   });
 }
+// pile ou face : la pièce monte en tournant et retombe sur une face
+function coinTool() {
+  let rot = 0, busy = false, last = null, serie = 0;
+  tool({ title: "Pile ou face", body: `
+    <div class="coin-zone" id="cz"><div class="coin-up" id="up"><div class="coin" id="coin"><div class="cf face"><span>Face</span></div><div class="cf pile"><span>Pile</span></div></div></div><i class="coin-shadow"></i></div>
+    <p class="dice-sum" id="res"></p>
+    <p class="tool-hint" id="serie">Touche la pièce pour la lancer</p>
+    <div class="actions"><button class="btn red" id="flip">Lancer</button></div>` }, w => {
+    const coin = $("#coin", w), up = $("#up", w), res = $("#res", w), hint = $("#serie", w);
+    const flip = () => {
+      if (busy || !document.body.contains(w)) return; busy = true; buzz(15);
+      const v = Math.random() < .5 ? "Face" : "Pile";
+      res.textContent = ""; res.classList.remove("pop");
+      // 4 à 6 tours, et un demi-tour de plus si la face du dessus doit changer
+      rot += 360 * (4 + Math.floor(Math.random() * 3)); if ((v === "Pile") !== (Math.round(rot / 180) % 2 === 1)) rot += 180;
+      coin.style.transform = `rotateX(${rot}deg)`;
+      up.classList.remove("toss"); void up.offsetWidth; up.classList.add("toss");
+      w._o = setTimeout(() => {
+        busy = false; buzz([40, 30, 60]);
+        serie = v === last ? serie + 1 : 1; last = v;
+        res.textContent = v + " !"; void res.offsetWidth; res.classList.add("pop");
+        hint.textContent = serie > 1 ? `${serie} fois de suite` : "Touche la pièce pour relancer";
+      }, 1300);
+    };
+    $("#flip", w).onclick = flip; $("#cz", w).onclick = flip;
+  });
+}
 const FINGER_COLS = ["#FF3B6E", "#FFE04A", "#2EE6A0", "#4D8BFF", "#A66BFF", "#FF8A1F", "#22D3EE", "#FF8FD0", "#C7F25C", "#FFFFFF"];
 const TEAM_COLS = ["#FF3B6E", "#4D8BFF", "#FFE04A", "#2EE6A0"], TEAM_NAMES = ["A", "B", "C", "D"];
 function chooserTool() {
@@ -4767,10 +4827,10 @@ function chooserTool() {
       <div class="seg" id="cm"><button data-v="1">1 gagnant</button><button data-v="2">2 gagnants</button><button data-v="3">3 gagnants</button><button data-v="teams">Équipes</button></div>
       <div class="seg" id="ct"><button data-v="2">2 équipes</button><button data-v="3">3 équipes</button><button data-v="4">4 équipes</button></div>
     </div>
-    <div class="chooser" id="zone"><p id="msg"></p></div>` }, w => {
-    const zone = $("#zone", w), msg = $("#msg", w), touches = new Map();
-    let timer = null, picked = false;
-    const CT = 2200;
+    <div class="chooser" id="zone"><p id="msg"></p><span class="ch-more" id="more"></span><span class="ch-again" id="again">Levez les doigts pour rejouer</span></div>` }, w => {
+    const zone = $("#zone", w), msg = $("#msg", w), more = $("#more", w), touches = new Map();
+    let timer = null, picked = false, rolling = false;
+    const CT = 1800;
     const drawOpts = () => {
       $$("#cm button", w).forEach(b => b.setAttribute("aria-pressed", b.dataset.v === mode));
       $$("#ct button", w).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === teams));
@@ -4780,9 +4840,10 @@ function chooserTool() {
     $$("#cm button", w).forEach(b => b.onclick = () => { mode = b.dataset.v; store.set("chmode", mode); drawOpts(); arm(); });
     $$("#ct button", w).forEach(b => b.onclick = () => { teams = +b.dataset.v; store.set("chteams", teams); drawOpts(); arm(); });
     const need = () => mode === "teams" ? Math.max(2, teams) : Math.max(2, +mode + 1);
-    const finish = () => {
+    const finish = winId => {
+      rolling = false; picked = true; zone.classList.add("done"); buzz([60, 40, 120, 40, 200]);
+      $$(".finger", zone).forEach(f => f.classList.remove("hot"));
       const ids = [...touches.keys()];
-      picked = true; zone.classList.add("done"); buzz([60, 40, 120, 40, 200]);
       if (mode === "teams") {
         const order = ids.slice().sort(() => Math.random() - .5);
         order.forEach((id, i) => {
@@ -4791,37 +4852,65 @@ function chooserTool() {
           t.el.classList.remove("count"); t.el.classList.add("team");
         });
       } else {
-        const wins = new Set(ids.slice().sort(() => Math.random() - .5).slice(0, Math.min(+mode, ids.length - 1)));
+        const rest = ids.filter(id => id !== winId).sort(() => Math.random() - .5);
+        const wins = new Set([winId, ...rest].slice(0, Math.min(+mode, ids.length - 1)));
         touches.forEach((t, id) => { t.el.classList.remove("count"); t.el.classList.add(wins.has(id) ? "win" : "lose"); if (wins.has(id) && wins.size === 1) t.el.classList.add("solo"); });
+        // l'écran prend la couleur du gagnant, en partant de son doigt
+        if (wins.size === 1) {
+          const t = touches.get(winId), f = document.createElement("i"); f.className = "ch-flood";
+          f.style.setProperty("--fc", t.el.style.getPropertyValue("--fc")); f.style.left = t.el.style.left; f.style.top = t.el.style.top;
+          zone.prepend(f); zone.classList.add("flooded");
+        }
       }
+    };
+    // la lumière saute d'un doigt à l'autre en ralentissant, puis s'arrête sur le gagnant
+    const roulette = () => {
+      if (mode === "teams") return finish();
+      rolling = true; touches.forEach(t => t.el.classList.remove("count"));
+      let k = 0, prev = null;
+      const hop = () => {
+        if (!rolling || !document.body.contains(w)) return;
+        const ids = [...touches.keys()].filter(id => id !== prev);
+        const id = ids.length ? rnd(ids) : prev; prev = id;
+        $$(".finger", zone).forEach(f => f.classList.remove("hot"));
+        touches.get(id).el.classList.add("hot"); sfx("bounce");
+        const d = 50 + 5 * k * k; k++;
+        timer = w._o = setTimeout(d > 400 ? () => finish(id) : hop, d);
+      };
+      hop();
     };
     const arm = () => {
       clearTimeout(timer);
       if (picked) return;
-      msg.hidden = touches.size > 0; zone.classList.toggle("live", touches.size > 0);
+      if (rolling && touches.size >= 2) return roulette();
+      rolling = false; $$(".finger", zone).forEach(f => f.classList.remove("hot"));
+      msg.hidden = touches.size > 0; zone.classList.toggle("live", touches.size > 0); w.classList.toggle("playing", touches.size > 0);
       touches.forEach(t => t.el.classList.remove("count"));
-      if (touches.size < need()) return;
+      const miss = need() - touches.size;
+      more.textContent = touches.size && miss > 0 ? (miss > 1 ? `Encore ${miss} doigts…` : "Encore un doigt…") : "";
+      if (miss > 0) return;
       void zone.offsetWidth;
       touches.forEach(t => t.el.classList.add("count"));
-      timer = w._o = setTimeout(finish, CT);
+      timer = w._o = setTimeout(roulette, CT);
     };
     const pos = (el, e) => { const b = zone.getBoundingClientRect(); el.style.left = (e.clientX - b.left) + "px"; el.style.top = (e.clientY - b.top) + "px"; };
     zone.addEventListener("pointerdown", e => {
       e.preventDefault();
-      if (picked) return;
+      if (picked || rolling) return;
       const el = document.createElement("span"); el.className = "finger";
-      el.style.setProperty("--fc", FINGER_COLS[touches.size % FINGER_COLS.length]); el.style.setProperty("--ct", CT + "ms");
+      const used = new Set([...touches.values()].map(t => t.c)), c = FINGER_COLS.find(x => !used.has(x)) || rnd(FINGER_COLS);
+      el.style.setProperty("--fc", c); el.style.setProperty("--ct", CT + "ms");
       el.innerHTML = `<svg class="ring" viewBox="0 0 150 150"><circle cx="75" cy="75" r="60"/></svg><b class="core"></b>`;
-      pos(el, e); zone.appendChild(el); touches.set(e.pointerId, { el });
+      pos(el, e); zone.appendChild(el); touches.set(e.pointerId, { el, c });
       try { zone.setPointerCapture(e.pointerId); } catch (x) {}
-      buzz(10); arm();
+      buzz(10); sfx("bubble"); arm();
     });
     zone.addEventListener("pointermove", e => { const t = touches.get(e.pointerId); if (t && !picked) pos(t.el, e); });
     const up = e => {
       const t = touches.get(e.pointerId); if (!t) return;
       if (!picked) t.el.remove();
       touches.delete(e.pointerId);
-      if (picked && !touches.size) { picked = false; zone.classList.remove("done", "live"); $$(".finger", zone).forEach(f => f.remove()); msg.hidden = false; }
+      if (picked && !touches.size) { picked = false; zone.classList.remove("done", "live", "flooded"); w.classList.remove("playing"); $$(".finger, .ch-flood", zone).forEach(f => f.remove()); msg.hidden = false; }
       arm();
     };
     zone.addEventListener("pointerup", up); zone.addEventListener("pointercancel", up);
@@ -5747,7 +5836,7 @@ function standings() {
   return list.map((p, i) => { if (p.pts !== prev) { rank = i + 1; prev = p.pts; } return { name: p.name, pts: p.pts, rank }; });
 }
 function bindTools(r = document) {
-  $$("[data-tool]", r).forEach(b => b.onclick = () => { $$(".sheet-wrap").forEach(s => s.remove()); ({ dice: diceTool, chooser: chooserTool, propose: proposeTool })[b.dataset.tool](); });
+  $$("[data-tool]", r).forEach(b => b.onclick = () => { $$(".sheet-wrap").forEach(s => s.remove()); ({ dice: diceTool, chooser: chooserTool, coin: coinTool, propose: proposeTool })[b.dataset.tool](); });
 }
 function pauseMenu() {
   const st = standings();
