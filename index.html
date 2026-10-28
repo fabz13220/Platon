@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="95610428a2a8">
+<meta name="build" content="f34f910abe1e">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1942,7 +1942,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) #splash .spl-dots i { box-shadow: none; }
 
-:where(html[data-theme="light"]) #app > .where-seg { flex: none; }
+#app > .where-seg { flex: none; } /* sinon, avec peu de jeux, le bouton Un téléphone / Chacun le sien s'étire en hauteur */
 
 :where(html[data-theme="light"]) #app:has(#chips) .actions::before { display: none; }
 
@@ -3404,7 +3404,7 @@ function adminOpen() {
     w.remove();
   };
 }
-const VERSION = "27 octobre (son réparé)";
+const VERSION = "28 octobre";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
