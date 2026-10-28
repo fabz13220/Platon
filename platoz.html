@@ -3031,12 +3031,12 @@ function sfxCtx(make) {
     const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
     try { SFX.ctx = new A(); } catch (e) { return null; }
     SFX.ctx.onstatechange = () => { if (SFX.ctx && SFX.ctx.state === "interrupted") sfxDrop(); };
-    const c = SFX.ctx, comp = c.createDynamicsCompressor(), lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5000;
+    const c = SFX.ctx, comp = c.createDynamicsCompressor(), lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 4000;
     SFX.out = c.createGain(); SFX.out.gain.value = .9; SFX.out.connect(lp); lp.connect(comp); comp.connect(c.destination);
     // petit écho de pièce, fabriqué sur place
-    const n = Math.floor(c.sampleRate * 1.4), ir = c.createBuffer(2, n, c.sampleRate);
-    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
-    const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .12; SFX.wet.connect(cv); cv.connect(SFX.out);
+    const n = Math.floor(c.sampleRate * 1.2), ir = c.createBuffer(2, n, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.5); }
+    const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .14; SFX.wet.connect(cv); cv.connect(SFX.out);
   }
   if (make && SFX.ctx.state !== "running") {
     const c = SFX.ctx;
@@ -3058,32 +3058,36 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 const sfxT = at => SFX.ctx.currentTime + .02 + at;
 function sfxEnv(g, t, vol, a, dur) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0004, t + dur); }
 function sfxSend(node, wet) { const c = SFX.ctx, w = c.createGain(); node.connect(SFX.out); w.gain.value = wet; node.connect(w); w.connect(SFX.wet); }
-// note pure (sinus), qui arrive en douceur et s'éteint lentement, comme les sons de jeu que Fabio aime (modèle : sa vidéo du 27/10)
-function note(f, vol, at = 0, dur = .6) {
+// note grave et douce, avec un peu de corps (2e et 3e harmoniques) pour qu'un haut-parleur de téléphone rende le grave
+// (style « Grave doux » choisi par Fabio le 28/10 : les aigus purs faisaient « robot »)
+function tone1(f, vol, at, dur) {
   const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), g = c.createGain();
-  o.frequency.value = f; sfxEnv(g, t, vol, .025, dur); o.connect(g); sfxSend(g, .5); o.start(t); o.stop(t + dur + .05);
+  o.frequency.value = f; sfxEnv(g, t, vol, .02, dur); o.connect(g); sfxSend(g, .6); o.start(t); o.stop(t + dur + .05);
 }
-// petit « frrt » de papier quand une carte part : bruit aigu très court
-function flick(vol, dur = .18) {
+function note(f, vol, at = 0, dur = .6) { tone1(f, vol, at, dur); tone1(f * 2, vol * .45, at, dur * .7); tone1(f * 3, vol * .15, at, dur * .45); }
+// carte qui part : un frottement de papier doux qui descend (un bruit qui monte faisait « coup de fouet »)
+function flick(vol, dur = .14) {
   const c = SFX.ctx, t = sfxT(0), n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.Q.value = .9;
-  bp.frequency.setValueAtTime(4200, t); bp.frequency.linearRampToValueAtTime(6200, t + dur);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .03); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+  const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.Q.value = .6;
+  bp.frequency.setValueAtTime(1400, t); bp.frequency.exponentialRampToValueAtTime(800, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
   s.connect(bp); bp.connect(g); sfxSend(g, .2); s.start(t); s.stop(t + dur + .02);
+  tone1(120, vol * .35, 0, .08);
 }
-// notes de sol majeur : tout sonne bien ensemble
+// notes de sol majeur, dans le grave : tout sonne bien ensemble
+const G3 = 196, A3 = 220, B3 = 247, D4 = 294, E4 = 330, G4 = 392;
 const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
-  bounce: [1, () => note(rnd([587, 659, 784, 880]), .05, 0, .3)],
-  bubble: [2, () => note(rnd([392, 440, 494, 587, 659]), .14, 0, .4)],
-  pop:    [4, () => { note(494, .14, 0, .25); note(587, .14, .1, .5); }],
-  reveal: [6, () => { note(587, .16, 0, .35); note(784, .16, .11, .8); }],
-  spin:   [5, (d = 3.6) => { for (let k = 0, N = 40; k < N; k++) note(k % 2 ? 1175 : 988, .035, d * (1 - Math.pow(1 - k / N, .25)), .07); }],
-  swish:  [3, () => flick(.5)],
-  win:    [6, () => { note(392, .16, 0, .2); note(494, .16, .11, .2); note(587, .18, .22, .8); }],
-  fail:   [6, () => { note(494, .15, 0, .25); note(392, .15, .13, .7); }],
-  timeup: [7, () => { note(587, .17, 0, .3); note(440, .17, .16, .9); }],
-  end:    [8, () => { [392, 494, 587].forEach((f, i) => note(f, .16, i * .11, .25)); note(784, .18, .33, 1.4); note(392, .08, .33, 1.4); }]
+  bounce: [1, () => note(rnd([B3, D4, E4, G4]), .06, 0, .3)],
+  bubble: [2, () => note(rnd([G3, A3, B3, D4]), .18, 0, .4)],
+  pop:    [4, () => { note(B3, .18, 0, .25); note(D4, .18, .1, .5); }],
+  reveal: [6, () => { note(D4, .2, 0, .35); note(G4, .2, .11, .8); }],
+  spin:   [5, (d = 3.6) => { for (let k = 0, N = 34; k < N; k++) note(D4, .075, d * (1 - Math.pow(1 - k / N, .25)), .08); }],
+  swish:  [3, () => flick(.4)],
+  win:    [6, () => { note(G3, .2, 0, .3); note(B3, .2, .11, .3); note(D4, .22, .22, .8); }],
+  fail:   [6, () => { note(B3, .2, 0, .3); note(G3, .2, .13, .8); }],
+  timeup: [7, () => { note(D4, .2, 0, .35); note(A3, .2, .16, .9); }],
+  end:    [8, () => { [G3, B3, D4].forEach((f, i) => note(f, .2, i * .11, .3)); note(G4, .2, .33, 1.4); note(G3, .12, .33, 1.4); }]
 };
 // vibration → son : le motif dit ce qui se passe (réussite, raté, chrono…)
 const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,40": "win", "40,30,80": "end", "60,40,140": "end",
