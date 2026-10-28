@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="6c282b9a5ad5">
+<meta name="build" content="6bc00d0fdef9">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1445,6 +1445,15 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .rail.grid .tile.rt { width: auto; height: 128px; }
 .rail.grid .tile.rt:last-child:nth-child(odd) { grid-column: 1 / -1; height: 100px; }
 .sheet-wrap .tile.rt .ill { font-size: 40px; }
+.novib .hx { display: none !important; }
+.set-row { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }
+.set-row > span { font-weight: 900; font-size: 15px; }
+.set-row .seg button { padding: 10px 2px; font-size: 13.5px; white-space: nowrap; }
+.set-tiles.rail.grid .tile.rt { height: auto; min-height: 96px; gap: 3px; }
+.set-tiles.rail.grid .tile.rt:last-child:nth-child(odd) { min-height: 0; }
+.sheet-wrap .set-tiles .tile.rt .ill { position: static; transform: none; font-size: 28px; margin-bottom: auto; padding-bottom: 6px; }
+.set-tiles.rail.grid .tile.rt:last-child:nth-child(odd) .ill { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); padding: 0; font-size: 34px; }
+.set-links { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
 .rail-box.short .rail.grid .tile.rt { height: 100px; }
 .tile.rt .sub { font-family: Nunito, sans-serif; font-weight: 800; font-size: 13px; line-height: 1.2; opacity: .75; }
 .tile.rt .need { position: absolute; top: 12px; left: 12px; padding: 4px 9px; border-radius: 999px; background: rgba(10,8,30,.72); color: #fff; font-family: Nunito, sans-serif; font-weight: 900; font-size: 12.5px; line-height: 1.1; }
@@ -3067,7 +3076,7 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { c
 // relié à un interrupteur caché. Le toucher passe par le label (vibration), puis remonte au bouton comme d'habitude.
 // Hors boutons (swipe, bulles), l'iPhone ne peut pas vibrer.
 const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-function haptic(p) { if (navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} }
+function haptic(p) { if (navigator.vibrate && store.get("vib", 1)) try { navigator.vibrate(p); } catch (e) {} }
 function hxArm() {
   $$("button").forEach(b => {
     if (b.querySelector(":scope > .hx")) return;
@@ -3088,6 +3097,9 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("scandale:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem("scandale:" + k, JSON.stringify(v)); } catch (e) {} }
 };
+// réglage Vibrations : sur iPhone, on enlève simplement les interrupteurs cachés des boutons
+const applyVib = () => document.documentElement.classList.toggle("novib", !store.get("vib", 1));
+applyVib();
 // sons doux : notes pures et « frrt » de papier pour les cartes (d'après la vidéo de Fabio), avec un léger écho, fabriqués sur place (Web Audio), rien à télécharger.
 // Chaque vibration joue le son qui va avec ; les boutons vibrent sans faire de son (Fabio : pas de son partout). Les sons d'un même geste sont regroupés : seul le plus important est joué.
 // iPhone : le son ne démarre qu'après un premier toucher, et l'interrupteur silencieux le coupe.
@@ -3405,18 +3417,20 @@ function toolsSheet() {
     <button class="btn" id="close">Fermer</button>`, w => { bindTools(w); $("#close", w).onclick = () => w.remove(); });
 }
 function settingsSheet() {
+  const t = (attr, ill, name, sub, col) => `<button class="tile rt" ${attr} style="--rc:${col}"><span class="ill" aria-hidden="true">${ill}</span><span class="mast">${name}</span><span class="sub">${sub}</span></button>`;
   sheet(`<span class="mast" style="font-size:28px">Réglages</span>
-    <div class="tools-row"><button class="btn white" data-tool="propose">Proposer une carte</button><button class="btn white" id="idea">Proposer une idée</button></div>
-    <div class="tools-row"><button class="btn white" id="tester">Tester les cartes</button><button class="btn white" id="bans"${ban.size ? "" : " disabled"}>Cartes retirées (${ban.size})</button></div>
-    <div class="seg" id="theme-seg" aria-label="Apparence"><button data-v="light">☀️ Clair</button><button data-v="dark">🌙 Sombre</button><button data-v="auto">Auto</button></div>
-    <div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Son</button><button data-v="0">🔇 Muet</button></div>
+    <div class="set-row"><span>Thème</span><div class="seg" id="theme-seg" aria-label="Thème"><button data-v="light">☀️ Clair</button><button data-v="dark">🌙 Sombre</button><button data-v="auto">Auto</button></div></div>
+    <div class="set-row"><span>Son</span><div class="seg" id="sound-seg" aria-label="Son"><button data-v="1">🔊 Oui</button><button data-v="0">🔇 Non</button></div></div>
+    <div class="set-row"><span>Vibrations</span><div class="seg" id="vib-seg" aria-label="Vibrations"><button data-v="1">📳 Oui</button><button data-v="0">Non</button></div></div>
+    <div class="section-label">Participer</div>
+    <div class="rail grid set-tiles">${t('data-tool="propose"', "✍️", "Proposer une carte", "Elle arrive dans le jeu", "#FF3B6E")}${t('id="idea"', "💡", "Proposer une idée", "Un jeu, un truc à changer", "#FFB21F")}${t('id="tester"', "🗳️", "Tester les cartes", "Dis si elles sont lourdes ou bof", "#5B5CF0")}</div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <button class="linkbtn" id="report">Signaler un problème</button>
+    <div class="set-links">${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}<button class="linkbtn" id="report">Signaler un problème</button></div>
     <p class="hint muted" style="text-align:center;margin:0">Version du ${VERSION}</p>`, w => {
     bindTools(w);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
-    $("#bans", w).onclick = () => { w.remove(); banList(); };
+    if ($("#bans", w)) $("#bans", w).onclick = () => { w.remove(); banList(); };
     $("#idea", w).onclick = ideaSheet;
     $("#report", w).onclick = () => reportSheet();
     $("#close", w).onclick = () => w.remove();
@@ -3426,6 +3440,9 @@ function settingsSheet() {
     const ss = $("#sound-seg", w), paintS = () => $$("button", ss).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("sound", 1)));
     $$("button", ss).forEach(b => b.onclick = () => { store.set("sound", +b.dataset.v); paintS(); });
     paintS();
+    const vs = $("#vib-seg", w), paintV = () => $$("button", vs).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("vib", 1)));
+    $$("button", vs).forEach(b => b.onclick = () => { store.set("vib", +b.dataset.v); applyVib(); paintV(); if (+b.dataset.v) haptic(20); });
+    paintV();
     $("#admin-btn", w).onclick = () => { w.remove(); adminOpen(); };
     adminCheck().then(ok => { const b = $("#admin-btn", w); if (b) b.hidden = !ok; });
   });
