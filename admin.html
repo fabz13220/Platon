@@ -140,7 +140,11 @@ const fields = k => CHAMPS_X[k] || DEF.champs[k] || ["Texte"];
 const cardKey = (k, c) => k + ":" + c.slice(1).join("|");
 const fromPub = () => {
   const w = { cartes: clone(DEF.cartes), deux: clone(DEF.deux), desc: clone(DEF.desc), levels: clone(DEF.levels), tuto: clone(DEF.tuto), auteurs: clone(pub.auteurs || {}) };
-  for (const k in pub.cartes || {}) w.cartes[k] = clone(pub.cartes[k]);
+  // comme dans l'appli : les cartes ajoutées dans le code après la publication s'ajoutent, sauf celles retirées ici
+  for (const k in pub.cartes || {}) {
+    const ids = new Set([...pub.cartes[k].map(c => cardKey(k, c)), ...((pub.retirees || {})[k] || [])]);
+    w.cartes[k] = clone([...pub.cartes[k], ...(DEF.cartes[k] || []).filter(c => !ids.has(cardKey(k, c)))]);
+  }
   if (pub.deux) w.deux = clone(pub.deux);
   Object.assign(w.desc, pub.desc || {}); (pub.levels || []).forEach((x, i) => { if (x) w.levels[i] = x; }); Object.assign(w.tuto, pub.tuto || {});
   return w;
@@ -148,7 +152,12 @@ const fromPub = () => {
 // seulement ce qui diffère du code : un jeu jamais modifié garde les cartes ajoutées plus tard dans le code
 const toPub = w => {
   const o = { cartes: {}, desc: {}, tuto: {} };
-  for (const k in w.cartes) if (!same(w.cartes[k], DEF.cartes[k])) o.cartes[k] = w.cartes[k].filter(c => c.slice(1).some(x => String(x).trim()));
+  for (const k in w.cartes) if (!same(w.cartes[k], DEF.cartes[k])) {
+    o.cartes[k] = w.cartes[k].filter(c => c.slice(1).some(x => String(x).trim()));
+    // cartes du code enlevées ou modifiées ici : retenues pour ne pas revenir avec les cartes ajoutées plus tard dans le code
+    const ids = new Set(o.cartes[k].map(c => cardKey(k, c))), gone = (DEF.cartes[k] || []).map(c => cardKey(k, c)).filter(id => !ids.has(id));
+    if (gone.length) (o.retirees || (o.retirees = {}))[k] = gone;
+  }
   if (!same(w.deux, DEF.deux)) o.deux = w.deux.filter(c => String(c[1] || "").trim());
   for (const k in w.desc) if (w.desc[k] !== DEF.desc[k]) o.desc[k] = w.desc[k];
   for (const k in w.tuto) if (w.tuto[k] !== DEF.tuto[k]) o.tuto[k] = w.tuto[k];
