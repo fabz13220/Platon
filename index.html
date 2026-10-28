@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="8d7e27cc1bd5">
+<meta name="build" content="5332b76f00e3">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -389,7 +389,7 @@ body.squeeze #chips .chip { font-size: 15px; min-height: 38px; padding: 4px 5px 
 .opts.tester-opts .opt .mast { font-size: 15px; }
 .opts.tester-opts .opt p { font-size: 12.5px; }
 /* iOS 26 : bande de l'heure dessinée par le système, la page commence dessous ; le haut du fond se fond dans cette bande */
-body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70px); mask-image: linear-gradient(transparent, #000 70px); }
+body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90px); mask-image: linear-gradient(transparent, #000 90px); }
 /* paquet de cartes : la carte du dessous reste cachée pendant que la carte du dessus arrive (sinon elle transparaît) */
 .jstack:has(> .card.top:not(.still)) > .card.under { animation: underWait .42s step-end both; }
 @keyframes underWait { from { visibility: hidden; } to { visibility: visible; } }
@@ -3844,7 +3844,7 @@ function appHeight() {
   if (st) R.style.setProperty("--app-h", innerHeight + "px");
   const probe = document.createElement("div"); probe.style.cssText = "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)"; document.body.appendChild(probe);
   const top = parseFloat(getComputedStyle(probe).paddingTop) || 0; probe.remove();
-  document.body.classList.toggle("ios-band", !!(st && navigator.standalone && top < 1 && screen.height >= 812 && innerHeight < screen.height - 30));
+  document.body.classList.toggle("ios-band", !!(st && top < 1)); // barre de l'heure opaque (couleur theme-color) : le haut du fond se fond dedans
 }
 appHeight();
 if (document.fonts) document.fonts.ready.then(() => fitPage(true));
