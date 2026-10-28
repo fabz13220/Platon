@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="f34f910abe1e">
+<meta name="build" content="f0f4f807d5bd">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1406,6 +1406,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tab-mix { padding: 0; display: block; line-height: 76px; text-align: center; background: #FF3B6E; font-family: Nunito, sans-serif; font-size: 16px; width: 76px; height: 76px; margin-top: -34px; }
 .tile.rt .ill { position: absolute; top: 12px; right: 10px; font-size: 52px; line-height: 1; transform: rotate(8deg); filter: drop-shadow(0 6px 10px rgba(0,0,0,.28)); pointer-events: none; }
 .rail-box.short .tile.rt .ill { font-size: 42px; top: 10px; }
+.rail.few { overflow: visible; }
+.rail.few .tile.rt { flex: 1 1 0; width: auto; }
+.tile.rt.lock { --rc: #8C8AA0; }
+.tile.rt.lock > .ill, .tile.rt.lock > .mast { opacity: .5; filter: grayscale(1); }
+.tile.rt .need { position: absolute; top: 12px; left: 12px; padding: 4px 9px; border-radius: 999px; background: rgba(10,8,30,.72); color: #fff; font-family: Nunito, sans-serif; font-weight: 900; font-size: 12.5px; line-height: 1.1; }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
 .jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; filter: brightness(.62); }
 /* paquet de cartes : deux tranches fixes sous la pile, elles ne bougent jamais d'une carte à l'autre */
@@ -3285,9 +3290,11 @@ function home() {
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
   const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Les règles du Uno."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
-  const tile = (t, on) => `<button class="tile rt" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span><span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`;
-  const rail = (title, list, id, on) => (list = on ? list.filter(t => !ONE_PHONE.includes(t)) : list).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
-  const fit = list => list.filter(t => minOf(t) <= n && n <= maxOf(t));
+  // un jeu qui ne va pas avec le nombre de joueurs reste visible, grisé, avec le nombre qu'il faut
+  const need = t => on => on ? "" : n < minOf(t) ? `dès ${minOf(t)}` : n > maxOf(t) ? `${maxOf(t)} max` : "";
+  const tile = (t, on) => { const k = need(t)(on); return `<button class="tile rt${k ? " lock" : ""}" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span>${k ? `<span class="need">${k}</span>` : ""}<span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`; };
+  // les jeux jouables d'abord ; une rangée de 1 ou 2 jeux prend toute la largeur
+  const rail = (title, list, id, on) => (list = (on ? list.filter(t => !ONE_PHONE.includes(t)) : list).map((t, i) => [t, i + (need(t)(on) ? 99 : 0)]).sort((a, b) => a[1] - b[1]).map(a => a[0])).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail${list.length < 3 ? " few" : ""}">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
   view(`
     <header class="home-head">
       <div class="logo">Bliz</div>
@@ -3295,17 +3302,16 @@ function home() {
     </header>
     <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Un téléphone</button><button data-v="1" aria-pressed="${multi}"><svg width="18" height="16" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="9" height="17" rx="2.2"/><rect x="16" y="3" width="9" height="17" rx="2.2"/></svg>Chacun le sien</button></div>
     ${multi ? `
+      ${multiHome()}
       ${rail("Votes et devinettes", ["classement", "radar"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
-      ${rail("Duels", ["reflexe"], "", true)}
-      ${multiHome()}` : `
-      ${rail("Votes et devinettes", fit(["classement", "qui", "radar"]))}
-      ${rail("En équipes", fit(["taboo", "imposteur", "menteur"])).replace('class="rail-box"', 'class="rail-box short"')}
-      ${rail("Questions", fit(["jamais", "av", "pref", "ouinon"]))}
-      ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe", "test"], "row-societe") : ""}
-      ${n === 1 ? rail("En solo", fit(["reflexe", "test"])) : ""}
-      ${n < 3 ? `<p class="hint muted" style="text-align:center;margin:0">Ajoute des joueurs avec le + pour voir les jeux de groupe.</p>` : ""}`}
+      ${rail("Duels", ["reflexe"], "", true)}` : `
+      ${n === 1 ? rail("En solo", ["reflexe", "test"]) : ""}
+      ${rail("Votes et devinettes", ["classement", "qui", "radar"])}
+      ${rail("En équipes", ["taboo", "imposteur", "menteur"]).replace('class="rail-box"', 'class="rail-box short"')}
+      ${rail("Questions", ["jamais", "av", "pref", "ouinon"])}
+      ${rail("Jeux de société", n > 1 ? ["p4", "uno", "reflexe", "test"] : ["p4", "uno"], "row-societe")}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
     <div class="tabbar-space"></div>
     <nav class="tabbar" aria-label="Menu">
@@ -3336,6 +3342,7 @@ function home() {
     };
     $$(".tile:not([data-on])").forEach(b => b.onclick = () => {
       const m = b.dataset.mode;
+      if (b.classList.contains("lock")) store.set("count", Math.max(minOf(m), Math.min(maxOf(m), n))); // on ajoute les joueurs à l'écran suivant
       if (m === "p4") { S.mode = "p4"; playersScreen(); }
       else if (m === "uno") { S.mode = "uno"; playersScreen(); }
       else if (m === "reflexe") reflexMenu();
