@@ -3747,6 +3747,9 @@ function fill(t, p) {
     .replace(/\{p\}/g, p ? p.name : "").replace(/\{q\}/g, q);
 }
 
+// « au tour de Inès » → « au tour d'Inès » (mais « de Yanis »)
+const de = n => (/^([aeiouâàéèêëîïôûüh]|y[^aeiouy])/i.test(n) ? "d'" : "de ") + n;
+
 /* -------- construction du paquet -------- */
 function pool(type) {
   const lv = S.level;
@@ -3785,7 +3788,13 @@ function fitPage(reset) {
   if (menu || !over()) return;
   if (!B.classList.contains("squeeze")) { B.classList.add("squeeze"); if (!over()) return; }
   const z = parseFloat(app.style.zoom) || 1;
-  if ($(".bubble", app) || z <= .64) { B.classList.remove("lock"); return; } // bulles (calculs à l'échelle 1) ou trop petit : on laisse défiler plutôt que de couper
+  if ($(".bubble", app) || z <= .64) { // bulles (calculs à l'échelle 1) ou trop petit : on laisse défiler plutôt que de couper
+    // beaucoup de joueurs sur un petit écran : les bulles de fin rapetissent d'abord, pour que les boutons restent visibles
+    const eb = $(".end-bubbles", app);
+    if (eb && z > .64) for (const k of ["tbfit1", "tbfit2", "tbfit3"]) { if (!over()) break; eb.classList.add(k); jellyMeasure(eb); }
+    if (over()) B.classList.remove("lock");
+    return;
+  }
   app.style.zoom = Math.max(.64, z * (B.clientHeight - 2) / B.scrollHeight).toFixed(3);
   if (over()) B.classList.remove("lock");
 }
@@ -3993,7 +4002,7 @@ function ideaSheet() {
     <button class="btn" id="close">Annuler</button>`, w => {
     $("#close", w).onclick = () => w.remove();
     $("#send", w).onclick = () => {
-      const v = $("#idea-in", w).value.trim(); if (!v) return;
+      const v = $("#idea-in", w).value.trim(); if (!v) { toast("Écris ton idée d'abord."); return; }
       getDb().then(db => db && db.doc("propositions/idee_" + devId + "_" + Date.now()).set({ type: "idee", card: v, lvl: 0, at: Date.now() })).catch(() => {});
       w.remove(); toast("Merci, ton idée est envoyée.");
     };
@@ -4055,15 +4064,7 @@ const JELLY = new Set();
 let jellyRaf = 0;
 function jelly(el, onTap, home) { // home : la bulle sert de bouton et revient doucement à sa place
   const B = { el, home, x: 0, y: 0, vx: 0, vy: 0, ax: 0, ay: 0, avx: 0, avy: 0, h: 0, held: false, tx: 0, ty: 0, cx: 0, cy: 0, R: 40 };
-  const measure = () => { // centre de la bulle sans le déplacement qu'on lui a donné
-    for (const o of JELLY) if (o.el.parentNode === el.parentNode && !o.el.classList.contains("free")) {
-      // dès qu'on touche une bulle, le flottement s'arrête (il la décalait jusqu'à 35 px, les bords tombaient à côté) ; on garde sa place à l'écran
-      const a = o.el.getBoundingClientRect(); o.el.classList.add("free"); const b = o.el.getBoundingClientRect();
-      o.x += a.left + a.width / 2 - b.left - b.width / 2; o.y += a.top + a.height / 2 - b.top - b.height / 2;
-      o.el.style.translate = `${o.x.toFixed(1)}px ${o.y.toFixed(1)}px`;
-    }
-    for (const o of JELLY) if (o.el.parentNode === el.parentNode) { const r = o.el.getBoundingClientRect(); o.cx = r.left + r.width / 2 - o.x - o.fx; o.cy = r.top + r.height / 2 - o.y - o.fy; o.hw = o.el.offsetWidth / 2; o.hh = o.el.offsetHeight / 2; o.R = Math.min(o.hw, o.hh); } // taille sans l'étirement en cours
-  };
+  const measure = () => jellyMeasure(el.parentNode);
   // le flottement est calculé ici avec le reste : il continue après qu'on a touché la bulle, et les bords en tiennent compte
   Object.assign(B, { fx: 0, fy: 0, fw: 1, fa: calm() ? 0 : 22 + Math.random() * 10, fp: [Math.random() * 6.3, Math.random() * 6.3], fs: [.8 + Math.random() * .45, .7 + Math.random() * .4] });
   el.classList.add("free"); JELLY.add(B); measure(); wake();
@@ -4090,6 +4091,16 @@ function jelly(el, onTap, home) { // home : la bulle sert de bouton et revient d
   });
   el.addEventListener("contextmenu", e => e.preventDefault());
   el.addEventListener("click", e => { if (e.isTrusted) { e.preventDefault(); e.stopImmediatePropagation(); } }, true); // le tap passe par onTap
+}
+// centre des bulles sans le déplacement qu'on leur a donné (à refaire quand leur taille change)
+function jellyMeasure(parent) {
+  for (const o of JELLY) if (o.el.parentNode === parent && !o.el.classList.contains("free")) {
+    // dès qu'on touche une bulle, le flottement s'arrête (il la décalait jusqu'à 35 px, les bords tombaient à côté) ; on garde sa place à l'écran
+    const a = o.el.getBoundingClientRect(); o.el.classList.add("free"); const b = o.el.getBoundingClientRect();
+    o.x += a.left + a.width / 2 - b.left - b.width / 2; o.y += a.top + a.height / 2 - b.top - b.height / 2;
+    o.el.style.translate = `${o.x.toFixed(1)}px ${o.y.toFixed(1)}px`;
+  }
+  for (const o of JELLY) if (o.el.parentNode === parent) { const r = o.el.getBoundingClientRect(); o.cx = r.left + r.width / 2 - o.x - o.fx; o.cy = r.top + r.height / 2 - o.y - o.fy; o.hw = o.el.offsetWidth / 2; o.hh = o.el.offsetHeight / 2; o.R = Math.min(o.hw, o.hh); } // taille sans l'étirement en cours
 }
 let safeB = null;
 function safeBottom() {
@@ -4890,7 +4901,7 @@ function cImpSolo(c) {
   let { imp: nImp, und: nUnd, wh: nWh } = impCount(S.players.length, s0.imp, s0.und, s0.wh);
   // avec des undercovers, il faut un mot qui a un mot proche
   if (nUnd && !underOf(c)) {
-    const alt = pool("imposteur").find(x => underOf(x) && !S.deck.includes(x));
+    const alt = pool("imposteur").find(x => underOf(x) && !S.deck.some(d => d.id === x.id));
     if (alt) { S.deck[S.idx] = c = alt; } else nUnd = 0;
   }
   const [, cat, word] = c.data, uw = underOf(c);
@@ -4928,7 +4939,7 @@ function cImpSolo(c) {
     }); };
   const reveal = i => {
     if (i >= order.length) return talk();
-    hold(order[i], i ? "Passe le téléphone à" : "Au tour de", i + 1 < order.length ? "C'est bon, au tour de " + esc(order[i + 1].name) : "Tout le monde a vu", () => reveal(i + 1));
+    hold(order[i], i ? "Passe le téléphone à" : "Au tour de", i + 1 < order.length ? "C'est bon, au tour " + de(esc(order[i + 1].name)) : "Tout le monde a vu", () => reveal(i + 1));
   };
   const talk = () => {
     here = talk;
@@ -5057,7 +5068,7 @@ function cRadarSolo(c) {
     if (k === 0) S.rMille = (S.rMille || 0) + 1;
     buzz(hit ? [60, 40, 60, 40, 160] : [30, 30, 60]);
     view(`${header()}
-      <div class="stage">${impScene(cls + " radx", `<span class="kick">Indice de ${esc(g.name)}</span>
+      <div class="stage">${impScene(cls + " radx", `<span class="kick">Indice ${de(esc(g.name))}</span>
         <span class="big">${emo}</span><span class="ttl">${ttl}</span><p class="ln">${rnd(lines)}</p>
         ${dialBox(c, { target, needle: v })}`)}</div>${hit ? `<div class="confetti" id="confetti"></div>` : ""}
       <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
@@ -5180,7 +5191,7 @@ function cClassSolo(c) {
     S.cN = (S.cN || 0) + 1; if (ok) S.cHit = (S.cHit || 0) + 1;
     buzz(ok ? [60, 40, 60, 40, 160] : [30, 30, 60]);
     view(`${header()}
-      <div class="stage">${impScene((ok ? "civ" : "inf") + " clsx", `<span class="kick">La question de ${esc(r.name)}</span>
+      <div class="stage">${impScene((ok ? "civ" : "inf") + " clsx", `<span class="kick">La question ${de(esc(r.name))}</span>
         <span class="big">${ok ? "🏆" : "🙈"}</span><span class="ttl">${ok ? "Bien vu !" : "Raté !"}</span>
         <p class="ln">C'était <b>${esc(q)}</b>.${ok ? "" : `<br><s>${esc(said)}</s>`}</p>
         <p class="ln" style="font-size:16px;opacity:.85">${rnd(CLASS_RES[ok ? "ok" : "ko"])}</p>
@@ -5548,7 +5559,7 @@ function testerMenu() {
       snap.docs.map(d => d.data()).forEach(o => { if (o && (o.v === "top" || o.v === "mew")) (seenIds[o.type] = seenIds[o.type] || new Set()).add(o.card); });
       $$(".t-all").forEach(el => { const t = el.dataset.t, k = seenIds[t], nb = k ? C[t].filter(c => k.has(cardId(t, c))).length : 0; if (nb) el.textContent = `, ${nb} en tout`; }); // seulement les cartes encore dans le jeu
     }).catch(() => {});
-    $$("[data-t]").forEach(b => b.onclick = () => testerRun(b.dataset.t));
+    $$("button[data-t]").forEach(b => b.onclick = () => testerRun(b.dataset.t)); // le total « en tout » porte aussi data-t : un toucher lançait le jeu deux fois
     $("#res").onclick = testerResults;
   });
 }
@@ -5645,7 +5656,7 @@ function proposeTool() {
     };
     const send = () => {
       const vals = $$(".duo-in[data-i]", w).map(i => i.value.trim().replace(/\s+/g, " ").replace(/^je n'ai jamais\s+/i, "").replace(/^qui pourrait\s+/i, "").replace(/[.?]$/, t === "verite" || t === "menteur" || t === "ouinon" ? "$&" : ""));
-      if (vals.some(v => !v)) { toast(vals.length > 1 ? "Remplis les deux champs." : "Écris ta carte d'abord."); return; }
+      if (vals.some(v => !v)) { toast(vals.length > 2 ? "Remplis tous les champs." : vals.length > 1 ? "Remplis les deux champs." : "Écris ta carte d'abord."); return; }
       const card = [lv, ...vals], par = anon ? "" : by.trim().replace(/\s+/g, " ").slice(0, 14);
       if (C[t].some(c => cardId(t, c) === cardId(t, card))) { toast("Cette carte existe déjà."); return; }
       C[t].push(card);
@@ -6047,7 +6058,7 @@ function p4Board(names, first, top, mid, sub, end) {
     return null;
   };
   const draw = () => {
-    const msg = line ? `<b class="p4c p${cur}"></b>${esc(names[cur])} gagne !` : over ? "Match nul" : `<b class="p4c p${cur}"></b>Au tour de ${esc(names[cur])}`;
+    const msg = line ? `<b class="p4c p${cur}"></b>${esc(names[cur])} gagne !` : over ? "Match nul" : `<b class="p4c p${cur}"></b>Au tour ${de(esc(names[cur]))}`;
     view(`
       <div class="topbar">${quitBtn()}<span class="progress">${top}</span><span style="width:44px"></span></div>
       <p class="p4-score"><span class="nm"><span><b class="p4c p0"></b>${esc(names[0])}</span></span><span class="pts${mid === "contre" ? " vs" : ""}">${mid}</span><span class="nm"><span>${esc(names[1])}<b class="p4c p1"></b></span></span></p>
@@ -6463,7 +6474,7 @@ function ranking() {
       if (last && pods.length > 1) steps.push([900, () => say(r === 1 ? "Et la première place revient à…" : place(r) + "…")]);
       steps.push([last ? 1500 : 900, () => {
         p.classList.add("up"); buzz(last ? [60, 40, 140] : 25); say(place(r));
-        if (r === 1) { const w = st.filter(x => x.rank === 1).map(x => x.name); say(w.length > 1 ? "Égalité : " + w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : "Victoire de " + w[0]); party(); }
+        if (r === 1) { const w = st.filter(x => x.rank === 1).map(x => x.name); say(w.length > 1 ? "Égalité : " + w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : "Victoire " + de(w[0])); party(); }
       }]);
     });
     steps.push([700, () => { $("#acts").classList.remove("wait"); $(".end-bubbles").classList.remove("wait"); }]);
@@ -7255,7 +7266,7 @@ async function ensureProfile(name) {
 
 const hasProfile = () => { const me = store.get("me", null); return !!(me && me.name && me.code); };
 const FRIEND_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.4 0 4 1.5 4.5 4"/></svg>`;
-const ONLINE_MS = 150e3;
+const ONLINE_MS = 150e3, HOST_MS = 120e3;
 const isOnline = u => u && u.seen && Date.now() - u.seen < ONLINE_MS;
 function seenTxt(t) {
   if (!t) return "Hors ligne";
@@ -7283,6 +7294,7 @@ function multiHome() {
     <section class="rail-box"><h2 class="rail-title">Rejoindre une partie</h2>
     <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div></section>`;
 }
+let frOn = { at: 0, n: 0 };
 function homeOnline(multi) {
   heartbeat();
   if (multi) {
@@ -7301,10 +7313,13 @@ function homeOnline(multi) {
       $$("[data-room]", box).forEach(b => b.onclick = () => roomJoin(b.dataset.room));
       if (inv.length) buzz(20);
     }, () => {}));
-    // nombre d'amis en ligne sur le bouton Amis
-    const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => d.id);
-    const us = await Promise.all(fr.map(id => F.getDoc(F.doc(db, "users", id)).then(d => d.data()).catch(() => null)));
-    const n = us.filter(isOnline).length, b = $("#fr-on");
+    // nombre d'amis en ligne sur le bouton Amis (relu au plus une fois par minute : l'accueil se redessine à chaque + ou − du nombre de joueurs)
+    if (Date.now() - frOn.at > 60e3) {
+      const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => d.id);
+      const us = await Promise.all(fr.map(id => F.getDoc(F.doc(db, "users", id)).then(d => d.data()).catch(() => null)));
+      frOn = { at: Date.now(), n: us.filter(isOnline).length };
+    }
+    const n = frOn.n, b = $("#fr-on");
     if (b && n) { b.textContent = n; b.hidden = false; }
   }).catch(() => {});
 }
@@ -7606,6 +7621,20 @@ async function roomOpen(code) {
     if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
     else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
   }, () => toast("Connexion perdue, on réessaie…")));
+  // l'hôte a fermé l'appli ou perdu le réseau : sans signe de vie depuis 2 min, le premier joueur encore là reprend la main
+  // (sinon personne ne peut lancer la suite et la partie reste bloquée)
+  const hostT = setInterval(async () => {
+    const r = ON.r; if (!ON.ctx || ON.ctx.ref !== ref || !r || r.host === uid || !r.players[uid] || document.hidden) return;
+    try {
+      const seen = u => F.getDoc(F.doc(db, "users", u)).then(d => (d.exists() && d.data().seen) || 0, () => 0);
+      if (Date.now() - await seen(r.host) < HOST_MS) return;
+      const rest = ids(r).filter(u => u !== r.host), t = await Promise.all(rest.map(seen));
+      if (rest.find((u, i) => u === uid || Date.now() - t[i] < HOST_MS) !== uid) return;
+      await F.updateDoc(ref, { host: uid });
+      toast(pname(r, r.host) + " ne répond plus : c'est toi qui mènes la partie.");
+    } catch (e) {}
+  }, 30e3);
+  ON.off.push(() => clearInterval(hostT));
 }
 async function roomLeave() {
   const { F, db, uid } = ON.ctx.N, r = ON.r, rest = ids(r).filter(u => u !== uid), ref = ON.ctx.ref;
@@ -7699,13 +7728,15 @@ function impRoles(all, i0, u0, w0) {
   shuffle(all).forEach((u, i) => { roles[u] = i < nImp ? "imp" : i < nImp + nUnd ? "und" : i < nImp + nUnd + nWh ? "white" : "civ"; });
   return roles;
 }
+// encore en jeu : ni éliminés, ni partis de la partie (un intrus parti ne doit pas bloquer la fin de la manche)
+const impLeft = (c, r) => Object.keys(c.roles).filter(u => !(c.out || []).includes(u) && (!r || r.players[u]));
 // qui gagne avec ces éliminés : "civ", "inf" ou rien
-function impWin(c) {
-  const left = Object.keys(c.roles).filter(u => !(c.out || []).includes(u));
+function impWin(c, r) {
+  const left = impLeft(c, r);
   const inf = left.filter(u => c.roles[u] !== "civ").length, civ = left.length - inf;
   return inf === 0 ? "civ" : civ <= 1 ? "inf" : "";
 }
-const impFirst = c => { const left = Object.keys(c.roles).filter(u => !(c.out || []).includes(u)), safe = left.filter(u => !impBlind(c.roles[u])); return rnd(safe.length ? safe : left); };
+const impFirst = (c, r) => { const left = impLeft(c, r), safe = left.filter(u => !impBlind(c.roles[u])); return rnd(safe.length ? safe : left); };
 function roomImp(r, h) {
   const uid = ON.ctx.N.uid, c = r.card, out = c.out || [], me = c.roles[uid], dead = out.includes(uid), res = r.res || {};
   const alive = ids(r).filter(u => c.roles[u] && !out.includes(u));
@@ -7734,7 +7765,7 @@ function roomImp(r, h) {
       : !host ? wait(impBlind(ro) ? `On attend le mot de ${N(u)}.` : `${hostName} lance la suite.`)
       : res.tie ? `<div class="row"><button class="btn white" id="imp-next">Tour suivant</button><button class="btn red" id="imp-revote">Revoter</button></div>`
       : impBlind(ro) ? `<button class="btn white" id="imp-miss">Passer (il ne répond pas)</button>`
-      : `<button class="btn red" id="imp-next">${impWin(c) ? "Voir la fin" : "Tour suivant"}</button>`;
+      : `<button class="btn red" id="imp-next">${impWin(c, r) ? "Voir la fin" : "Tour suivant"}</button>`;
   } else {
     const ins = Object.keys(c.roles).filter(u => c.roles[u] !== "civ");
     stage = impEnd(res.win, ins.map(u => [pname(r, u), c.roles[u]]), c.word, c.uw && ins.some(u => c.roles[u] === "und") ? c.uw : "", res.guess ? { by: pname(r, res.out), v: res.guess, ok: res.ok } : null) + `<div class="confetti" id="confetti"></div>`;
@@ -7755,7 +7786,7 @@ function roomImp(r, h) {
       hd.addEventListener("contextmenu", e => e.preventDefault());
     }
     const b = id => $("#" + id);
-    const go = () => { const w = impWin(c); return w ? upd({ phase: "reveal", "res.win": w }) : upd({ phase: "word", acts: {}, res: null, "card.first": impFirst(c) }); };
+    const go = () => { const w = impWin(c, ON.r); return w ? upd({ phase: "reveal", "res.win": w }) : upd({ phase: "word", acts: {}, res: null, "card.first": impFirst(c, ON.r) }); };
     if (b("tovote")) b("tovote").onclick = () => upd({ phase: "vote", acts: {}, res: null, vn: (ON.r.vn || 0) + 1 });
     if (b("force")) b("force").onclick = () => roomResolve(ON.r);
     if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
@@ -7763,8 +7794,8 @@ function roomImp(r, h) {
     if (b("imp-miss")) b("imp-miss").onclick = go;
     // l'imposteur éliminé tape son mot : trouvé, les intrus gagnent ; raté, la partie continue (ou les civils gagnent)
     bindGuess(v => {
-      const ok = impSame(v, c.word), w = ok ? "inf" : impWin(c), g = { "res.guess": v, "res.ok": ok };
-      upd(w ? Object.assign(g, { phase: "reveal", "res.win": w }) : Object.assign(g, { phase: "word", acts: {}, "card.first": impFirst(c) }));
+      const ok = impSame(v, c.word), w = ok ? "inf" : impWin(c, ON.r), g = { "res.guess": v, "res.ok": ok };
+      upd(w ? Object.assign(g, { phase: "reveal", "res.win": w }) : Object.assign(g, { phase: "word", acts: {}, "card.first": impFirst(c, ON.r) }));
     });
     if (b("imp-revote")) b("imp-revote").onclick = () => upd({ phase: "vote", acts: {}, res: null, vn: (ON.r.vn || 0) + 1 });
     $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
@@ -7922,10 +7953,10 @@ function roomRender(r) {
   } else if (T === "radar" && r.phase === "guess") {
     const cc = { data: [0, c.a, c.b] }, giver = uid === c.giver;
     if (!giver && mine == null) {
-      stage = cardShell("radar", { label: "Indice de " + esc(pname(r, c.giver)), name: c.clue }, `${dialBox(cc, { needle: 50 })}<p class="sub">Place la flèche où tu penses que se trouve la cible.</p>`);
+      stage = cardShell("radar", { label: "Indice " + de(esc(pname(r, c.giver))), name: c.clue }, `${dialBox(cc, { needle: 50 })}<p class="sub">Place la flèche où tu penses que se trouve la cible.</p>`);
       acts = `<button class="btn red" id="lock">Valider ma flèche</button>`;
     } else {
-      stage = cardShell("radar", { label: "Indice de " + esc(pname(r, c.giver)), name: c.clue }, `${dialBox(cc, giver ? { target: c.target } : { needle: mine })}
+      stage = cardShell("radar", { label: "Indice " + de(esc(pname(r, c.giver))), name: c.clue }, `${dialBox(cc, giver ? { target: c.target } : { needle: mine })}
         <p class="sub">${giver ? "Les autres placent leur flèche." : "Flèche placée. On attend les autres."}</p><p class="sub" id="wait">${waitTxt(r)}</p>`);
       acts = forceBtn;
     }
@@ -8088,7 +8119,7 @@ function roomRenderX(r, h) {
   if (T === "p4") {
     const g = c.board, turnU = c.turn ? c.b : c.a, myTurn = !over && turnU === uid, line = c.line || [];
     const msg = over ? (c.win != null && c.win >= 0 ? `<b class="p4c p${c.win}"></b>${N(c.win ? c.b : c.a)} gagne !` : "Match nul")
-      : `<b class="p4c p${c.turn}"></b>${myTurn ? "À toi de jouer" : "Au tour de " + N(turnU)}`;
+      : `<b class="p4c p${c.turn}"></b>${myTurn ? "À toi de jouer" : "Au tour " + de(N(turnU))}`;
     const board = `<div class="p4" id="p4">${Array.from({ length: 7 }, (_, x) => `<button class="p4col" data-c="${x}" aria-label="Colonne ${x + 1}" ${myTurn ? "" : "disabled"}>${Array.from({ length: 6 }, (_, y) => {
       const v = g[y * 7 + x], i = y * 7 + x;
       return `<i class="${v !== "." ? "p" + v : ""}${line.includes(i) ? " hl" : ""}${c.last === i ? " drop" : ""}" style="--r:${y + 1}"></i>`;
@@ -8140,7 +8171,7 @@ function roomRenderX(r, h) {
     if (c.log !== ON.ctx.vmLog) { ON.ctx.vmLog = c.log; if (/Plus qu'une carte/.test(c.log || "")) stamp("Dernière carte !", "green"); }
     const sub = isMe ? (pen ? (can ? `Renvoie avec un +2 ou un +4, ou prends ${pen} cartes.` : `Rien pour renvoyer, touche la pioche : ${pen} cartes.`)
       : c.drew ? "Pose une carte, ou passe." : can ? "Pose une carte qui brille." : "Rien à poser, touche la pioche.")
-      : P.includes(uid) ? (pen && curU ? `${pname(r, curU)} doit prendre ${pen} cartes, ou renvoyer.` : `Au tour de ${pname(r, curU)}.`) : "Tu regardes la partie.";
+      : P.includes(uid) ? (pen && curU ? `${pname(r, curU)} doit prendre ${pen} cartes, ou renvoyer.` : `Au tour ${de(pname(r, curU))}.`) : "Tu regardes la partie.";
     vmPaint({ players: P.map((u, i) => ({ name: pname(r, u) + (u === uid ? " (toi)" : ""), n: (c.hands[u] || []).length, on: i === c.cur })), top, topKey: c.top + ":" + (c.disc || []).length, color: c.color, dir: c.dir, log: c.log, sub, warn: isMe && !!pen, pileGo: isMe && (!can || !!pen), quiet: ON.ctx.vmQuiet === c.top });
     const drawn = ON.ctx.vmFrom && Date.now() - ON.ctx.vmFrom < 4000; ON.ctx.vmFrom = 0; // je viens de piocher : les cartes partent de la pioche
     vmHand(hand.map((k, i) => ({ k, key: keys[i], cls: isMe ? (ok(k) ? "ok" : "no") : "" })), !$("#vm-hand .uno"), drawn ? $("#vm-pile .p1") : null);
@@ -8168,7 +8199,7 @@ function roomRenderX(r, h) {
       else { st.drew = false; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); }
       save();
     };
-    if (!isMe) { $$("#vm-hand .uno").forEach(b => b.onclick = () => toast(`C'est au tour de ${pname(r, curU)}.`)); return; }
+    if (!isMe) { $$("#vm-hand .uno").forEach(b => b.onclick = () => toast(`C'est au tour ${de(pname(r, curU))}.`)); return; }
     const ps = $("#vm-pass"); if (ps) ps.onclick = () => { if (locked) return; locked = true; st.drew = false; st.log = `${me} pioche et passe.`; st.cur = step(st.cur); save(); };
     const tk = $("#vm-take"); if (tk) tk.onclick = take;
     const put = (i, col, el) => {
