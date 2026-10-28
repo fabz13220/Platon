@@ -3609,7 +3609,7 @@ function sfxCtx(make) {
     const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
     try { SFX.ctx = new A(); } catch (e) { return null; }
     SFX.ctx.onstatechange = () => { if (SFX.ctx && SFX.ctx.state === "interrupted") sfxDrop(); };
-    const c = SFX.ctx, comp = c.createDynamicsCompressor(), lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 4000;
+    const c = SFX.ctx, comp = c.createDynamicsCompressor(), lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1600; lp.Q.value = .5; // aigus coupés : sons étouffés (Fabio, 28/10)
     SFX.out = c.createGain(); SFX.out.gain.value = .9; SFX.out.connect(lp); lp.connect(comp); comp.connect(c.destination);
     // petit écho de pièce, fabriqué sur place
     const n = Math.floor(c.sampleRate * 1.2), ir = c.createBuffer(2, n, c.sampleRate);
@@ -3640,15 +3640,15 @@ function sfxSend(node, wet) { const c = SFX.ctx, w = c.createGain(); node.connec
 // (style « Grave doux » choisi par Fabio le 28/10 : les aigus purs faisaient « robot »)
 function tone1(f, vol, at, dur) {
   const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), g = c.createGain();
-  o.frequency.value = f; sfxEnv(g, t, vol, .02, dur); o.connect(g); sfxSend(g, .6); o.start(t); o.stop(t + dur + .05);
+  o.frequency.value = f; sfxEnv(g, t, vol, .035, dur); o.connect(g); sfxSend(g, .6); o.start(t); o.stop(t + dur + .05);
 }
-function note(f, vol, at = 0, dur = .6) { tone1(f, vol, at, dur); tone1(f * 2, vol * .45, at, dur * .7); tone1(f * 3, vol * .15, at, dur * .45); }
+function note(f, vol, at = 0, dur = .6) { tone1(f, vol * 1.15, at, dur); tone1(f * 2, vol * .3, at, dur * .6); }
 // carte qui part : un frottement de papier doux qui descend (un bruit qui monte faisait « coup de fouet »)
 function flick(vol, dur = .14) {
   const c = SFX.ctx, t = sfxT(0), n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.Q.value = .6;
-  bp.frequency.setValueAtTime(1400, t); bp.frequency.exponentialRampToValueAtTime(800, t + dur);
+  bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(500, t + dur);
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
   s.connect(bp); bp.connect(g); sfxSend(g, .2); s.start(t); s.stop(t + dur + .02);
   tone1(120, vol * .35, 0, .08);
@@ -3656,7 +3656,7 @@ function flick(vol, dur = .14) {
 // notes de sol majeur, dans le grave : tout sonne bien ensemble
 const G3 = 196, A3 = 220, B3 = 247, D4 = 294, E4 = 330, G4 = 392;
 const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
-  bounce: [1, () => note(rnd([B3, D4, E4, G4]), .06, 0, .3)],
+  bounce: [1, () => note(rnd([G3, B3, D4, E4]), .06, 0, .3)],
   bubble: [2, () => note(rnd([G3, A3, B3, D4]), .18, 0, .4)],
   pop:    [4, () => { note(B3, .18, 0, .25); note(D4, .18, .1, .5); }],
   reveal: [6, () => { note(D4, .2, 0, .35); note(G4, .2, .11, .8); }],
