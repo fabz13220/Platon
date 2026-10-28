@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="6b0258d885ac">
+<meta name="build" content="3882f53ffef5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -3642,7 +3642,7 @@ function sfxCtx(make) {
     // petit écho de pièce, fabriqué sur place
     const n = Math.floor(c.sampleRate * 1.2), ir = c.createBuffer(2, n, c.sampleRate);
     for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.5); }
-    const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .14; SFX.wet.connect(cv); cv.connect(SFX.out);
+    const cv = c.createConvolver(); cv.buffer = ir; SFX.wet = c.createGain(); SFX.wet.gain.value = .08; SFX.wet.connect(cv); cv.connect(SFX.out);
   }
   if (make && SFX.ctx.state !== "running") {
     const c = SFX.ctx;
@@ -3664,36 +3664,34 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 const sfxT = at => SFX.ctx.currentTime + .02 + at;
 function sfxEnv(g, t, vol, a, dur) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0004, t + dur); }
 function sfxSend(node, wet) { const c = SFX.ctx, w = c.createGain(); node.connect(SFX.out); w.gain.value = wet; node.connect(w); w.connect(SFX.wet); }
-// note grave et douce, avec un peu de corps (2e et 3e harmoniques) pour qu'un haut-parleur de téléphone rende le grave
-// (style « Grave doux » choisi par Fabio le 28/10 : les aigus purs faisaient « robot »)
-function tone1(f, vol, at, dur) {
-  const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), g = c.createGain();
-  o.frequency.value = f; sfxEnv(g, t, vol, .035, dur); o.connect(g); sfxSend(g, .6); o.start(t); o.stop(t + dur + .05);
-}
-function note(f, vol, at = 0, dur = .6) { tone1(f, vol * 1.15, at, dur); tone1(f * 2, vol * .3, at, dur * .6); }
-// carte qui part : un frottement de papier doux qui descend (un bruit qui monte faisait « coup de fouet »)
-function flick(vol, dur = .14) {
-  const c = SFX.ctx, t = sfxT(0), n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+// sons étouffés et courts, des « claps » et des « tocs » plutôt que des notes qui sonnent (Fabio, 28/10 : « plus étouffé, plus des claps »)
+function sfxNoise(vol, at, dur, f, q, a = .002) {
+  const c = SFX.ctx, t = sfxT(at), n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.Q.value = .6;
-  bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(500, t + dur);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
-  s.connect(bp); bp.connect(g); sfxSend(g, .2); s.start(t); s.stop(t + dur + .02);
-  tone1(120, vol * .35, 0, .08);
+  const s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = q;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+  s.connect(bp); bp.connect(g); sfxSend(g, .3); s.start(t); s.stop(t + dur + .02);
 }
-// notes de sol majeur, dans le grave : tout sonne bien ensemble
+// clap étouffé : trois petits bruits très rapprochés puis une queue courte, comme des mains qui frappent dans un coussin
+function clap(vol, at = 0) { [0, .009, .018].forEach(d => sfxNoise(vol, at + d, .03, 900, 1.1)); sfxNoise(vol * .7, at + .026, .09, 800, .9); }
+// toc : coup sourd avec une hauteur, pour que trouvé et raté ne se ressemblent pas
+function toc(f, vol, at = 0, dur = .13) {
+  const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), g = c.createGain();
+  o.frequency.value = f; sfxEnv(g, t, vol, .003, dur); o.connect(g); sfxSend(g, .3); o.start(t); o.stop(t + dur + .05);
+  sfxNoise(vol * .5, at, .025, f * 2.5, .9);
+}
 const G3 = 196, A3 = 220, B3 = 247, D4 = 294, E4 = 330, G4 = 392;
 const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
-  bounce: [1, () => note(rnd([G3, B3, D4, E4]), .06, 0, .3)],
-  bubble: [2, () => note(rnd([G3, A3, B3, D4]), .18, 0, .4)],
-  pop:    [4, () => { note(B3, .18, 0, .25); note(D4, .18, .1, .5); }],
-  reveal: [6, () => { note(D4, .2, 0, .35); note(G4, .2, .11, .8); }],
-  spin:   [5, (d = 3.6) => { for (let k = 0, N = 34; k < N; k++) note(D4, .075, d * (1 - Math.pow(1 - k / N, .25)), .08); }],
-  swish:  [3, () => flick(.4)],
-  win:    [6, () => { note(G3, .2, 0, .3); note(B3, .2, .11, .3); note(D4, .22, .22, .8); }],
-  fail:   [6, () => { note(B3, .2, 0, .3); note(G3, .2, .13, .8); }],
-  timeup: [7, () => { note(D4, .2, 0, .35); note(A3, .2, .16, .9); }],
-  end:    [8, () => { [G3, B3, D4].forEach((f, i) => note(f, .2, i * .11, .3)); note(G4, .2, .33, 1.4); note(G3, .12, .33, 1.4); }]
+  bounce: [1, () => toc(rnd([G3, B3, D4, E4]), .07, 0, .08)],
+  bubble: [2, () => toc(rnd([G3, A3, B3, D4]), .25, 0, .12)],
+  pop:    [4, () => { toc(B3, .25, 0); toc(D4, .25, .09); }],
+  reveal: [6, () => { clap(.5); toc(G3, .3, .02, .2); }],
+  spin:   [5, (d = 3.6) => { for (let k = 0, N = 34; k < N; k++) sfxNoise(.18, d * (1 - Math.pow(1 - k / N, .25)), .025, 700, 1.2); }],
+  swish:  [3, () => { sfxNoise(.5, 0, .07, 700, .8); toc(110, .18, 0, .06); }],
+  win:    [6, () => { clap(.5); clap(.5, .13); toc(D4, .25, .13, .18); }],
+  fail:   [6, () => { toc(B3, .3, 0, .15); toc(G3 / 2 * 1.5, .3, .14, .22); }],
+  timeup: [7, () => { toc(D4, .3, 0, .15); toc(A3, .3, .15, .15); toc(147, .32, .3, .25); }],
+  end:    [8, () => { [0, .13, .26, .48].forEach(d => clap(.5, d)); toc(G3, .3, .48, .3); toc(D4, .2, .48, .3); }]
 };
 // vibration → son : le motif dit ce qui se passe (réussite, raté, chrono…)
 const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,40": "win", "40,30,80": "end", "60,40,140": "end",
