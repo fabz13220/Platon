@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="3882f53ffef5">
+<meta name="build" content="0ada04d5f49c">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -3639,6 +3639,7 @@ function sfxCtx(make) {
     SFX.ctx.onstatechange = () => { if (SFX.ctx && SFX.ctx.state === "interrupted") sfxDrop(); };
     const c = SFX.ctx, comp = c.createDynamicsCompressor(), lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1600; lp.Q.value = .5; // aigus coupés : sons étouffés (Fabio, 28/10)
     SFX.out = c.createGain(); SFX.out.gain.value = .9; SFX.out.connect(lp); lp.connect(comp); comp.connect(c.destination);
+    SFX.raw = c.createGain(); SFX.raw.gain.value = .9; SFX.raw.connect(comp); // sans filtre : la carte qui glisse garde ses aigus
     // petit écho de pièce, fabriqué sur place
     const n = Math.floor(c.sampleRate * 1.2), ir = c.createBuffer(2, n, c.sampleRate);
     for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.5); }
@@ -3680,18 +3681,33 @@ function toc(f, vol, at = 0, dur = .13) {
   o.frequency.value = f; sfxEnv(g, t, vol, .003, dur); o.connect(g); sfxSend(g, .3); o.start(t); o.stop(t + dur + .05);
   sfxNoise(vol * .5, at, .025, f * 2.5, .9);
 }
-const G3 = 196, A3 = 220, B3 = 247, D4 = 294, E4 = 330, G4 = 392;
+// note étouffée (sinus + une harmonique douce) pour la fin de partie et la roue
+function tone1(f, vol, at, dur) {
+  const c = SFX.ctx, t = sfxT(at), o = c.createOscillator(), g = c.createGain();
+  o.frequency.value = f; sfxEnv(g, t, vol, .035, dur); o.connect(g); sfxSend(g, .6); o.start(t); o.stop(t + dur + .05);
+}
+function note(f, vol, at = 0, dur = .6) { tone1(f, vol * 1.15, at, dur); tone1(f * 2, vol * .3, at, dur * .6); }
+// carte qui glisse sur la table : frottement de papier qui arrive et repart en douceur, avec du grain, sans changer de hauteur
+function slide(vol, dur = .24) {
+  const c = SFX.ctx, t = sfxT(0), n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  let gr = 1; for (let i = 0; i < n; i++) { if (i % 90 === 0) gr = .55 + Math.random() * .45; d[i] = (Math.random() * 2 - 1) * gr; }
+  const s = c.createBufferSource(), hp = c.createBiquadFilter(), bp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b;
+  hp.type = "highpass"; hp.frequency.value = 900; bp.type = "bandpass"; bp.frequency.value = 3200; bp.Q.value = .45;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .05); g.gain.setValueAtTime(vol, t + dur * .45); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+  s.connect(hp); hp.connect(bp); bp.connect(g); g.connect(SFX.raw); s.start(t); s.stop(t + dur + .02);
+}
+const G3 = 196, A3 = 220, B3 = 247, D4 = 294, E4 = 330, G4 = 392, B4 = 494, D5 = 587, G5 = 784;
 const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
   bounce: [1, () => toc(rnd([G3, B3, D4, E4]), .07, 0, .08)],
   bubble: [2, () => toc(rnd([G3, A3, B3, D4]), .25, 0, .12)],
   pop:    [4, () => { toc(B3, .25, 0); toc(D4, .25, .09); }],
-  reveal: [6, () => { clap(.5); toc(G3, .3, .02, .2); }],
+  reveal: [6, () => { note(D5, .17, 0, .35); note(G5, .17, .11, .8); }],
   spin:   [5, (d = 3.6) => { for (let k = 0, N = 34; k < N; k++) sfxNoise(.18, d * (1 - Math.pow(1 - k / N, .25)), .025, 700, 1.2); }],
-  swish:  [3, () => { sfxNoise(.5, 0, .07, 700, .8); toc(110, .18, 0, .06); }],
+  swish:  [3, () => slide(.22)],
   win:    [6, () => { clap(.5); clap(.5, .13); toc(D4, .25, .13, .18); }],
   fail:   [6, () => { toc(B3, .3, 0, .15); toc(G3 / 2 * 1.5, .3, .14, .22); }],
   timeup: [7, () => { toc(D4, .3, 0, .15); toc(A3, .3, .15, .15); toc(147, .32, .3, .25); }],
-  end:    [8, () => { [0, .13, .26, .48].forEach(d => clap(.5, d)); toc(G3, .3, .48, .3); toc(D4, .2, .48, .3); }]
+  end:    [8, () => { [G4, B4, D5].forEach((f, i) => note(f, .17, i * .11, .3)); note(G5, .17, .33, 1.4); note(G4, .1, .33, 1.4); }]
 };
 // vibration → son : le motif dit ce qui se passe (réussite, raté, chrono…)
 const SFX_OF = { "60,40,60,40,160": "win", "60,40,120,40,200": "win", "40,30,40,30,80": "win", "60,40,120": "win", "40,30,40": "win", "40,30,80": "end", "60,40,140": "end",
