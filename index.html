@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="0ada04d5f49c">
+<meta name="build" content="6954f9be86b3">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -39,7 +39,7 @@ function applyTheme() {
   document.documentElement.dataset.theme = t;
   let m = document.querySelector('meta[name="theme-color"]');
   if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
-  m.content = t === "dark" ? "#061224" : "#FFF4F0";
+  m.content = t === "dark" ? "#061224" : "#DDBFD2";
 }
 applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
@@ -1541,6 +1541,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tuto-btns { display: flex; gap: 8px; }
 .tuto-btns .btn { flex: 1; min-height: 56px; padding: 0 10px; font-size: 17px; }
 .tuto-btns #tuto-skip { flex: 1.25; }
+#app > .where-seg { flex: none; } /* sinon, avec peu de jeux, le bouton Un téléphone / Chacun le sien s'étire en hauteur */
 /* THEMES-START */
 /* =====================================================================
    MODE CLAIR · « Dégradé vif » (choisi le 26/10/2026)
@@ -1551,20 +1552,22 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 html[data-theme="light"] {
   --display: "Outfit", "Arial Black", sans-serif;
   --body: "Outfit", "Helvetica Neue", Arial, sans-serif;
-  --night: #FFF4F0;
+  --night: #DDBFD2;
+  --surf: #EEDBE5;
+  --surf-2: #E5CDDA;
   --night-2: #FFFFFF;
   --paper: #1B1030;
   --text: #1B1030;
   --muted: #6A5C7E;
-  --glass: rgba(255,255,255,.7);
-  --glass-2: rgba(255,255,255,.9);
+  --glass: rgba(255,240,246,.55);
+  --glass-2: rgba(255,240,246,.75);
   --hair: rgba(27,16,48,.12);
   --vivid: linear-gradient(100deg, #FF7A00 0%, #FF2E93 52%, #7B2FFF 100%);
-  --holo: linear-gradient(135deg, #FFE7D6 0%, #FFE0F0 50%, #ECE2FF 100%);
-  --holo2: linear-gradient(135deg, #FFF0E4 0%, #FFE8F3 50%, #F0E9FF 100%);
+  --holo: linear-gradient(135deg, #F2CFB8 0%, #EFC3DA 50%, #D8C8F2 100%);
+  --holo2: linear-gradient(135deg, #F1D8C6 0%, #EECFE0 50%, #DDD1F2 100%);
   --shine: linear-gradient(transparent, transparent);
   --chrome-dk: var(--vivid);
-  --chrome-lt: #FFFFFF;
+  --chrome-lt: var(--surf);
   --lift: 0 1px 2px rgba(60,20,70,.07), 0 8px 22px -10px rgba(120,30,90,.28);
   --deep: #E01F7E;
   color-scheme: light;
@@ -1574,11 +1577,11 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) body::after {
   background:
-    radial-gradient(75% 40% at 0% 0%, rgba(255,154,0,.55), transparent 70%),
-    radial-gradient(70% 42% at 105% 22%, rgba(255,46,147,.42), transparent 70%),
-    radial-gradient(80% 45% at 0% 88%, rgba(123,47,255,.32), transparent 70%),
-    radial-gradient(70% 40% at 105% 105%, rgba(0,179,255,.42), transparent 70%),
-    #FFF4F0;
+    radial-gradient(75% 40% at 0% 0%, rgba(255,130,0,.85), transparent 70%),
+    radial-gradient(70% 42% at 105% 22%, rgba(255,40,140,.72), transparent 70%),
+    radial-gradient(80% 45% at 0% 88%, rgba(120,45,255,.62), transparent 70%),
+    radial-gradient(70% 40% at 105% 105%, rgba(0,150,255,.66), transparent 70%),
+    #DDBFD2;
 }
 
 :where(html[data-theme="light"]) ::selection { background: #FFC2E0; color: var(--text); }
@@ -1599,19 +1602,19 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .masthead .rule span + span::before { color: var(--deep); }
 
-:where(html[data-theme="light"]) .iconbtn, :where(html[data-theme="light"]) .changebtn { background: #fff; border: 0; color: var(--text); box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .iconbtn, :where(html[data-theme="light"]) .changebtn { background: var(--surf); border: 0; color: var(--text); box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .btn { --bg: var(--chrome-lt); --fg: var(--text); --gl: transparent; box-shadow: var(--lift), inset 0 0 0 1px rgba(27,16,48,.06); text-shadow: none; font-weight: 800; }
 
-:where(html[data-theme="light"]) .btn.red { --bg: var(--vivid); --fg: #fff; box-shadow: 0 12px 26px -12px rgba(224,31,126,.7), inset 0 1px 0 rgba(255,255,255,.25); text-shadow: none; }
+:where(html[data-theme="light"]) .btn.red { --bg: var(--vivid); --fg: #fff; box-shadow: 0 12px 26px -12px rgba(224,31,126,.7), inset 0 1px 0 rgba(250,228,239,.25); text-shadow: none; }
 
-:where(html[data-theme="light"]) .btn.ink, :where(html[data-theme="light"]) .btn.white { --bg: #fff; --fg: var(--text); box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .btn.ink, :where(html[data-theme="light"]) .btn.white { --bg: var(--surf); --fg: var(--text); box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .btn.green { --bg: linear-gradient(180deg, #7DF2C2, #2FD3A0); --fg: #0B2A20; box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .btn.blue { --bg: linear-gradient(180deg, #5C8DFF, #3355E8); --fg: #fff; box-shadow: var(--lift); }
 
-:where(html[data-theme="light"]) .actions .row > .btn.white:first-child:has(+ .btn:not(.green)) { --bg: #fff; --fg: var(--text); box-shadow: var(--lift); text-shadow: none; }
+:where(html[data-theme="light"]) .actions .row > .btn.white:first-child:has(+ .btn:not(.green)) { --bg: var(--surf); --fg: var(--text); box-shadow: var(--lift); text-shadow: none; }
 
 :where(html[data-theme="light"]) .btn:disabled, :where(html[data-theme="light"]) .btn.red:disabled { --bg: rgba(27,16,48,.06); --fg: rgba(27,16,48,.5); box-shadow: inset 0 0 0 1.5px rgba(27,16,48,.08); }
 
@@ -1619,15 +1622,15 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .sheet .linkbtn { color: var(--deep); }
 
-:where(html[data-theme="light"]) .stepper, :where(html[data-theme="light"]) .where-seg { background: rgba(255,255,255,.7); border: 0; box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .stepper, :where(html[data-theme="light"]) .where-seg { background: rgba(250,228,239,.7); border: 0; box-shadow: var(--lift); }
 
-:where(html[data-theme="light"]) .stepper button { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(30,40,70,.16); }
+:where(html[data-theme="light"]) .stepper button { background: var(--surf); color: var(--text); box-shadow: 0 1px 4px rgba(30,40,70,.16); }
 
 :where(html[data-theme="light"]) .where-seg button { color: var(--muted); }
 
 :where(html[data-theme="light"]) .where-seg button[aria-pressed="true"] { background: var(--chrome-dk); color: #fff; }
 
-:where(html[data-theme="light"]) .tile.rt { background: radial-gradient(85% 70% at 85% 12%, color-mix(in srgb, var(--rc) 55%, transparent), transparent 72%), #fff; color: var(--text); box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--rc) 70%, transparent), inset 0 0 0 1px rgba(27,16,48,.05); }
+:where(html[data-theme="light"]) .tile.rt { background: radial-gradient(85% 70% at 85% 12%, color-mix(in srgb, var(--rc) 55%, transparent), transparent 72%), var(--surf); color: var(--text); box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--rc) 70%, transparent), inset 0 0 0 1px rgba(27,16,48,.05); }
 
 :where(html[data-theme="light"]) .tile.rt .mast { color: var(--text); }
 
@@ -1635,7 +1638,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .multi-note { background: var(--holo2); color: var(--text); box-shadow: var(--lift); }
 
-:where(html[data-theme="light"]) .friends-btn { background: #fff; border: 0; color: var(--text); box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .friends-btn { background: var(--surf); border: 0; color: var(--text); box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .tabbar { font-family: Nunito, sans-serif; }
 
@@ -1643,21 +1646,21 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .tabbar > button.on { color: #FF3B6E; }
 
-:where(html[data-theme="light"]) .tab-mix { box-shadow: 0 0 0 6px #FFF4F0, 0 10px 30px -6px rgba(255,59,110,.6); }
+:where(html[data-theme="light"]) .tab-mix { box-shadow: 0 0 0 6px #DDBFD2, 0 10px 30px -6px rgba(255,59,110,.6); }
 
-:where(html[data-theme="light"]) .field input, :where(html[data-theme="light"]) .duo-in, :where(html[data-theme="light"]) .idea-in { background: #fff; border: 1.5px solid rgba(27,16,48,.1); color: var(--text); box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .field input, :where(html[data-theme="light"]) .duo-in, :where(html[data-theme="light"]) .idea-in { background: var(--surf); border: 1.5px solid rgba(27,16,48,.1); color: var(--text); box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .field input::placeholder, :where(html[data-theme="light"]) .duo-in::placeholder, :where(html[data-theme="light"]) .idea-in::placeholder { color: #8A91A8; }
 
 :where(html[data-theme="light"]) .field input:focus, :where(html[data-theme="light"]) .duo-in:focus { border-color: var(--deep); box-shadow: 0 0 0 4px rgba(176,18,138,.14); }
 
-:where(html[data-theme="light"]) .chip { background: #fff; border: 0; color: var(--text); box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .chip { background: var(--surf); border: 0; color: var(--text); box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .chip .x { background: rgba(27,16,48,.08); color: var(--text); }
 
 :where(html[data-theme="light"]) #chips .chip { color: #fff; }
 
-:where(html[data-theme="light"]) #chips .chip .x { background: rgba(255,255,255,.25); color: #fff; }
+:where(html[data-theme="light"]) #chips .chip .x { background: rgba(250,228,239,.25); color: #fff; }
 
 :where(html[data-theme="light"]) #chips .chip:nth-child(5n+5), :where(html[data-theme="light"]) #chips .chip:nth-child(5n+5) .x { color: var(--ink); }
 
@@ -1665,7 +1668,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) #app:has(#chips) .actions::before { -webkit-text-stroke: 2px rgba(176,18,138,.35); filter: none; opacity: 1; }
 
-:where(html[data-theme="light"]) .opt { background: rgba(255,255,255,.72); border: 0; box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .opt { background: rgba(250,228,239,.72); border: 0; box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .opt[aria-pressed="true"] { background: var(--chrome-dk); color: #fff; box-shadow: 0 12px 28px -12px rgba(27,16,48,.6); }
 
@@ -1673,19 +1676,19 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .opt[data-l] .pepper::before { filter: none; }
 
-:where(html[data-theme="light"]) .opts .opt[data-solo] { background: rgba(255,255,255,.72); box-shadow: inset 4px 0 0 var(--c), var(--lift); }
+:where(html[data-theme="light"]) .opts .opt[data-solo] { background: rgba(250,228,239,.72); box-shadow: inset 4px 0 0 var(--c), var(--lift); }
 
 :where(html[data-theme="light"]) .opt[data-solo] .pepper { background: rgba(27,16,48,.05); box-shadow: none; }
 
 :where(html[data-theme="light"]) .opt[data-solo] .pepper::before { filter: none; }
 
-:where(html[data-theme="light"]) .seg { background: rgba(255,255,255,.7); border: 0; box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .seg { background: rgba(250,228,239,.7); border: 0; box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .seg button[aria-pressed="true"] { background: var(--chrome-dk); color: #fff; box-shadow: none; }
 
 :where(html[data-theme="light"]) .bubble, :where(html[data-theme="light"]) .fin-jamais .bubble {
   color: var(--text); text-shadow: none; border: 1.5px solid #fff;
-  background: radial-gradient(circle at 30% 25%, #fff, rgba(255,255,255,.75) 36%, rgba(214,190,255,.9) 100%);
+  background: radial-gradient(circle at 30% 25%, #fff, rgba(250,228,239,.75) 36%, rgba(214,190,255,.9) 100%);
   box-shadow: 0 12px 26px -10px rgba(120,80,220,.55), inset 0 -6px 14px rgba(255,120,200,.3), inset 0 2px 0 #fff;
 }
 
@@ -1702,25 +1705,26 @@ html[data-theme="light"] {
 :where(html[data-theme="light"]) .fin-jamais .rank-date { color: var(--muted); }
 
 :where(html[data-theme="light"]) .mbest { border: 0; background: var(--shine), var(--holo2); color: var(--text); box-shadow: var(--lift); }
+
 :where(html[data-theme="light"]) .story-btn { background: linear-gradient(100deg, #FF6A00, #FF2E88 55%, #8A2BFF); box-shadow: 0 8px 20px -8px rgba(255,46,136,.7); }
 
 :where(html[data-theme="light"]) .mbest b { color: var(--deep); text-shadow: none; }
 
-:where(html[data-theme="light"]) .mbest.rx-out { background: #fff; }
+:where(html[data-theme="light"]) .mbest.rx-out { background: var(--surf); }
 
 :where(html[data-theme="light"]) .mbest.rx-out b { color: var(--text); }
 
 :where(html[data-theme="light"]) .grp-row, :where(html[data-theme="light"]) .gm-row { background: rgba(27,16,48,.05); }
 
-:where(html[data-theme="light"]) .grp-row button, :where(html[data-theme="light"]) .gm-btn { background: #fff; border: 0; color: var(--text); box-shadow: 0 1px 4px rgba(30,40,70,.16); }
+:where(html[data-theme="light"]) .grp-row button, :where(html[data-theme="light"]) .gm-btn { background: var(--surf); border: 0; color: var(--text); box-shadow: 0 1px 4px rgba(30,40,70,.16); }
 
 :where(html[data-theme="light"]) .gm-btn.red { background: var(--red); color: #fff; }
 
 :where(html[data-theme="light"]) #app .card {
   --glow: rgba(255,46,147,.4);
-  --tx: #1B1030; --tx2: #2B3040; --panel: rgba(255,255,255,.55); --chipbg: rgba(255,255,255,.7); --chipbd: rgba(27,16,48,.12);
+  --tx: #1B1030; --tx2: #2B3040; --panel: rgba(250,228,239,.55); --chipbg: rgba(250,228,239,.7); --chipbd: rgba(27,16,48,.12);
   --hl: #1B1030; --mk: var(--deep); --tube: rgba(27,16,48,.07); --tglow: transparent; --tglow2: transparent;
-  background: radial-gradient(95% 55% at 0% 0%, var(--glow), transparent 72%), radial-gradient(70% 45% at 100% 100%, color-mix(in srgb, var(--glow) 55%, transparent), transparent 72%), #fff;
+  background: radial-gradient(95% 55% at 0% 0%, var(--glow), transparent 72%), radial-gradient(70% 45% at 100% 100%, color-mix(in srgb, var(--glow) 55%, transparent), transparent 72%), var(--surf);
   box-shadow: 0 22px 50px -24px var(--glow), inset 0 0 0 1px rgba(27,16,48,.05);
 }
 
@@ -1736,57 +1740,57 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) #app .card .chip.pick[aria-pressed="true"] { background: #1B1030; color: #fff; box-shadow: none; }
 
-:where(html[data-theme="light"]) #app .card .btn.white { --bg: #fff; box-shadow: var(--lift); }
+:where(html[data-theme="light"]) #app .card .btn.white { --bg: var(--surf); box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) #app .card .tlean .ty { color: #0A9E6A; }
 
 :where(html[data-theme="light"]) #app .card .tlean .tn { color: #1B1030; }
 
-:where(html[data-theme="light"]) #app .card .tlean b { background: rgba(255,255,255,.7); }
+:where(html[data-theme="light"]) #app .card .tlean b { background: rgba(250,228,239,.7); }
 
 :where(html[data-theme="light"]) #app .card .swipe-tag.oui { color: #0A9E6A; border-color: #0A9E6A; }
 
 :where(html[data-theme="light"]) #app .card .swipe-tag.non { color: #D0105E; border-color: #D0105E; }
 
-:where(html[data-theme="light"]) #app .card .pts-rule { background: rgba(255,255,255,.55); color: var(--text); box-shadow: inset 0 0 0 1px rgba(27,16,48,.08); }
+:where(html[data-theme="light"]) #app .card .pts-rule { background: rgba(250,228,239,.55); color: var(--text); box-shadow: inset 0 0 0 1px rgba(27,16,48,.08); }
 
 :where(html[data-theme="light"]) #app .card .bar { background: rgba(27,16,48,.12); }
 
 :where(html[data-theme="light"]) #app .card .bar i { background: #1B1030; box-shadow: none; }
 
-:where(html[data-theme="light"]) #app .card .qcount { border-color: rgba(27,16,48,.15); background: rgba(255,255,255,.7); color: var(--text); }
+:where(html[data-theme="light"]) #app .card .qcount { border-color: rgba(27,16,48,.15); background: rgba(250,228,239,.7); color: var(--text); }
 
 :where(html[data-theme="light"]) #app .card .qcount.on { background: #1B1030; color: #fff; }
 
 :where(html[data-theme="light"]) #app .card .card-rate button { border-color: transparent; }
 
-:where(html[data-theme="light"]) #app .card .avpick button { background: rgba(255,255,255,.7); border-color: rgba(27,16,48,.12); }
+:where(html[data-theme="light"]) #app .card .avpick button { background: rgba(250,228,239,.7); border-color: rgba(27,16,48,.12); }
 
-:where(html[data-theme="light"]) #app .card .avother { background: rgba(255,255,255,.7); border-color: rgba(27,16,48,.12); }
+:where(html[data-theme="light"]) #app .card .avother { background: rgba(250,228,239,.7); border-color: rgba(27,16,48,.12); }
 
-:where(html[data-theme="light"]) #app .card .tb-forbid, :where(html[data-theme="light"]) #app .card.tb-play .tb-forbid { background: rgba(255,255,255,.6); }
+:where(html[data-theme="light"]) #app .card .tb-forbid, :where(html[data-theme="light"]) #app .card.tb-play .tb-forbid { background: rgba(250,228,239,.6); }
 
 :where(html[data-theme="light"]) #app .card .tb-forbid span { background: none; color: var(--text); }
 
-:where(html[data-theme="light"]) #app .card.tb-play .tb-forbid small { color: #D0105E; }
+:where(html[data-theme="light"]) #app .card.tb-play .tb-forbid small { color: #A30A4A; }
 
 :where(html[data-theme="light"]) #app .card .tb-goldtag { background: #1B1030; color: #FFE27A; }
 
-:where(html[data-theme="light"]) #app .card .tb-defi { background: rgba(255,255,255,.6); }
+:where(html[data-theme="light"]) #app .card .tb-defi { background: rgba(250,228,239,.6); }
 
 :where(html[data-theme="light"]) #app .card .tb-defi b { background: rgba(27,16,48,.1); }
 
-:where(html[data-theme="light"]) #app .card .radar-res div, :where(html[data-theme="light"]) #app .card .rank-order > div { background: rgba(255,255,255,.6); }
+:where(html[data-theme="light"]) #app .card .radar-res div, :where(html[data-theme="light"]) #app .card .rank-order > div { background: rgba(250,228,239,.6); }
 
 :where(html[data-theme="light"]) #app .card .rank-order b { background: #1B1030; color: #fff; }
 
-:where(html[data-theme="light"]) #app .card .rank-opts .btn { background: #fff; color: var(--text); }
+:where(html[data-theme="light"]) #app .card .rank-opts .btn { background: var(--surf); color: var(--text); }
 
 :where(html[data-theme="light"]) #app .card .rank-opts .btn[aria-pressed="true"] { background: #1B1030; color: #fff; box-shadow: 0 0 0 3px var(--deep); }
 
 :where(html[data-theme="light"]) #app .card .vs .opt-a, :where(html[data-theme="light"]) #app .card .vs .opt-b { box-shadow: var(--lift); }
 
-:where(html[data-theme="light"]) #app .card .vs .or { box-shadow: 0 0 0 5px rgba(255,255,255,.8); }
+:where(html[data-theme="light"]) #app .card .vs .or { box-shadow: 0 0 0 5px rgba(250,228,239,.8); }
 
 :where(html[data-theme="light"]) .dial .needle { stroke: #1B1030; filter: none; }
 
@@ -1794,7 +1798,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .radar-res .guide i { box-shadow: inset 0 0 0 2px #1B1030; }
 
-:where(html[data-theme="light"]) #app .jstack .card.avw { --tx: #1B1030; --tx2: #2B3040; --panel: rgba(255,255,255,.55); --chipbg: rgba(255,255,255,.7); --chipbd: rgba(27,16,48,.12); --hl: #1B1030; --mk: var(--deep); --tube: rgba(27,16,48,.07); }
+:where(html[data-theme="light"]) #app .jstack .card.avw { --tx: #1B1030; --tx2: #2B3040; --panel: rgba(250,228,239,.55); --chipbg: rgba(250,228,239,.7); --chipbd: rgba(27,16,48,.12); --hl: #1B1030; --mk: var(--deep); --tube: rgba(27,16,48,.07); }
 
 :where(html[data-theme="light"]) #app .jstack .card.avduo { --g: linear-gradient(165deg, #FFD3EC, #FFE0CC) right / 50% 100% no-repeat, linear-gradient(165deg, #C7E6FF, #D8D2FF) left / 50% 100% no-repeat; }
 
@@ -1802,15 +1806,15 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) #app .jstack .card.av-a, :where(html[data-theme="light"]) #app .jstack .card.avq.show-a { --g: linear-gradient(165deg, #FFD3EC, #FFE2CC); }
 
-:where(html[data-theme="light"]) #app .jstack .card.avduo .avpick button { background: rgba(255,255,255,.75); border-color: rgba(27,16,48,.12); color: var(--text); }
+:where(html[data-theme="light"]) #app .jstack .card.avduo .avpick button { background: rgba(250,228,239,.75); border-color: rgba(27,16,48,.12); color: var(--text); }
 
 :where(html[data-theme="light"]) #app .card.tb-play.tbgold { --g: linear-gradient(165deg, #FFF1B8 0%, #FFD86E 55%, #F5B83D 100%); box-shadow: 0 0 0 3px #FFD86E, 0 20px 50px -18px rgba(200,140,0,.5); }
 
 :where(html[data-theme="light"]) #app .tbgold .tb-word { text-shadow: none; }
 
-:where(html[data-theme="light"]) .jstack::before { background: rgba(255,255,255,.75); box-shadow: 0 6px 14px -8px rgba(30,40,70,.3); }
+:where(html[data-theme="light"]) .jstack::before { background: rgba(250,228,239,.75); box-shadow: 0 6px 14px -8px rgba(30,40,70,.3); }
 
-:where(html[data-theme="light"]) .jstack::after { background: rgba(255,255,255,.5); }
+:where(html[data-theme="light"]) .jstack::after { background: rgba(250,228,239,.5); }
 
 :where(html[data-theme="light"]) .jstack > .card.under { filter: none; }
 
@@ -1820,14 +1824,14 @@ html[data-theme="light"] {
   --paper: #1B1030; --yellow: var(--deep); --red: #D0105E;
   color: var(--text); border: 0;
   background: var(--shine), var(--holo2);
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.9), 0 22px 50px -24px rgba(30,40,70,.45);
+  box-shadow: inset 0 0 0 2px rgba(250,228,239,.9), 0 22px 50px -24px rgba(30,40,70,.45);
 }
 
 :where(html[data-theme="light"]) .secret::before, :where(html[data-theme="light"]) .secret::after { display: none; }
 
 :where(html[data-theme="light"]) .secret .mast { color: var(--deep); text-shadow: none; }
 
-:where(html[data-theme="light"]) .imphold .imp-face { background: #fff; }
+:where(html[data-theme="light"]) .imphold .imp-face { background: var(--surf); }
 
 :where(html[data-theme="light"]) .impx .ttl { color: color-mix(in srgb, var(--bd) 45%, #1B1030); text-shadow: none; }
 
@@ -1835,11 +1839,11 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .impx .ln b { color: var(--deep); text-shadow: none; }
 
-:where(html[data-theme="light"]) .impx .roles span { background: rgba(255,255,255,.7); border: 0; }
+:where(html[data-theme="light"]) .impx .roles span { background: rgba(250,228,239,.7); border: 0; }
 
 :where(html[data-theme="light"]) .impx #wait { color: var(--text); }
 
-:where(html[data-theme="light"]) .impx.clsx .rank-order > div { background: rgba(255,255,255,.6); color: var(--text); }
+:where(html[data-theme="light"]) .impx.clsx .rank-order > div { background: rgba(250,228,239,.6); color: var(--text); }
 
 :where(html[data-theme="light"]) .impx.clsx .rank-order b { background: #1B1030; color: #fff; }
 
@@ -1849,7 +1853,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .clsq b { color: #FFE27A; }
 
-:where(html[data-theme="light"]) .tb-c { color: var(--text); background: rgba(255,255,255,.7); }
+:where(html[data-theme="light"]) .tb-c { color: var(--text); background: rgba(250,228,239,.7); }
 
 :where(html[data-theme="light"]) .tb-c i { box-shadow: inset 0 0 0 2px rgba(27,16,48,.25); }
 
@@ -1857,33 +1861,33 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .tb-c:not(.ok) span { text-decoration-color: rgba(27,16,48,.35); }
 
-:where(html[data-theme="light"]) .tb-team, :where(html[data-theme="light"]) .tb-score span, :where(html[data-theme="light"]) .tb-endhead { background: rgba(255,255,255,.7); }
+:where(html[data-theme="light"]) .tb-team, :where(html[data-theme="light"]) .tb-score span, :where(html[data-theme="light"]) .tb-endhead { background: rgba(250,228,239,.7); }
 
-:where(html[data-theme="light"]) .tb-team.drop { background: #fff; }
+:where(html[data-theme="light"]) .tb-team.drop { background: var(--surf); }
 
-:where(html[data-theme="light"]) .tb-name { background: #fff; color: var(--text); }
+:where(html[data-theme="light"]) .tb-name { background: var(--surf); color: var(--text); }
 
 :where(html[data-theme="light"]) .tb-name.drag { color: #fff; }
 
-:where(html[data-theme="light"]) .tb-step button { background: #fff; color: var(--text); box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .tb-step button { background: var(--surf); color: var(--text); box-shadow: var(--lift); }
 
-:where(html[data-theme="light"]) .tb-top .tb-timer { background: #fff; }
+:where(html[data-theme="light"]) .tb-top .tb-timer { background: var(--surf); }
 
 :where(html[data-theme="light"]) .tb-minus.plus, :where(html[data-theme="light"]) .tb-endsub.dwin { color: #0A9E6A; }
 
-:where(html[data-theme="light"]) .tb-defi { background: rgba(255,255,255,.6); }
+:where(html[data-theme="light"]) .tb-defi { background: rgba(250,228,239,.6); }
 
 :where(html[data-theme="light"]) .tb-defi.won { background: rgba(46,230,160,.22); }
 
 :where(html[data-theme="light"]) .tb-no { --bg: #FFE3EC !important; --fg: #B0103F !important; box-shadow: inset 0 0 0 1.5px #FF3B6E !important; }
 
-:where(html[data-theme="light"]) .rank-list li, :where(html[data-theme="light"]) .rx-list > div, :where(html[data-theme="light"]) .vote-list > div, :where(html[data-theme="light"]) .fr-row, :where(html[data-theme="light"]) .on-row, :where(html[data-theme="light"]) .on-card, :where(html[data-theme="light"]) .mission-row, :where(html[data-theme="light"]) .vm-opp, :where(html[data-theme="light"]) .banrow { background: rgba(255,255,255,.72); border: 0; box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .rank-list li, :where(html[data-theme="light"]) .rx-list > div, :where(html[data-theme="light"]) .vote-list > div, :where(html[data-theme="light"]) .fr-row, :where(html[data-theme="light"]) .on-row, :where(html[data-theme="light"]) .on-card, :where(html[data-theme="light"]) .mission-row, :where(html[data-theme="light"]) .vm-opp, :where(html[data-theme="light"]) .banrow { background: rgba(250,228,239,.72); border: 0; box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .rank-list .rk, :where(html[data-theme="light"]) .fr-av { background: rgba(27,16,48,.08); }
 
 :where(html[data-theme="light"]) .fr-av::after { border-color: #fff; }
 
-:where(html[data-theme="light"]) .mini-rank div { background: rgba(255,255,255,.7); color: var(--text); }
+:where(html[data-theme="light"]) .mini-rank div { background: rgba(250,228,239,.7); color: var(--text); }
 
 :where(html[data-theme="light"]) .rx-list .top { background: rgba(46,230,160,.2); }
 
@@ -1905,7 +1909,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .pur-how { color: var(--muted); }
 
-:where(html[data-theme="light"]) .progress { background: #fff; border: 0; box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .progress { background: var(--surf); border: 0; box-shadow: var(--lift); }
 
 :where(html[data-theme="light"]) .bar { background: rgba(27,16,48,.1); box-shadow: none; }
 
@@ -1925,7 +1929,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .tag.lose { background: #5E6680; }
 
-:where(html[data-theme="light"]) .stamp { color: var(--text); background: #fff; text-shadow: none; box-shadow: 0 12px 34px -10px rgba(30,40,70,.45); }
+:where(html[data-theme="light"]) .stamp { color: var(--text); background: var(--surf); text-shadow: none; box-shadow: 0 12px 34px -10px rgba(30,40,70,.45); }
 
 :where(html[data-theme="light"]) .stamp.green, :where(html[data-theme="light"]) .stamp.blue { text-shadow: none; box-shadow: 0 12px 34px -10px rgba(30,40,70,.45); }
 
@@ -1939,7 +1943,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .dwrap { filter: drop-shadow(0 10px 18px rgba(30,40,70,.3)); }
 
-:where(html[data-theme="light"]) .vm-cover { border-color: rgba(27,16,48,.25); background: rgba(255,255,255,.5); color: var(--text); }
+:where(html[data-theme="light"]) .vm-cover { border-color: rgba(27,16,48,.25); background: rgba(250,228,239,.5); color: var(--text); }
 
 :where(html[data-theme="light"]) .vm-opp.on { background: #1B1030; color: #fff; box-shadow: none; }
 
@@ -1947,7 +1951,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .p4 i { background: #E9ECF4; }
 
-:where(html[data-theme="light"]) .une { color: var(--text); border: 0; background: #fff; box-shadow: var(--lift), 0 30px 60px -30px rgba(30,40,70,.4); }
+:where(html[data-theme="light"]) .une { color: var(--text); border: 0; background: var(--surf); box-shadow: var(--lift), 0 30px 60px -30px rgba(30,40,70,.4); }
 
 :where(html[data-theme="light"]) .une .aw { box-shadow: inset 0 0 0 1px rgba(27,16,48,.08); }
 
@@ -1969,7 +1973,7 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .sheet-wrap, :where(html[data-theme="light"]) .tuto-wrap { background: rgba(30,35,55,.32); }
 
-:where(html[data-theme="light"]) .sheet, :where(html[data-theme="light"]) .tuto { background: linear-gradient(180deg, #FFFFFF 0%, #F1F3F8 100%); color: var(--text); box-shadow: 0 -20px 60px -20px rgba(30,40,70,.4); }
+:where(html[data-theme="light"]) .sheet, :where(html[data-theme="light"]) .tuto { background: linear-gradient(180deg, var(--surf) 0%, var(--surf-2) 100%); color: var(--text); box-shadow: 0 -20px 60px -20px rgba(30,40,70,.4); }
 
 :where(html[data-theme="light"]) .sheet::before { background: rgba(27,16,48,.2); }
 
@@ -1993,15 +1997,13 @@ html[data-theme="light"] {
 
 :where(html[data-theme="light"]) .pad.idle .pad-name, :where(html[data-theme="light"]) .half.pause .pad-name { color: var(--text); }
 
-:where(html[data-theme="light"]) #splash { background: #FFF4F0; }
+:where(html[data-theme="light"]) #splash { background: #DDBFD2; }
 
 :where(html[data-theme="light"]) #splash::before { background: radial-gradient(circle at 30% 30%, rgba(255,154,0,.5), transparent 40%), radial-gradient(circle at 70% 65%, rgba(123,47,255,.4), transparent 42%), radial-gradient(circle at 60% 30%, rgba(255,46,147,.4), transparent 36%); }
 
 :where(html[data-theme="light"]) #splash .spl-logo { background: linear-gradient(100deg, #FF7A00 0%, #FF2E93 50%, #7B2FFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: none; }
 
 :where(html[data-theme="light"]) #splash .spl-dots i { box-shadow: none; }
-
-#app > .where-seg { flex: none; } /* sinon, avec peu de jeux, le bouton Un téléphone / Chacun le sien s'étire en hauteur */
 
 :where(html[data-theme="light"]) #app:has(#chips) .actions::before { display: none; }
 
