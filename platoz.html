@@ -3940,7 +3940,7 @@ function toolsSheet() {
   const t = (k, ill, name, sub, col) => `<button class="tile rt" data-tool="${k}" style="--rc:${col}"><span class="ill" aria-hidden="true">${ill}</span><span class="mast">${name}</span><span class="sub">${sub}</span></button>`;
   sheet(`<span class="mast" style="font-size:28px">Outils</span>
     <div class="rail grid">${t("chooser", "👆", "Chooser", "Le téléphone désigne quelqu'un", "#FF3B6E")}${t("dice", "🎲", "Dé", "Jusqu'à 3 dés", "#5B5CF0")}${t("coin", "🪙", "Pile ou face", "Une pièce à lancer", "#FFB21F")}</div>
-    <button class="btn" id="close">Fermer</button>`, w => { bindTools(w); $("#close", w).onclick = () => w.remove(); });
+    <button class="btn" id="close">Fermer</button>`, w => { bindTools(w, toolsSheet); $("#close", w).onclick = () => w.remove(); });
 }
 function settingsSheet() {
   const t = (attr, ill, name, sub, col) => `<button class="tile rt" ${attr} style="--rc:${col}"><span class="ill" aria-hidden="true">${ill}</span><span class="mast">${name}</span><span class="sub">${sub}</span></button>`;
@@ -3954,11 +3954,11 @@ function settingsSheet() {
     <button class="btn" id="close">Fermer</button>
     <div class="set-links">${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}<button class="linkbtn" id="report">Signaler un problème</button></div>
     <p class="hint muted" style="text-align:center;margin:0">Version du ${VERSION}</p>`, w => {
-    bindTools(w);
-    $("#tester", w).onclick = () => { w.remove(); testerMenu(); };
-    if ($("#bans", w)) $("#bans", w).onclick = () => { w.remove(); banList(); };
-    $("#idea", w).onclick = ideaSheet;
-    $("#report", w).onclick = () => reportSheet();
+    bindTools(w, settingsSheet);
+    $("#tester", w).onclick = () => { w.remove(); testerMenu(toSettings); };
+    if ($("#bans", w)) $("#bans", w).onclick = () => { w.remove(); banList(settingsSheet); };
+    $("#idea", w).onclick = () => ideaSheet(settingsSheet);
+    $("#report", w).onclick = () => reportSheet(false, settingsSheet);
     $("#close", w).onclick = () => w.remove();
     const ts = $("#theme-seg", w), paintT = () => $$("button", ts).forEach(b => b.setAttribute("aria-pressed", b.dataset.v === store.get("theme", "auto")));
     $$("button", ts).forEach(b => b.onclick = () => { store.set("theme", b.dataset.v); applyTheme(); paintT(); });
@@ -3969,10 +3969,12 @@ function settingsSheet() {
     const vs = $("#vib-seg", w), paintV = () => $$("button", vs).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("vib", 1)));
     $$("button", vs).forEach(b => b.onclick = () => { store.set("vib", +b.dataset.v); applyVib(); paintV(); if (+b.dataset.v) haptic(20); });
     paintV();
-    $("#admin-btn", w).onclick = () => { w.remove(); adminOpen(); };
+    $("#admin-btn", w).onclick = () => { w.remove(); adminOpen(settingsSheet); };
     adminCheck().then(ok => { const b = $("#admin-btn", w); if (b) b.hidden = !ok; });
   });
 }
+// un écran ouvert depuis les Réglages : la croix ou la flèche ramène à l'accueil, Réglages ouverts
+const toSettings = () => { home(); settingsSheet(); };
 // page admin dans l'appli, seulement sur les comptes de joueur que Fabio a choisis (page admin, onglet Comptes).
 // le bouton n'est qu'un raccourci : c'est la base qui refuse tout autre compte (règles : collection admins)
 async function adminCheck() {
@@ -3982,7 +3984,7 @@ async function adminCheck() {
     store.set("admin", ok ? 1 : 0); return ok;
   } catch (e) { store.set("admin", 0); return false; }
 }
-function adminOpen() {
+function adminOpen(back) {
   const w = document.createElement("div"); w.className = "admin-wrap";
   w.innerHTML = `<div class="admin-top"><span class="mast">Admin</span><button class="btn white" id="admin-close">Fermer</button></div>
     <iframe src="${new URL("admin.html?app" + (store.get("emu", 0) ? "&emu" : ""), location.href)}" title="Admin"></iframe>`;
@@ -3990,7 +3992,7 @@ function adminOpen() {
   $("#admin-close", w).onclick = () => {
     const f = $("iframe", w).contentWindow;
     try { if (f.adminDirty && f.adminDirty() && !confirm("Des changements ne sont pas publiés. Fermer quand même ?")) return; } catch (e) {}
-    w.remove();
+    w.remove(); back && back();
   };
 }
 const VERSION = "28 octobre";
@@ -3999,7 +4001,7 @@ const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
   return m ? `${m[1]} iOS ${m[2]}.${m[3]}` : a ? "Android " + a[1] : /Mac OS X/.test(u) ? "Mac" : /Windows/.test(u) ? "PC Windows" : "Autre";
 };
-function reportSheet(inGame) {
+function reportSheet(inGame, back) {
   // la carte affichée seulement si elle vient du jeu en cours (le paquet d'une partie d'avant peut rester en mémoire)
   const k = inGame ? curCard() : null, g = inGame ? S.mode || "" : "";
   const c = k && (g === "mix" || k.type === g || g === "av" && (k.type === "verite" || k.type === "action")) ? k : null;
@@ -4010,7 +4012,7 @@ function reportSheet(inGame) {
     <textarea class="idea-in" id="rep-in" maxlength="600" rows="5" placeholder="Ex : le bouton ne marche pas quand…" aria-label="Le problème"></textarea>
     <button class="btn red" id="send">Envoyer</button>
     <button class="btn" id="close">Annuler</button>`, w => {
-    $("#close", w).onclick = () => w.remove();
+    $("#close", w).onclick = () => { w.remove(); back && back(); };
     $("#send", w).onclick = () => {
       const v = $("#rep-in", w).value.trim(); if (!v) { toast("Écris le problème d'abord."); return; }
       getDb().then(db => db && db.doc("propositions/bug_" + devId + "_" + Date.now()).set({ type: "bug", card: v, lvl: 0, at: Date.now(),
@@ -4020,13 +4022,13 @@ function reportSheet(inGame) {
   });
 }
 // une idée de jeu ou d'amélioration, envoyée pour être lue
-function ideaSheet() {
+function ideaSheet(back) {
   sheet(`<span class="mast" style="font-size:28px">Ton idée</span>
     <p class="hint">Une idée ? Écris-la.</p>
     <textarea class="idea-in" id="idea-in" maxlength="600" rows="5" placeholder="Ex : un jeu où…" aria-label="Ton idée"></textarea>
     <button class="btn red" id="send">Envoyer</button>
     <button class="btn" id="close">Annuler</button>`, w => {
-    $("#close", w).onclick = () => w.remove();
+    $("#close", w).onclick = () => { w.remove(); back && back(); };
     $("#send", w).onclick = () => {
       const v = $("#idea-in", w).value.trim(); if (!v) { toast("Écris ton idée d'abord."); return; }
       getDb().then(db => db && db.doc("propositions/idee_" + devId + "_" + Date.now()).set({ type: "idee", card: v, lvl: 0, at: Date.now() })).catch(() => {});
@@ -5306,12 +5308,14 @@ function cOuiSwipe(c) {
 }
 
 /* -------- OUTILS : dé et chooser, ouverts par-dessus la partie -------- */
+let toolBack = null;
 function tool(html, bind) {
   $$(".tool-wrap").forEach(t => t.remove());
+  const back = toolBack; toolBack = null;
   const w = document.createElement("div"); w.className = "tool-wrap";
   w.innerHTML = `<div class="topbar"><button class="iconbtn" id="tclose" aria-label="Fermer">×</button><span class="title">${html.title}</span><span style="width:44px"></span></div>${html.body}`;
   document.body.appendChild(w);
-  const close = () => { clearInterval(w._t); clearTimeout(w._o); w.remove(); };
+  const close = () => { clearInterval(w._t); clearTimeout(w._o); w.remove(); back && back(); };
   $("#tclose", w).onclick = close;
   bind && bind(w, close); return w;
 }
@@ -5589,7 +5593,9 @@ function bindRate(r = document, getCard = curCard, after) {
 /* -------- TESTER LES CARTES : on les passe une par une et on vote -------- */
 const TEST_TYPES = [["jamais", "Je n'ai jamais"], ["verite", "Vérité"], ["action", "Action"], ["qui", "Qui pourrait"], ["pref", "Tu préfères"],
   ["menteur", "Le Menteur"], ["classement", "Le Classement"], ["ouinon", "Débat"], ["radar", "Le Radar"], ["imposteur", "L'Imposteur"], ["taboo", "Sans le dire"]];
-function testerMenu() {
+let testerBack = home;
+function testerMenu(back) {
+  if (typeof back === "function") testerBack = back; // les pages de cartes reviennent ici par un clic, sans changer ce retour
   const n = t => C[t].filter(c => votes[cardId(t, c)]).length;
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Tester les cartes</span><span style="width:44px"></span></div>
@@ -5597,7 +5603,7 @@ function testerMenu() {
     <div class="opts tester-opts">${TEST_TYPES.map(([t, l]) => `<button class="opt" data-t="${t}"><span class="pepper">${n(t)}</span><span><span class="mast">${l}</span><p>${C[t].length} cartes<br>notées : ${n(t)} par toi<span class="t-all" data-t="${t}"></span></p></span></button>`).join("")}</div>
     <div class="actions"><button class="btn white" id="res">Voir les résultats</button></div>
   `, () => {
-    $("#back").onclick = home;
+    $("#back").onclick = () => testerBack();
     // les résultats montrent les votes de tout le monde : on affiche aussi ce total, pour que les chiffres se recoupent
     getDb().then(db => db && db.collection("votes").get()).then(snap => {
       if (!snap || !$(".t-all")) return;
@@ -6370,13 +6376,13 @@ function unoStart() {
 
 /* -------- PAUSE -------- */
 function curCard() { const c = S.avPick || S.deck[S.idx]; return c && c.id && C[c.type] ? c : null; }
-function banList() {
+function banList(back) {
   const items = [...ban].map(id => { const i = id.indexOf(":"); return { id, type: id.slice(0, i), text: id.slice(i + 1).replace("|", " / ").replace(/\{[pq]\}/g, "quelqu'un") }; });
   const label = t => ({ verite: "Vérité", action: "Action" }[t] || (TYPES[t] ? TYPES[t].label : t));
   sheet(`<span class="mast">Cartes retirées</span>
     ${items.length ? `<div class="banlist">${items.map(o => `<div class="banrow"><p><small>${esc(label(o.type))}</small>${esc(o.text)}</p><button class="linkbtn" data-id="${esc(o.id)}">Remettre</button></div>`).join("")}</div>` : `<p class="hint">Aucune carte retirée.</p>`}
     <button class="btn" id="close">Fermer</button>`, w => {
-    $("#close", w).onclick = () => { w.remove(); home(); };
+    $("#close", w).onclick = () => { w.remove(); home(); back && back(); };
     $$(".banrow .linkbtn", w).forEach(b => b.onclick = () => { ban.delete(b.dataset.id); store.set("ban", [...ban]); b.closest(".banrow").remove(); });
   });
 }
@@ -6450,8 +6456,9 @@ function standings() {
   let rank = 0, prev = null;
   return list.map((p, i) => { if (p.pts !== prev) { rank = i + 1; prev = p.pts; } return { name: p.name, pts: p.pts, rank }; });
 }
-function bindTools(r = document) {
-  $$("[data-tool]", r).forEach(b => b.onclick = () => { $$(".sheet-wrap").forEach(s => s.remove()); ({ dice: diceTool, chooser: chooserTool, coin: coinTool, propose: proposeTool })[b.dataset.tool](); });
+// back : le menu d'où on ouvre l'outil, rouvert quand on le ferme avec la croix
+function bindTools(r = document, back) {
+  $$("[data-tool]", r).forEach(b => b.onclick = () => { $$(".sheet-wrap").forEach(s => s.remove()); toolBack = back; ({ dice: diceTool, chooser: chooserTool, coin: coinTool, propose: proposeTool })[b.dataset.tool](); });
 }
 function pauseMenu() {
   const st = standings();
@@ -6467,10 +6474,10 @@ function pauseMenu() {
     <button class="linkbtn" id="report">Signaler un problème</button>
   `, w => {
     $("#resume", w).onclick = () => w.remove();
-    bindTools(w);
+    bindTools(w, pauseMenu);
     $("#end", w).onclick = () => { w.remove(); ranking(); };
     $("#quit", w).onclick = () => { w.remove(); home(); };
-    $("#report", w).onclick = () => reportSheet(true);
+    $("#report", w).onclick = () => reportSheet(true, pauseMenu);
     $$("#lvl button", w).forEach(b => b.onclick = () => {
       S.level = +b.dataset.l; store.set("level", S.level);
       $$("#lvl button", w).forEach(x => x.setAttribute("aria-pressed", +x.dataset.l === S.level));
@@ -6886,10 +6893,11 @@ const PUR = [
 /* deux prénoms pour les jeux à deux */
 function quitBtn() { return `<button class="iconbtn" id="quit" aria-label="Quitter">×</button>`; }
 function bindQuit() {
-  $("#quit").onclick = () => sheet(`<span class="mast" style="font-size:30px">Quitter la partie ?</span>
+  const ask = () => sheet(`<span class="mast" style="font-size:30px">Quitter la partie ?</span>
     <div class="row"><button class="btn white" id="stay">Continuer</button><button class="btn ink" id="leave">Quitter</button></div>
     <button class="linkbtn" id="report">Signaler un problème</button>`,
-    w => { $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; $("#report", w).onclick = () => reportSheet(true); });
+    w => { $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; $("#report", w).onclick = () => reportSheet(true, ask); });
+  $("#quit").onclick = ask;
 }
 
 /* ---------- DUEL RÉFLEXE ---------- */
@@ -7390,12 +7398,12 @@ async function keyLogin(raw, then) {
     return false;
   }
 }
-function keyLoginView(then) {
+function keyLoginView(then, prev) {
   view(`${onTop("J'ai déjà un compte")}
     <p class="hint" style="text-align:center">Ta clé de compte se trouve dans l'appli où tu as déjà ton pseudo : <b>Amis</b>, puis <b>Utiliser mon compte ailleurs</b>.</p>
     <div class="field"><input id="key-in" maxlength="16" placeholder="ABC123-XY45ZW78" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Clé de compte"><button class="btn red" id="key-ok">OK</button></div>
   `, () => {
-    $("#back").onclick = () => pseudoView(then);
+    $("#back").onclick = () => prev ? prev() : pseudoView(then);
     const go = async () => { $("#key-ok").disabled = true; if (!(await keyLogin($("#key-in").value, then))) $("#key-ok").disabled = false; };
     $("#key-ok").onclick = go;
     $("#key-in").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
@@ -7432,8 +7440,8 @@ function salleLanding(code) {
     </div>
   `, () => {
     $("#back").onclick = () => { setUrl(""); home(); };
-    $("#here").onclick = () => pseudoView(() => onlineHome(code));
-    $("#haskey").onclick = () => keyLoginView(() => onlineHome(code));
+    $("#here").onclick = () => pseudoView(() => onlineHome(code), () => salleLanding(code));
+    $("#haskey").onclick = () => keyLoginView(() => onlineHome(code), () => salleLanding(code));
   });
 }
 async function onlineHome(join) {
@@ -7445,15 +7453,15 @@ async function onlineHome(join) {
   if (!hasProfile()) return salleLanding(String(join).toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4));
   if (!(await roomJoin(join))) { setUrl(""); home(); }
 }
-function pseudoView(then) {
+function pseudoView(then, back = home) {
   const me = store.get("me", {});
   view(`${onTop("Ton pseudo")}
     <p class="hint" style="text-align:center">C'est le nom que tes amis verront.</p>
     <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(me.name || S.names[0] || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Pseudo"><button class="btn red" id="ok">OK</button></div>
     ${hasProfile() ? "" : `<p style="text-align:center;margin:0"><button class="linkbtn" id="haskey">J'ai déjà un compte Bliz</button></p>`}
   `, () => {
-    $("#back").onclick = home;
-    if ($("#haskey")) $("#haskey").onclick = () => keyLoginView(then);
+    $("#back").onclick = () => back();
+    if ($("#haskey")) $("#haskey").onclick = () => keyLoginView(then, () => pseudoView(then, back));
     const go = async () => {
       const v = $("#pseudo").value.trim().replace(/\s+/g, " ");
       if (!v) return;
@@ -7513,7 +7521,7 @@ function friendsView() {
     <button class="linkbtn" id="keybtn">Utiliser mon compte ailleurs</button>
   `, () => {
     $("#back").onclick = home;
-    $("#rename").onclick = () => pseudoView(friendsView);
+    $("#rename").onclick = () => pseudoView(friendsView, friendsView);
     $("#sharecode").onclick = () => shareIt(`Ajoute-moi sur Bliz, mon code ami : ${me.code}`, SITE);
     $("#qrbtn").onclick = () => qrSheet(me);
     $("#keybtn").onclick = keySheet;
