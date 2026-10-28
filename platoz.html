@@ -367,6 +367,11 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 70p
 @keyframes underWait { from { visibility: hidden; } to { visibility: visible; } }
 .fr-row .fr-join { flex: none; width: auto; min-height: 40px; padding: 0 16px; font-size: 15px; margin-left: auto; }
 .fr-row .fr-txt { flex: 1; }
+.fr-tap { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.fr-more { flex: none; font-size: 26px; font-weight: 700; line-height: 1; color: var(--muted); }
+.on-card > .fr-share { display: grid; align-items: stretch; grid-template-columns: 1fr auto; gap: 10px; }
+.fr-share #qrbtn { width: 58px; padding: 0; display: grid; place-items: center; }
+#keybtn { align-self: center; }
 /* les bulles passent au-dessus du reste de l'écran : une bulle lâchée sur les boutons reste attrapable */
 #app > *:has(.bubble) { z-index: 3; }
 .bubble.free { animation: none !important; }
@@ -3311,6 +3316,7 @@ function home() {
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["reflexe"], "", true)}` : `
+      <div id="invites"></div>
       ${n === 1 ? rail("En solo", ["reflexe", "test"]) : ""}
       ${rail("Votes et devinettes", ["classement", "qui", "radar"])}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"]).replace('class="rail-box"', 'class="rail-box short"')}
@@ -6741,7 +6747,8 @@ function homeOnline(multi) {
   }
   net().then(async ({ F, db, uid }) => {
     if (!$("#where")) return;
-    if (multi) ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "invites"), s => {
+    // les invitations s'affichent aussi en mode un téléphone (un ami peut inviter depuis Amis)
+    ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "invites"), s => {
       const box = $("#invites"); if (!box) return;
       const inv = s.docs.map(d => d.data()).filter(i => Date.now() - i.at < 3 * 3600e3).sort((a, b) => b.at - a.at);
       box.innerHTML = inv.length ? `<div class="section-label">Invitations</div><div class="on-list">${inv.map(i => `<div class="on-row"><span><b>${esc(i.from)}</b> t'invite à jouer</span><button class="btn red" data-room="${esc(i.room)}">Rejoindre</button></div>`).join("")}</div>` : "";
@@ -6901,16 +6908,15 @@ function friendsView() {
     <div class="section-label">Rejoindre une partie</div>
     <div id="fj-list" class="on-list"></div>
     <div class="field"><input id="fj-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="fj">Rejoindre</button></div>
+    <div id="friends"><p class="hint muted">Chargement…</p></div>
+    <div class="section-label">Ajouter un ami</div>
+    <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami d'un pote" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
     <div class="on-card">
       <div><span class="eyebrow">Ton pseudo</span><b class="on-name">${esc(me.name)}</b><button class="linkbtn" id="rename">Changer</button></div>
       <div><span class="eyebrow">Ton code ami</span><span class="on-code">${me.code}</span></div>
-      <button class="btn white" id="sharecode">Envoyer mon code à un pote</button>
-      <button class="btn white" id="qrbtn">Afficher mon QR code</button>
-      <button class="btn white" id="keybtn">Utiliser mon compte ailleurs</button>
+      <div class="fr-share"><button class="btn white" id="sharecode">Partager mon code</button><button class="btn white" id="qrbtn" aria-label="Afficher mon QR code"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg></button></div>
     </div>
-    <div class="section-label">Ajouter un ami</div>
-    <div class="field"><input id="friend-in" maxlength="6" placeholder="Code ami d'un pote" autocomplete="off" autocapitalize="characters" enterkeyhint="done" aria-label="Code ami"><button class="btn" id="addf">Ajouter</button></div>
-    <div id="friends"><p class="hint muted">Chargement…</p></div>
+    <button class="linkbtn" id="keybtn">Utiliser mon compte ailleurs</button>
   `, () => {
     $("#back").onclick = home;
     $("#rename").onclick = () => pseudoView(friendsView);
@@ -6930,14 +6936,31 @@ function friendsView() {
       const draw = () => {
         const box = $("#friends"); if (!box) return;
         const rows = list.map(f => Object.assign({}, f, info[f.id] || {})), on = rows.filter(isOnline), off = rows.filter(f => !isOnline(f));
-        const row = f => `<div class="fr-row"><span class="fr-av${isOnline(f) ? " on" : ""}">${esc((f.name || "?")[0].toUpperCase())}</span><span class="fr-txt"><b>${esc(f.name)}</b><small${isOnline(f) ? ' class="on"' : ""}>${isOnline(f) ? "En ligne" : seenTxt(f.seen)} · ${esc(f.code)}</small></span></div>`;
+        const row = f => `<button class="fr-row fr-tap" data-id="${esc(f.id)}"><span class="fr-av${isOnline(f) ? " on" : ""}">${esc((f.name || "?")[0].toUpperCase())}</span><span class="fr-txt"><b>${esc(f.name)}</b><small${isOnline(f) ? ' class="on"' : ""}>${isOnline(f) ? "En ligne" : seenTxt(f.seen)} · ${esc(f.code)}</small></span><span class="fr-more" aria-hidden="true">›</span></button>`;
         box.innerHTML = !rows.length ? `<p class="hint muted">Pas encore d'amis. Demande son code ami à un pote, ou envoie-lui le tien.</p>`
           : (on.length ? `<div class="section-label">En ligne (${on.length})</div><div class="on-list">${on.map(row).join("")}</div>` : "")
           + (off.length ? `<div class="section-label">Hors ligne (${off.length})</div><div class="on-list">${off.map(row).join("")}</div>` : "");
         const jl = $("#fj-list"), open = on.filter(f => f.room);
         if (jl) jl.innerHTML = open.map(f => `<div class="fr-row"><span class="fr-av on">${esc((f.name || "?")[0].toUpperCase())}</span><span class="fr-txt"><b>${esc(f.name)}</b><small class="on">En salle d'attente</small></span><button class="btn red fr-join" data-room="${esc(f.room)}">Rejoindre</button></div>`).join("");
         $$(".fr-join", jl || box).forEach(b => b.onclick = () => { b.disabled = true; roomJoin(b.dataset.room).then(ok => { if (!ok) b.disabled = false; }); });
+        $$(".fr-tap", box).forEach(b => b.onclick = () => friendSheet(rows.find(f => f.id === b.dataset.id)));
       };
+      // un ami : l'inviter dans une nouvelle partie, ou le retirer (des deux côtés)
+      const friendSheet = f => f && sheet(`<span class="mast" style="font-size:28px">${esc(f.name)}</span>
+        <p class="hint muted" style="text-align:center;margin:0">${isOnline(f) ? "En ligne" : seenTxt(f.seen)}</p>
+        <button class="btn red" id="fr-inv">Inviter à jouer</button>
+        <button class="btn" id="close">Fermer</button>
+        <button class="linkbtn" id="fr-del">Retirer de mes amis</button>`, w => {
+        $("#close", w).onclick = () => w.remove();
+        $("#fr-inv", w).onclick = () => { w.remove(); roomCreate("mix", f.id); };
+        $("#fr-del", w).onclick = async () => {
+          w.remove();
+          try {
+            await Promise.all([F.deleteDoc(F.doc(db, "users", uid, "friends", f.id)), F.deleteDoc(F.doc(db, "users", f.id, "friends", uid))]);
+            toast(f.name + " n'est plus dans tes amis.");
+          } catch (e) { toast("Impossible de le retirer pour l'instant."); }
+        };
+      });
       ON.off.push(F.onSnapshot(F.collection(db, "users", uid, "friends"), s => {
         list = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
         list.forEach(f => { if (!subs[f.id]) { subs[f.id] = 1; ON.off.push(F.onSnapshot(F.doc(db, "users", f.id), d => { if (d.exists()) { info[f.id] = { name: d.data().name, seen: d.data().seen, room: d.data().room || "" }; draw(); } }, () => {})); } });
@@ -6975,7 +6998,7 @@ const needers = r => r.card && r.card.type === "deux" ? r.card.pair.filter(u => 
   : r.card && r.card.roles ? ids(r).filter(u => r.card.roles[u] && !(r.card.out || []).includes(u)) // L'Imposteur : seuls ceux encore en jeu votent
   : ids(r).filter(u => u !== solo(r.card));
 const actedN = r => needers(r).filter(u => r.acts && r.acts[u] != null).length;
-async function roomCreate(game = "mix") {
+async function roomCreate(game = "mix", invite) {
   if (ONE_PHONE.includes(game)) game = "mix"; // les jeux qui se jouent sur un seul téléphone ne passent pas en ligne
   try {
     const { F, db, uid } = await net(), me = store.get("me");
@@ -6990,6 +7013,8 @@ async function roomCreate(game = "mix") {
       round: 0, phase: "", card: null, acts: {}, res: null, at: Date.now(),
       players: { [uid]: { name: me.name, pts: 0, t: Date.now() } }
     });
+    // partie lancée depuis Amis : l'ami reçoit l'invitation tout de suite
+    if (invite) F.setDoc(F.doc(db, "users", invite, "invites", code), { from: me.name, room: code, at: Date.now() }).then(() => toast("Invitation envoyée."), () => toast("Invitation pas envoyée, invite-le depuis la liste."));
     roomOpen(code);
   } catch (e) { toast("Impossible de créer la partie pour l'instant."); }
 }
