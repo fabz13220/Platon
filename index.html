@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="6bc00d0fdef9">
+<meta name="build" content="a56068670b0d">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1453,6 +1453,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .set-tiles.rail.grid .tile.rt:last-child:nth-child(odd) { min-height: 0; }
 .sheet-wrap .set-tiles .tile.rt .ill { position: static; transform: none; font-size: 28px; margin-bottom: auto; padding-bottom: 6px; }
 .set-tiles.rail.grid .tile.rt:last-child:nth-child(odd) .ill { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); padding: 0; font-size: 34px; }
+.propose [hidden] { display: none !important; }
+.prop-forb { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.prop-forb .duo-in:last-child { grid-column: 1 / -1; }
 .set-links { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
 .rail-box.short .rail.grid .tile.rt { height: 100px; }
 .tile.rt .sub { font-family: Nunito, sans-serif; font-weight: 800; font-size: 13px; line-height: 1.2; opacity: .75; }
@@ -3286,9 +3289,9 @@ function view(html, after) {
   if (after) after();
   fitWords(); fitPage(true);
 }
-// aucune page ne défile sauf le menu : la carte se resserre, puis l'écran, puis tout est réduit pour tenir
+// aucune page ne défile sauf le menu (et la longue liste des résultats de votes) : la carte se resserre, puis l'écran, puis tout est réduit pour tenir
 function fitPage(reset) {
-  const B = document.body, menu = !!$(".tabbar", app);
+  const B = document.body, menu = !!$(".tabbar, .vote-list", app);
   const over = () => B.scrollHeight > B.clientHeight + 1;
   if (reset) { B.classList.remove("squeeze"); app.style.zoom = ""; B.classList.toggle("lock", !menu); fitStage(); }
   if (menu || !over()) return;
@@ -5112,7 +5115,8 @@ async function testerResults() {
 /* -------- PROPOSER UNE CARTE : ajoutée au jeu sur ce téléphone et envoyée pour être relue -------- */
 const PROPOSE = {
   jamais: ["Je n'ai jamais…"], verite: ["La question"], action: ["Le défi"], qui: ["Qui pourrait…"], pref: ["Premier choix", "Deuxième choix"],
-  menteur: ["T'as déjà… ?"], classement: ["Classe tout le monde : le plus…"], ouinon: ["La question"], radar: ["D'un côté", "De l'autre"], imposteur: ["Thème", "Mot secret"]
+  menteur: ["T'as déjà… ?"], classement: ["Classe tout le monde : le plus…"], ouinon: ["La question"], radar: ["D'un côté", "De l'autre"], imposteur: ["Thème", "Mot secret"],
+  taboo: ["Le mot à faire deviner", "Interdit 1", "Interdit 2", "Interdit 3", "Interdit 4", "Interdit 5"]
 };
 function proposeTool() {
   let t = store.get("propType", "jamais"), lv = 2;
@@ -5125,10 +5129,12 @@ function proposeTool() {
         <div class="section-label">Jeu</div>
         <div class="chips">${TEST_TYPES.map(([k, l]) => `<button class="chip pick" data-k="${k}" aria-pressed="${k === t}">${esc(l)}</button>`).join("")}</div>
         <div class="section-label">Ta carte</div>
-        ${names.map((n, i) => `<input class="duo-in" data-i="${i}" maxlength="140" placeholder="${esc(n)}" autocomplete="off">`).join("")}
+        ${(() => { const inp = (n, i) => `<input class="duo-in" data-i="${i}" maxlength="${t === "taboo" ? 30 : 140}" placeholder="${esc(n)}" autocomplete="off">`;
+          // Sans le dire : le mot, puis les 5 mots interdits en petite grille
+          return t === "taboo" ? inp(names[0], 0) + `<div class="prop-forb">${names.slice(1).map((n, i) => inp(n, i + 1)).join("")}</div>` : names.map(inp).join(""); })()}
         ${t === "verite" || t === "action" || t === "menteur" ? "" : `<p class="hint muted" style="margin:0">${t === "jamais" ? "Écris seulement la suite : « fumé de la beuh »." : t === "qui" ? "Écris seulement la suite : « finir en garde à vue »." : t === "classement" ? "Exemple : « le plus radin »." : ""}</p>`}
-        <div class="section-label">Intensité</div>
-        <div class="seg" id="plv">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === lv}">${l.name}</button>`).join("")}</div>
+        <div class="section-label"${t === "taboo" ? " hidden" : ""}>Intensité</div>
+        <div class="seg" id="plv"${t === "taboo" ? " hidden" : ""}>${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === lv}">${l.name}</button>`).join("")}</div>
         <div class="section-label">Ton nom sur la carte</div>
         <input class="duo-in" id="pby" maxlength="14" placeholder="Ton prénom" value="${esc(by)}" autocomplete="off" autocapitalize="words" ${anon ? "disabled" : ""}>
         <div class="chips"><button class="chip pick" id="panon" aria-pressed="${anon}">Rester anonyme</button></div>
