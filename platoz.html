@@ -4272,7 +4272,7 @@ function ambiance() {
   if (S.mode === "test") return testStart(); // Test de pureté : les thèmes remplacent l'intensité
   if (S.mode === "p4") return p4Start(); // Aligne 4 : rien à régler
   if (S.mode === "reflexe") return reflexStart(); // Duel réflexe : rien à régler à part les pièges, déjà sur l'écran des joueurs
-  if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ni de réglage ex et sexe, tous les mots
+  if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ; le réglage ex et sexe est sur l'écran des équipes
   const draw = () => {
     $$(".opt").forEach(o => o.setAttribute("aria-pressed", +o.dataset.l === S.level));
     $$("#hot button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.v === "1") === S.hot));
@@ -5704,6 +5704,7 @@ function tabooSetup() {
     $("#tsec").textContent = tbTime(TB.secs);
     $("#tm").disabled = TB.secs <= 15; $("#tp").disabled = TB.secs >= 300;
     $("#rnum").textContent = TB.max; $("#rm").disabled = TB.max <= 1; $("#rp").disabled = TB.max >= 10;
+    $$("#tbhot button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.v === "1") === S.hot));
   };
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Sans le dire</span><span style="width:44px"></span></div>
@@ -5714,6 +5715,8 @@ function tabooSetup() {
     <div class="tb-step"><button id="tm" aria-label="Moins de temps">−</button><b id="tsec"></b><button id="tp" aria-label="Plus de temps">+</button></div>
     <div class="section-label">Tours par équipe</div>
     <div class="tb-step"><button id="rm" aria-label="Moins de tours">−</button><b id="rnum"></b><button id="rp" aria-label="Plus de tours">+</button></div>
+    <div class="section-label">Mots sur le sexe et les ex</div>
+    <div class="seg" id="tbhot"><button data-v="1">Activés</button><button data-v="0">Désactivés</button></div>
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
   `, () => {
     $("#back").onclick = playersScreen;
@@ -5735,6 +5738,7 @@ function tabooSetup() {
     $("#tm").onclick = () => step(-15); $("#tp").onclick = () => step(15);
     const rounds = d => { TB.max = Math.max(1, Math.min(10, TB.max + d)); store.set("tbMax", TB.max); buzz(8); draw(); };
     $("#rm").onclick = () => rounds(-1); $("#rp").onclick = () => rounds(1);
+    $$("#tbhot button").forEach(b => b.onclick = () => { S.hot = b.dataset.v === "1"; store.set("hot", S.hot); buzz(8); draw(); });
     $("#go").onclick = () => { TB.score = [0, 0]; TB.turns = 0; TB.giver = [0, 0]; TB.found = {}; seen.clear(); TB.deck = tbPool().reverse(); S.inGame = true; keepAwake(); tabooTurn(); };
     draw();
     tbFit();
@@ -5765,8 +5769,9 @@ function tbDrag(b, move) {
   b.addEventListener("pointercancel", reset);
 }
 function tabooSplit() { const n = shuffle(S.names); TB.teams = [n.filter((_, i) => i % 2 === 0), n.filter((_, i) => i % 2 === 1)]; }
-// tous les mots, sans tenir compte de l'intensité ni du réglage ex et sexe des autres jeux
-const tbPool = () => { const l = S.level, h = S.hot; S.level = 3; S.hot = true; try { return pool("taboo"); } finally { S.level = l; S.hot = h; } };
+// tous les mots, sans tenir compte de l'intensité ; le réglage ex et sexe (le même que dans les autres jeux) retire les mots osés
+const TB_SAGE = new Set(["Bébé", "Couche", "Éléphant", "Lasagnes", "Pension alimentaire"]); // pris pour des mots osés à cause de « couche », « trompe » ou « ex »
+const tbPool = () => { const l = S.level, h = S.hot; S.level = 3; S.hot = true; try { return pool("taboo").filter(c => h || TB_SAGE.has(c.data[1]) || !isHot(c.data.slice(1))); } finally { S.level = l; S.hot = h; } };
 const tbCard = () => { if (!TB.deck || !TB.deck.length) TB.deck = tbPool().reverse(); // les jamais vues sortent en premier (pop prend la fin)
   const c = TB.deck.pop(); useCard(c.id); store.set("used", [...used]); return c; };
 const tbBoard = (cur, sc = TB.score) => `<div class="tb-score">${[0, 1].map(i => `<span class="${i === cur ? "on" : ""}" style="--tc:${TB_COLS[i]}">${esc(tbName(i))} <b>${sc[i]}</b></span>`).join("")}</div>`;
