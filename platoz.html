@@ -4910,7 +4910,8 @@ function chooserTool() {
       const t = touches.get(e.pointerId); if (!t) return;
       if (!picked) t.el.remove();
       touches.delete(e.pointerId);
-      if (picked && !touches.size) { picked = false; zone.classList.remove("done", "live", "flooded"); w.classList.remove("playing"); $$(".finger, .ch-flood", zone).forEach(f => f.remove()); msg.hidden = false; }
+      // le résultat reste affiché 3 secondes après que tout le monde a levé les doigts
+      if (picked && !touches.size) { clearTimeout(timer); timer = w._o = setTimeout(() => { picked = false; zone.classList.remove("done", "live", "flooded"); w.classList.remove("playing"); $$(".finger, .ch-flood", zone).forEach(f => f.remove()); msg.hidden = false; arm(); }, 3000); return; }
       arm();
     };
     zone.addEventListener("pointerup", up); zone.addEventListener("pointercancel", up);
