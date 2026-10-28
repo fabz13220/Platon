@@ -1432,6 +1432,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .rail-box.short .rail.grid .tile.rt { height: 100px; }
 .tile.rt .sub { font-family: Nunito, sans-serif; font-weight: 800; font-size: 13px; line-height: 1.2; opacity: .75; }
 .tile.rt .need { position: absolute; top: 12px; left: 12px; padding: 4px 9px; border-radius: 999px; background: rgba(10,8,30,.72); color: #fff; font-family: Nunito, sans-serif; font-weight: 900; font-size: 12.5px; line-height: 1.1; }
+.tile.rt .need.new { z-index: 2; white-space: nowrap; background: linear-gradient(90deg, #FF6A00, #FF2E88 55%, #8A2BFF); box-shadow: 0 4px 12px -4px rgba(255,46,136,.7); }
 .idea-in { width: 100%; box-sizing: border-box; border-radius: 18px; border: 2px solid var(--hair); background: rgba(255,255,255,.07); color: var(--paper); font: 700 17px Nunito, sans-serif; padding: 14px; resize: none; -webkit-user-select: text; user-select: text; }
 .jstack > .card.under { position: absolute; inset: 0; z-index: 0; margin: 0; animation: none; pointer-events: none; filter: brightness(.62); }
 /* paquet de cartes : deux tranches fixes sous la pile, elles ne bougent jamais d'une carte à l'autre */
@@ -3831,6 +3832,26 @@ appHeight();
 if (document.fonts) document.fonts.ready.then(() => fitPage(true));
 function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
 
+/* -------- NOUVELLES CARTES : badge sur le jeu quand des cartes sont arrivées depuis la dernière partie à ce jeu -------- */
+const NEW_SRC = { jamais: ["jamais"], av: ["verite", "action"], pref: ["pref"], qui: ["qui"], ouinon: ["ouinon"], menteur: ["menteur"], classement: ["classement"], radar: ["radar"], taboo: ["taboo"], imposteur: ["imposteur"] };
+const hid = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return (h >>> 0).toString(36); };
+// toutes les cartes du jeu, même celles cachées par le réglage ex et sexe : les activer plus tard ne les fait pas passer pour nouvelles
+const cardsOf = m => NEW_SRC[m].flatMap(k => C[k].map(c => ({ h: hid(cardId(k, c)), c })));
+function newCount(m) {
+  const k = store.get("known", {})[m]; if (!NEW_SRC[m] || !k) return 0; // jamais joué ici : rien à comparer
+  const known = new Set(k.split(",")), mine = new Set(store.get("custom", []).map(o => hid(cardId(o.type, o.card))));
+  return cardsOf(m).filter(x => !known.has(x.h) && !mine.has(x.h) && (m === "taboo" || x.c[0] <= S.level) && (S.hot || !isHot(x.c.slice(1)))).length; // seulement celles qui peuvent sortir avec les réglages actuels
+}
+function markKnown(m) { if (!NEW_SRC[m]) return; const k = store.get("known", {}); k[m] = cardsOf(m).map(x => x.h).join(","); store.set("known", k); }
+function newBadges() {
+  $$(".tile.rt:not([data-on]):not(.lock)").forEach(t => {
+    const n = newCount(t.dataset.mode), b = $(".need.new", t);
+    if (!n) { if (b) b.remove(); return; }
+    const txt = `+${n > 99 ? 99 : n} carte${n > 1 ? "s" : ""}`;
+    if (b) b.textContent = txt; else t.insertAdjacentHTML("afterbegin", `<span class="need new" aria-label="${n} nouvelle${n > 1 ? "s" : ""} carte${n > 1 ? "s" : ""} depuis ta dernière partie">${txt}</span>`);
+  });
+}
+
 /* -------- ACCUEIL -------- */
 function home() {
   S.inGame = false; onStop(); ON.ctx = null;
@@ -3872,6 +3893,7 @@ function home() {
       <button id="tab-settings">${ICONS.gear}<span>Réglages</span></button>
     </nav>
   `, () => {
+    newBadges();
     const setN = v => { store.set("count", Math.max(1, Math.min(16, v))); buzz(10); home(); };
     if ($("#minus")) { $("#minus").onclick = () => setN(n - 1); $("#plus").onclick = () => setN(n + 1); }
     $$("#where button").forEach(b => b.onclick = () => {
@@ -4302,6 +4324,7 @@ function startGame() {
   seen.clear();
   if (tutoGate(S.mode, startGame)) return;
   stat("start", S.mode, S.names.length, "un");
+  markKnown(S.mode);
   S.players = shuffle(S.names).map(n => ({ name: n, pts: 0 }));
   S.idx = 0; S.inGame = true; S.changed = false;
   keepAwake();
@@ -8381,7 +8404,7 @@ applyContenu((store.get("contenu", {}) || {}).d || {});
     const r = await fetch(base + "contenu/app"); if (!r.ok) return;
     const f = (await r.json()).fields || {}, at = +((f.at || {}).integerValue || 0);
     if (!f.data || at <= ((store.get("contenu", {}) || {}).at || 0)) return;
-    const d = JSON.parse(f.data.stringValue); store.set("contenu", { at, d }); applyContenu(d);
+    const d = JSON.parse(f.data.stringValue); store.set("contenu", { at, d }); applyContenu(d); newBadges();
   } catch (e) {}
 })();
 stat("open", "", 0);
