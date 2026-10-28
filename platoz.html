@@ -313,6 +313,9 @@ body:has(.fin-jamais) { --amb1: rgba(150,70,255,.62); --amb2: rgba(255,60,150,.4
 .mbest span { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .mbest b { font-family: var(--display); font-size: min(9vw, 36px); line-height: 1.1; color: #FF6A90; text-shadow: 0 0 24px rgba(255,59,110,.6); }
 .mbest small { font-size: 13px; opacity: .7; }
+.story-btn { align-self: center; display: inline-flex; align-items: center; gap: 7px; margin: 8px auto 0; padding: 9px 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,.12); color: #fff; font: inherit; font-weight: 900; font-size: 15px; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.3); -webkit-tap-highlight-color: transparent; }
+.story-btn:active { transform: scale(.96); }
+.preview-img.story-prev { max-height: calc(100vh - 330px); max-height: calc(100dvh - 330px); width: auto; max-width: 100%; margin: 0 auto; }
 /* Test de pureté */
 .pur-themes { justify-content: center; }
 .pur-themes .chip.pick { padding: 10px 16px; min-height: 48px; font-size: 17px; }
@@ -1671,6 +1674,7 @@ html[data-theme="light"] {
 :where(html[data-theme="light"]) .fin-jamais .rank-date { color: var(--muted); }
 
 :where(html[data-theme="light"]) .mbest { border: 0; background: var(--shine), var(--holo2); color: var(--text); box-shadow: var(--lift); }
+:where(html[data-theme="light"]) .story-btn { background: linear-gradient(100deg, #FF6A00, #FF2E88 55%, #8A2BFF); box-shadow: 0 8px 20px -8px rgba(255,46,136,.7); }
 
 :where(html[data-theme="light"]) .mbest b { color: var(--deep); text-shadow: none; }
 
@@ -4579,12 +4583,26 @@ function radarBest() {
   if (!n) return `<p class="mbest">🎯 Pas une seule cible touchée.</p>`;
   return `<p class="mbest"><span>🎯 Cibles touchées</span><b>${n}</b>${m ? `<small>dont ${m} dans le mille</small>` : ""}</p>`;
 }
+// l'image story de fin : seulement quand il y a quelque chose à montrer
+const andList = w => w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0];
+function finStory() {
+  const g = ON.ctx ? ON.r && ON.r.game : S.mode, game = g === "mix" ? "Mix" : ON.ctx ? (ON_GAMES[g] || [""])[0] : (TYPES[g] || {}).label || "";
+  if (g === "menteur" || g === "mix") {
+    const P = S.players.slice().sort((a, b) => (b.fool || 0) - (a.fool || 0)), max = (P[0] && P[0].fool) || 0;
+    if (!max) return null;
+    return { game, emoji: "🤥", label: "Meilleur mytho", big: andList(P.filter(p => (p.fool || 0) === max).map(p => p.name)), sub: max + " fois", rows: P.map(p => [p.name, (p.fool || 0) + " fois", null]) };
+  }
+  if (ON.ctx) return null;
+  if (g === "radar" && S.rHit) return { game, emoji: "🎯", label: "Cibles touchées", big: String(S.rHit), sub: S.rMille ? `dont ${S.rMille} dans le mille` : "" };
+  if (g === "classement" && S.cHit) return { game, emoji: "🏆", label: "Questions trouvées", big: `${S.cHit} sur ${S.cN}` };
+  return null;
+}
 function finJamais(n = S.idx) {
-  const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte";
+  const u = S.mode === "imposteur" || ON.ctx ? "manche" : "carte", story = S.players ? finStory() : null;
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${n} ${u}${n > 1 ? "s" : ""}</span></div>
-      ${mythoBest()}${radarBest()}${classBest()}
+      ${mythoBest()}${radarBest()}${classBest()}${story ? storyBtnHtml() : ""}
       ${endBubbles(S.players.map(p => p.name))}
       <div class="confetti" id="confetti"></div>
     </div>
@@ -4595,6 +4613,7 @@ function finJamais(n = S.idx) {
     $("#again").onclick = () => { S.names = S.players.map(p => p.name); startGame(); };
     $("#home").onclick = home;
     bindBubbles(); party(); buzz([40, 30, 80]);
+    if (story) bindStory(story, S.mode);
   });
 }
 
@@ -6584,68 +6603,81 @@ async function saveRank() {
     <button class="btn" id="close">Fermer</button>`, w => { $("#close", w).onclick = () => w.remove(); });
 }
 
-/* image story des jeux seul ou à deux */
-async function renderUne(A) {
-  const D = `"${STORY.display}", Impact, sans-serif`, B = `"${STORY.body}", Arial, sans-serif`, dw = STORY.displayWeight;
-  const up = t => STORY.upper ? String(t).toUpperCase() : String(t);
-  try { await Promise.all([document.fonts.load(`${dw} 120px "${STORY.display}"`), document.fonts.load(`800 40px "${STORY.body}"`), document.fonts.load(`400 40px "${STORY.body}"`)]); } catch (e) {}
-  const W = 1080, H = 1920, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
-  const x = cv.getContext("2d"), M = 64, R = STORY.radius, so = STORY.shadowOffset;
-  x.fillStyle = STORY.bg; x.fillRect(0, 0, W, H);
-  if (STORY.dots) { x.fillStyle = STORY.dots; for (let i = 0; i < W; i += 14) for (let j = 0; j < H; j += 14) { x.beginPath(); x.arc(i, j, 1.6, 0, 7); x.fill(); } }
-  // page
-  if (so) { x.fillStyle = STORY.shadow; rr(x, M + so, 120 + so, W - 2 * M, H - 260, R); x.fill(); }
-  x.save(); rr(x, M, 120, W - 2 * M, H - 260, R); x.clip();
-  x.fillStyle = STORY.page; x.fillRect(M, 120, W - 2 * M, H - 260);
-  // masthead
-  x.fillStyle = STORY.accent; x.fillRect(M, 120, W - 2 * M, 230);
-  x.fillStyle = STORY.onAccent; x.textAlign = "center"; x.font = `${dw} 190px ${D}`;
-  let mw = x.measureText(up("Le Scandale")).width; if (mw > W - 2 * M - 60) x.font = `${dw} ${Math.floor(190 * (W - 2 * M - 60) / mw)}px ${D}`;
-  x.fillText(up("Le Scandale"), W / 2, 312);
-  x.fillStyle = STORY.line; x.fillRect(M, 350, W - 2 * M, 6);
-  x.fillStyle = STORY.ink; x.font = `800 30px ${B}`; x.textAlign = "left"; x.fillText(today().toUpperCase(), M + 28, 404);
-  x.textAlign = "right"; x.fillText(A.kicker && A.kicker !== "Exclusif" ? "ÉDITION SPÉCIALE" : "N° " + S.edition, W - M - 28, 404);
-  x.fillStyle = STORY.line; x.fillRect(M, 428, W - 2 * M, 6);
-  // kicker + headline
-  let y = 500; x.textAlign = "left";
-  x.font = `800 32px ${B}`; const kick = (A.kicker || "Exclusif").toUpperCase();
-  x.fillStyle = STORY.highlight; rr(x, M + 28, y - 40, x.measureText(kick).width + 32, 54, R ? 27 : 0); x.fill();
-  x.fillStyle = STORY.onHighlight; x.fillText(kick, M + 44, y);
-  y += 120; x.fillStyle = STORY.ink; x.font = `${dw} 112px ${D}`;
-  const hl = wrap(x, up(A.headline), W - 2 * M - 56).slice(0, 4);
-  hl.forEach(l => { x.fillText(l, M + 28, y); y += 116; });
-  x.font = `400 38px ${B}`; x.fillStyle = STORY.soft;
-  wrap(x, A.deck, W - 2 * M - 56).slice(0, 3).forEach(l => { x.fillText(l, M + 28, y); y += 50; });
-  y += 20; x.fillStyle = STORY.line; x.fillRect(M, y, W - 2 * M, 4); y += 60;
-  // awards, two columns
-  const colW = (W - 2 * M - 56 - 40) / 2, items = A.items.slice(0, 8);
-  const statsTop = H - 200 - 170, rows = Math.ceil(items.length / 2);
-  const rowH = Math.min(300, (statsTop - 30 - y) / rows), big = rowH >= 250;
-  y += Math.max(0, (statsTop - 30 - y - rowH * rows) / 2);
-  items.forEach((a, i) => {
-    const cx = M + 28 + (i % 2) * (colW + 40), cy = y + Math.floor(i / 2) * rowH;
-    x.fillStyle = STORY.accent; x.font = `800 ${big ? 32 : 28}px ${B}`; x.fillText(a.title.toUpperCase(), cx, cy);
-    x.fillStyle = STORY.ink; x.font = `${dw} ${big ? 84 : 64}px ${D}`; x.fillText(wrap(x, up(a.name), colW)[0], cx, cy + (big ? 92 : 70));
-    x.fillStyle = STORY.soft; x.font = `400 ${big ? 32 : 28}px ${B}`;
-    wrap(x, a.desc, colW).slice(0, 2).forEach((l, k) => x.fillText(l, cx, cy + (big ? 140 : 112) + k * (big ? 40 : 34)));
-  });
-  // bandeau chiffres
-  x.fillStyle = STORY.band; x.fillRect(M, statsTop, W - 2 * M, 170);
-  const sw = (W - 2 * M) / 3;
-  A.stats.forEach((st, i) => {
-    const cx = M + sw * i + sw / 2; x.textAlign = "center";
-    x.fillStyle = STORY.bandNum; x.font = `${dw} 96px ${D}`; x.fillText(String(st[0]), cx, statsTop + 100);
-    x.fillStyle = STORY.bandText; x.font = `800 26px ${B}`; x.fillText(st[1].toUpperCase(), cx, statsTop + 145);
-    if (i) { x.fillStyle = STORY.soft; x.fillRect(M + sw * i, statsTop + 24, 2, 122); }
-  });
-  x.textAlign = "left";
-  // footer
-  x.fillStyle = STORY.footer; x.fillRect(M, H - 200, W - 2 * M, 60);
-  x.fillStyle = STORY.onFooter; x.textAlign = "center"; x.font = `800 30px ${B}`; x.fillText("JOUÉ SUR BLIZ · LE JEU DE TOUTES VOS SOIRÉES", W / 2, H - 160);
-  x.restore();
-  if (STORY.line && !so) { x.strokeStyle = STORY.line; x.lineWidth = 4; rr(x, M, 120, W - 2 * M, H - 260, R); x.stroke(); }
-  else { x.strokeStyle = STORY.line; x.lineWidth = 6; rr(x, M, 120, W - 2 * M, H - 260, R); x.stroke(); }
-  return new Promise(r => cv.toBlob(b => r({ blob: b, url: cv.toDataURL("image/png") }), "image/png"));
+/* image story (1080 × 1920) à poster en fin de partie : Test de pureté, Meilleur mytho, cibles du Radar */
+// o = { game, emoji, label, big, sub, note, rows: [[nom, valeur, part de 0 à 1 ou null]] }
+async function storyImg(o) {
+  const D = `"Unbounded", "Arial Black", sans-serif`, B = `"Nunito", Arial, sans-serif`, E = `"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+  try { await Promise.all([document.fonts.load(`900 120px "Unbounded"`), document.fonts.load(`900 40px "Nunito"`), document.fonts.load(`800 40px "Nunito"`)]); } catch (e) {}
+  const W = 1080, H = 1920, M = 80, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const x = cv.getContext("2d"), rows = (o.rows || []).slice(0, 10);
+  const grad = (x0, y0, x1, y1) => { const g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, "#FF6A00"); g.addColorStop(.5, "#FF2E88"); g.addColorStop(1, "#8A2BFF"); return g; };
+  // le texte rapetisse jusqu'à tenir, puis se coupe avec « … »
+  const fit = (t, w, size, fam, maxW, min) => { t = String(t); let s = size; for (; s >= min; s -= 4) { x.font = `${w} ${s}px ${fam}`; if (x.measureText(t).width <= maxW) return t; } while (t.length > 2 && x.measureText(t + "…").width > maxW) t = t.slice(0, -1); return t + "…"; };
+  // fond : le dégradé vif de l'appli, avec deux halos
+  x.fillStyle = grad(0, 0, W, H); x.fillRect(0, 0, W, H);
+  for (const [cx, cy, r, c] of [[160, 260, 640, "rgba(255,214,120,.5)"], [960, 1640, 760, "rgba(110,60,255,.5)"]]) { const h = x.createRadialGradient(cx, cy, 0, cx, cy, r); h.addColorStop(0, c); h.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = h; x.fillRect(0, 0, W, H); }
+  x.textAlign = "center"; x.fillStyle = "#FFFFFF";
+  x.font = `900 110px ${D}`; x.fillText("Bliz", W / 2, 230);
+  x.font = `800 38px ${B}`; x.globalAlpha = .9; x.fillText(fit(o.game + " · " + today(), 800, 38, B, W - 2 * M, 26), W / 2, 300); x.globalAlpha = 1;
+  // carte blanche, centrée, à la hauteur de son contenu
+  // la carte reste entre le titre et « Joué sur Bliz »
+  // le grand texte : sur une ligne s'il tient assez gros, sinon sur deux (égalité entre deux prénoms longs)
+  const bw = W - 2 * M - 120; let bs = 170, bl = [String(o.big)];
+  for (; bs > 100; bs -= 6) { x.font = `900 ${bs}px ${D}`; if (x.measureText(bl[0]).width <= bw) break; }
+  if (bs <= 100) { bs = 84; x.font = `900 ${bs}px ${D}`; bl = wrap(x, o.big, bw); if (bl.length > 2) bl = [bl[0], bl.slice(1).join(" ")]; for (; bs > 50 && bl.some(t => x.measureText(t).width > bw); bs -= 4) x.font = `900 ${bs - 4}px ${D}`; bl = bl.map(t => fit(t, 900, bs, D, bw, bs)); }
+  const bh = bl.length > 1 ? bl.length * bs * 1.12 + 30 : bs * 1.24;
+  const head = 190 + 70 + bh + (o.sub ? 70 : 0) + (o.note ? 70 : 0), room = H - 240 - 370 - 70 - head - 90;
+  const rh = rows.length ? Math.min(104, room / rows.length) : 0;
+  const ch = 70 + head + (rows.length ? 40 + rows.length * rh : 0) + 50, cy = Math.max(370, (H - ch) / 2 + 20);
+  x.save(); x.shadowColor = "rgba(60,0,80,.35)"; x.shadowBlur = 60; x.shadowOffsetY = 24; x.fillStyle = "#FFFFFF"; rr(x, M, cy, W - 2 * M, ch, 64); x.fill(); x.restore();
+  let y = cy + 70;
+  x.font = `150px ${E}`; x.fillText(o.emoji || "", W / 2, y + 150); y += 190;
+  x.fillStyle = "#6B5A8A"; x.font = `900 44px ${B}`; x.fillText(String(o.label).toUpperCase(), W / 2, y + 44); y += 70;
+  x.fillStyle = grad(M, 0, W - M, 0); bl.forEach((t, i) => { x.font = `900 ${bs}px ${D}`; x.fillText(t, W / 2, y + bs + i * bs * 1.12); }); y += bh;
+  if (o.sub) { x.fillStyle = "#1B1030"; x.font = `900 52px ${B}`; x.fillText(fit(o.sub, 900, 52, B, W - 2 * M - 120, 34), W / 2, y + 50); y += 70; }
+  if (o.note) { x.fillStyle = "#6B5A8A"; x.fillText(fit(o.note, 800, 40, B, W - 2 * M - 120, 28), W / 2, y + 44); y += 70; }
+  if (rows.length) {
+    y += 40; const L = M + 70, R = W - M - 70;
+    x.fillStyle = "#EFE6FA"; x.fillRect(L, y - 30, R - L, 3);
+    rows.forEach(([nm, val, part]) => {
+      const mid = y + rh / 2 - (part == null ? 0 : 10);
+      x.textBaseline = "middle"; x.textAlign = "right"; x.fillStyle = "#1B1030"; x.font = `900 ${Math.round(Math.min(46, rh * .44))}px ${D}`; x.fillText(String(val), R, mid);
+      const vw = x.measureText(String(val)).width;
+      x.textAlign = "left"; x.fillStyle = "#1B1030"; x.fillText(fit(nm, 800, Math.round(Math.min(44, rh * .42)), B, R - L - vw - 40, 24), L, mid);
+      if (part != null) { const by = mid + rh * .3; x.fillStyle = "#F1E8FF"; rr(x, L, by, R - L, 12, 6); x.fill(); x.fillStyle = grad(L, 0, R, 0); rr(x, L, by, Math.max(12, (R - L) * Math.min(1, part)), 12, 6); x.fill(); }
+      x.textBaseline = "alphabetic"; y += rh;
+    });
+    x.textAlign = "center";
+  }
+  x.fillStyle = "#FFFFFF"; x.font = `900 44px ${B}`; x.fillText("Joué sur Bliz", W / 2, H - 150);
+  x.globalAlpha = .85; x.font = `800 32px ${B}`; x.fillText(SITE.replace(/^https:\/\//, "").replace(/\/$/, ""), W / 2, H - 100); x.globalAlpha = 1;
+  return new Promise(r => cv.toBlob(b => r({ blob: b, url: URL.createObjectURL(b) }), "image/png"));
+}
+const SHARE_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 11v8.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V11"/></svg>`;
+const storyBtnHtml = () => `<button class="story-btn" id="story">${SHARE_ICON}Partager en story</button>`;
+// l'image se prépare dès l'écran de fin : sur iPhone, le partage doit partir juste après le toucher
+function bindStory(o, file) {
+  const b = $("#story"); if (!b) return;
+  let ready = null; const make = () => ready || (ready = storyImg(o));
+  later(make, 700);
+  const pick = async () => {
+    const { blob } = await make(), f = new File([blob], "bliz-" + file + ".png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); return true; } catch (e) { if (e && e.name === "AbortError") return true; } }
+    return false;
+  };
+  b.onclick = async () => {
+    buzz(10);
+    if (await pick()) return;
+    // pas de partage possible (ordinateur, ou image pas encore prête) : on la montre, appui long pour l'enregistrer
+    const { url } = await make();
+    sheet(`<span class="mast" style="font-size:30px">Ta story</span>
+      <p class="hint" style="margin:0">Appuie longuement sur l'image pour l'enregistrer.</p>
+      <img class="preview-img story-prev" src="${url}" alt="Image à poster en story">
+      <div class="row">${navigator.share ? `<button class="btn red" id="st-share">Partager</button>` : ""}<button class="btn white" id="st-close">Fermer</button></div>`, w => {
+      $("#st-close", w).onclick = () => w.remove();
+      if ($("#st-share", w)) $("#st-share", w).onclick = pick;
+    });
+  };
 }
 
 /* =====================================================================
@@ -6858,24 +6890,6 @@ function bindQuit() {
     <div class="row"><button class="btn white" id="stay">Continuer</button><button class="btn ink" id="leave">Quitter</button></div>
     <button class="linkbtn" id="report">Signaler un problème</button>`,
     w => { $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; $("#report", w).onclick = () => reportSheet(true); });
-}
-function resultActions(again) {
-  return `<div class="actions"><button class="btn red" id="save">Enregistrer en image <small>Au format story, prête à poster</small></button>
-    <div class="row"><button class="btn" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div></div>`;
-}
-function bindResult(A, again, file) {
-  $("#again").onclick = again; $("#home").onclick = home;
-  $("#save").onclick = () => saveStory(A, $("#save"), file);
-}
-function miniUne(A) {
-  return `<div class="une">
-    <div class="une-mast">Le Scandale</div>
-    <div class="une-date"><span>${esc(today())}</span><span>Édition spéciale</span></div>
-    <div class="head"><span class="kicker">${esc(A.kicker || "Exclusif")}</span><h2>${esc(A.headline)}</h2><p>${esc(A.deck)}</p></div>
-    ${A.items.length ? `<div class="awards">${A.items.map(a => `<div class="aw"><span class="t">${esc(a.title)}</span><span class="n">${esc(a.name)}</span><span class="d">${esc(a.desc)}</span></div>`).join("")}</div>` : ""}
-    <div class="stats">${A.stats.map(s => `<div><b>${s[0]}</b><span>${s[1]}</span></div>`).join("")}</div>
-    <div class="foot">Joué sur Bliz</div>
-  </div>`;
 }
 
 /* ---------- DUEL RÉFLEXE ---------- */
@@ -7208,39 +7222,26 @@ function testEnd(P, qs) {
     const best = max > 0 ? `<p class="mbest"><span>😈 Le plus gros score</span><b>${esc(w.length > 1 ? w.slice(0, -1).join(", ") + " et " + w[w.length - 1] : w[0])}</b><small>${max} %</small></p>`
       : `<p class="mbest">😇 Que des anges. Ou des menteurs.</p>`;
     // toucher une bulle : les % par thème de ce joueur
-    rxFin("", best, [L.map(p => p.name), L.map(p => p.R.pct + " %")], again, false,
+    rxFin("", best + (max > 0 ? storyBtnHtml() : ""), [L.map(p => p.name), L.map(p => p.R.pct + " %")], again, false,
       i => sheet(`<span class="mast" style="font-size:30px">${esc(L[i].name)}</span>${purDetail(L[i].R)}<button class="btn" id="pur-ok">Fermer</button>`, x => { $("#pur-ok", x).onclick = () => x.remove(); }));
     $(".rx-fin .rank-date").textContent = "Touche une bulle pour voir le détail"; // à la place de la date
+    if (max > 0) bindStory({ game: "Test de pureté", emoji: "😈", label: "Le plus gros score", big: andList(w), sub: max + " %", rows: L.map(p => [p.name, p.R.pct + " %", p.R.pct / 100]) }, "purete");
     return;
   }
+  const R = purScore(P[0], qs);
   view(`
     <div class="rank anim fin-jamais rx-fin pur-fin" style="flex:1">
       <div class="rank-head"><span class="mast">C'est fini</span><span class="rank-date">${esc(today())} · ${qs.length} questions</span></div>
-      ${purDetail(purScore(P[0], qs))}
+      ${purDetail(R).replace("</small></p>", "</small></p>" + storyBtnHtml())}
       <div class="confetti" id="confetti"></div>
     </div>
     <div class="actions">
       <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
     </div>
-  `, () => { $("#again").onclick = again; $("#home").onclick = home; party(); buzz([40, 30, 80]); });
-}
-
-/* ---------- image story générique ---------- */
-async function saveStory(A, btn, file) {
-  const label = btn.firstChild.textContent;
-  btn.disabled = true; btn.firstChild.textContent = "Impression… ";
-  const { blob, url } = await renderUne(A);
-  btn.disabled = false; btn.firstChild.textContent = label;
-  let dl = null;
-  try { dl = window.claude && window.claude.use ? await Promise.race([window.claude.use("downloads"), new Promise(r => setTimeout(() => r(null), 3000))]) : null; } catch (e) { dl = null; }
-  if (dl) {
-    try { await dl.save({ filename: "bliz-" + file + ".png", data: blob }); toast("Image enregistrée."); return; }
-    catch (e) { if (e && e.code === "declined") return; }
-  }
-  sheet(`<span class="mast" style="font-size:30px">Ton image</span>
-    <p class="hint">Appuie longuement sur l'image pour l'enregistrer, puis poste-la en story.</p>
-    <img class="preview-img" src="${url}" alt="La Une">
-    <button class="btn" id="close">Fermer</button>`, w => { $("#close", w).onclick = () => w.remove(); });
+  `, () => {
+    $("#again").onclick = again; $("#home").onclick = home; party(); buzz([40, 30, 80]);
+    bindStory({ game: "Test de pureté", emoji: R.pct < 50 ? "😇" : "😈", label: "Mon score", big: R.pct + " %", sub: purTitle(R.pct), note: R.def ? `Ce qui me définit : ${R.def[1]} ${R.def[3]}` : "", rows: R.th.map(x => [x.t[1] + " " + x.t[2], x.pct + " %", x.pct / 100]) }, "purete");
+  });
 }
 
 /* -------- EN LIGNE : amis et parties où chacun joue sur son propre téléphone -------- */
