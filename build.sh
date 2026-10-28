@@ -59,6 +59,17 @@ cat <<'U'
   setTimeout(check, 300);
   document.addEventListener("visibilitychange", check);
 })();
+// sans internet : sw.js garde la page et les polices dans le téléphone
+(function () {
+  var on = /github\.io$/.test(location.hostname);
+  try { on = on || localStorage.getItem("scandale:sw") === "1"; } catch (e) {}
+  if (on && "serviceWorker" in navigator) addEventListener("load", function () { 
+    navigator.serviceWorker.register("sw.js").then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
+      var urls = performance.getEntriesByType("resource").map(function (r) { return r.name; }).filter(function (u) { return /fonts\.(googleapis|gstatic)\.com/.test(u); });
+      if (reg.active) reg.active.postMessage({ keep: urls });
+    }).catch(function () {});
+  });
+})();
 </script>
 U
 } > index.html
