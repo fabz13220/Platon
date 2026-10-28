@@ -4043,7 +4043,7 @@ function playersScreen() {
     };
     $("#add").onclick = add;
     $("#name-input").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
-    $("#next").onclick = () => S.mode === "uno" ? unoStart() : ambiance();
+    $("#next").onclick = () => { store.set("lastPlayers", S.names); S.mode === "uno" ? unoStart() : ambiance(); };
     draw(); groupBubbles(draw);
   });
 }
@@ -4052,12 +4052,16 @@ function playersScreen() {
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function groupBubbles(draw) {
   const box = $("#bubbles"), groups = store.get("groups", []);
-  box.innerHTML = groups.map((g, i) => `<button class="bubble" data-i="${i}" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s" aria-label="Ajouter le groupe ${esc(g.name)}"><span>${esc(g.name)}</span><small>${g.names.length} joueurs</small></button>`).join("")
+  // les joueurs de la dernière partie, gardés même quand iOS ferme l'appli
+  const last = { name: "Les mêmes", names: store.get("lastPlayers", []) }, has = n => S.names.some(m => m.toLowerCase() === n.toLowerCase());
+  const same = last.names.length >= 2 && !last.names.every(has) && !groups.some(g => g.names.length === last.names.length && g.names.every(n => last.names.includes(n)));
+  box.innerHTML = (same ? `<button class="bubble" data-same style="--amp:9px;--dur:4.4s;--dl:-2s" aria-label="Reprendre les joueurs de la dernière fois : ${esc(last.names.join(", "))}"><span>Les mêmes</span><small>que la dernière fois</small></button>` : "")
+    + groups.map((g, i) => `<button class="bubble" data-i="${i}" style="--amp:${6 + (i * 5) % 9}px;--dur:${(4 + (i * 7) % 5 * .5).toFixed(1)}s;--dl:${-(i * 1.3 % 4).toFixed(1)}s" aria-label="Ajouter le groupe ${esc(g.name)}"><span>${esc(g.name)}</span><small>${g.names.length} joueurs</small></button>`).join("")
     + `<button class="linkbtn" id="mkgrp">+ Créer un groupe</button>`
     + (groups.length ? `<button class="linkbtn" id="rmgrp">Supprimer un groupe</button>` : "");
   $("#mkgrp").onclick = () => groupSheet(() => groupBubbles(draw));
   if (groups.length) $("#rmgrp").onclick = () => groupManage(() => groupBubbles(draw));
-  $$(".bubble", box).forEach(b => { b.onclick = () => popGroup(b, groups[+b.dataset.i], draw); jelly(b, () => b.click(), true); });
+  $$(".bubble", box).forEach(b => { b.onclick = () => popGroup(b, b.dataset.i ? groups[+b.dataset.i] : last, draw); jelly(b, () => b.click(), true); });
 }
 /* -------- BULLES MOLLES : on les attrape au doigt, on les lance, elles s'écrasent sur les bords et entre elles, puis rebondissent -------- */
 const JELLY = new Set();
