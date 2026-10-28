@@ -5021,10 +5021,17 @@ function testerMenu() {
   view(`
     <div class="topbar"><button class="iconbtn" id="back" aria-label="Retour">←</button><span class="title">Tester les cartes</span><span style="width:44px"></span></div>
     <p class="hint muted" style="text-align:center;margin:0">Passe les cartes une par une : 🔥 Lourd si elle est bien, 😑 Bof si elle est nulle. Tes votes servent à améliorer le jeu.</p>
-    <div class="opts tester-opts">${TEST_TYPES.map(([t, l]) => `<button class="opt" data-t="${t}"><span class="pepper">${n(t)}</span><span><span class="mast">${l}</span><p>${C[t].length} cartes · ${n(t)} notées</p></span></button>`).join("")}</div>
+    <div class="opts tester-opts">${TEST_TYPES.map(([t, l]) => `<button class="opt" data-t="${t}"><span class="pepper">${n(t)}</span><span><span class="mast">${l}</span><p>${C[t].length} cartes<br>notées : ${n(t)} par toi<span class="t-all" data-t="${t}"></span></p></span></button>`).join("")}</div>
     <div class="actions"><button class="btn white" id="res">Voir les résultats</button></div>
   `, () => {
     $("#back").onclick = home;
+    // les résultats montrent les votes de tout le monde : on affiche aussi ce total, pour que les chiffres se recoupent
+    getDb().then(db => db && db.collection("votes").get()).then(snap => {
+      if (!snap || !$(".t-all")) return;
+      const seenIds = {};
+      snap.docs.map(d => d.data()).forEach(o => { if (o && (o.v === "top" || o.v === "mew")) (seenIds[o.type] = seenIds[o.type] || new Set()).add(o.card); });
+      $$(".t-all").forEach(el => { const t = el.dataset.t, k = seenIds[t], nb = k ? C[t].filter(c => k.has(cardId(t, c))).length : 0; if (nb) el.textContent = `, ${nb} en tout`; }); // seulement les cartes encore dans le jeu
+    }).catch(() => {});
     $$("[data-t]").forEach(b => b.onclick = () => testerRun(b.dataset.t));
     $("#res").onclick = testerResults;
   });
