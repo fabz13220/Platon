@@ -63,6 +63,7 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 html.in-app body { padding-top: 12px; }
 html.in-app h1 { display: none; }
 @media (max-width: 520px) { .card { grid-template-columns: 1fr auto; } .card select { grid-column: 1 / -1; width: 120px; } }
+.grecaptcha-badge { visibility: hidden; }
 </style>
 </head>
 <body>
@@ -114,14 +115,20 @@ html.in-app h1 { display: none; }
 
 <script type="module">
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
-const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
+// App Check : mêmes valeurs que FB_APPID et RECAPTCHA dans platoz.html
+const FB_APPID = "", RECAPTCHA = "";
+const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9", ...(FB_APPID ? { appId: FB_APPID } : {}) };
 const EMU = new URLSearchParams(location.search).has("emu");
 // dans l'appli (cadre ouvert depuis Réglages > Admin) : même compte que le joueur, celui de l'appli.
 // seule, la page a son compte à elle (« admin ») : se connecter ici ne touche plus au compte de joueur du même navigateur.
 const IN_APP = new URLSearchParams(location.search).has("app");
 if (IN_APP) document.documentElement.classList.add("in-app");
-const [{ initializeApp }, A, F] = await Promise.all(["app", "auth", "firestore"].map(m => import(FBV + m + ".js")));
+const [{ initializeApp }, A, F, C] = await Promise.all(["app", "auth", "firestore", "app-check"].map(m => import(FBV + m + ".js")));
 const fapp = IN_APP ? initializeApp(FBC) : initializeApp(FBC, "admin"), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
+try {
+  if (EMU) C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
+  else if (FB_APPID && RECAPTCHA) C.initializeAppCheck(fapp, { provider: new C.ReCaptchaV3Provider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+} catch (e) {}
 if (EMU) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
 
 const $ = s => document.querySelector(s);

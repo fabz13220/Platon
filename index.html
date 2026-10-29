@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="5869850c746b">
+<meta name="build" content="c283ce777b03">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1469,6 +1469,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .prop-forb { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .prop-forb .duo-in:last-child { grid-column: 1 / -1; }
 .set-links { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+/* le badge reCAPTCHA (App Check) cacherait les boutons du bas : la mention obligatoire est dans Réglages */
+.grecaptcha-badge { visibility: hidden; }
 .rail-box.short .rail.grid .tile.rt { height: 100px; }
 .tile.rt .sub { font-family: Nunito, sans-serif; font-weight: 800; font-size: 13px; line-height: 1.2; opacity: .75; }
 .tile.rt .need { position: absolute; top: 12px; left: 12px; padding: 4px 9px; border-radius: 999px; background: rgba(10,8,30,.72); color: #fff; font-family: Nunito, sans-serif; font-weight: 900; font-size: 12.5px; line-height: 1.1; }
@@ -4010,7 +4012,8 @@ function settingsSheet() {
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
     <div class="set-links">${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}<button class="linkbtn" id="report">Signaler un problème</button></div>
-    <p class="hint muted" style="text-align:center;margin:0">Version du ${VERSION}</p>`, w => {
+    <p class="hint muted" style="text-align:center;margin:0">Version du ${VERSION}</p>
+    ${RECAPTCHA ? `<p class="hint muted" style="text-align:center;margin:0;font-size:11px">Protégé par reCAPTCHA : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">confidentialité</a> et <a href="https://policies.google.com/terms" target="_blank" rel="noopener">conditions</a> de Google.</p>` : ""}`, w => {
     bindTools(w, settingsSheet);
     $("#tester", w).onclick = () => { w.remove(); testerMenu(toSettings); };
     if ($("#bans", w)) $("#bans", w).onclick = () => { w.remove(); banList(settingsSheet); };
@@ -4052,7 +4055,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "29 octobre · en ligne plus rapide";
+const VERSION = "29 octobre · App Check";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -5602,6 +5605,37 @@ function chooserTool() {
   });
 }
 
+/* -------- FIREBASE : la base partagée, et App Check qui prouve que les demandes viennent bien de l'appli -------- */
+const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
+// App Check (reCAPTCHA v3) : identifiant de l'appli web et clé du site, les deux publics, donnés par la console Firebase.
+// Vides : App Check éteint. Tant que Firebase n'exige pas le jeton, une demande sans jeton passe quand même.
+const FB_APPID = "", RECAPTCHA = "";
+const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9", ...(FB_APPID ? { appId: FB_APPID } : {}) };
+let FAPP = null;
+function fbApp() {
+  return FAPP || (FAPP = (async () => {
+    const [{ initializeApp }, C] = await Promise.all(["app", "app-check"].map(m => import(FBV + m + ".js")));
+    const fapp = initializeApp(FBC);
+    let ac = null;
+    try {
+      // en test : un faux jeton, rien ne part vers Google ; dans Claude la clé ne marche pas (autre adresse)
+      if (store.get("emu", 0)) ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
+      else if (FB_APPID && RECAPTCHA && !window.claude) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaV3Provider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+    } catch (e) {}
+    return { fapp, C, ac };
+  })());
+}
+// en-tête à joindre aux demandes faites sans le SDK (votes, propositions, stats, Tu préfères, contenu)
+async function acHead() {
+  if (!store.get("emu", 0) && !(FB_APPID && RECAPTCHA && !window.claude)) return {};
+  try {
+    const { C, ac } = await fbApp(); if (!ac) return {};
+    const { token } = await Promise.race([C.getToken(ac), new Promise((_, no) => setTimeout(no, 4000))]);
+    return token ? { "X-Firebase-AppCheck": token } : {};
+  } catch (e) { return {}; }
+}
+const fsFetch = async (url, o = {}) => fetch(url, { ...o, headers: { ...(o.headers || {}), ...(await acHead()) } });
+
 /* -------- VOTES : Lourd / Bof, pour savoir quelles cartes plaisent -------- */
 const votes = store.get("votes", {}); // id de carte → "top" | "mew"
 const devId = store.get("dev", null) || (() => { const d = Math.random().toString(36).slice(2, 10); store.set("dev", d); return d; })();
@@ -5613,11 +5647,11 @@ const FS = (store.get("emu", 0) ? "http://127.0.0.1:8080" : "https://firestore.g
 const fsVal = v => typeof v === "number" ? { integerValue: String(Math.round(v)) } : typeof v === "boolean" ? { booleanValue: v } : { stringValue: String(v) };
 const fsPlain = f => Object.fromEntries(Object.entries(f || {}).map(([k, v]) => [k, "integerValue" in v ? +v.integerValue : "doubleValue" in v ? v.doubleValue : "booleanValue" in v ? v.booleanValue : v.stringValue]));
 const fsDb = {
-  doc: path => ({ set: data => fetch(FS + path, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, fsVal(v)])) }) }).then(r => { if (!r.ok) throw new Error(r.status); }) }),
+  doc: path => ({ set: data => fsFetch(FS + path, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, fsVal(v)])) }) }).then(r => { if (!r.ok) throw new Error(r.status); }) }),
   collection: name => ({ get: async () => {
     const docs = []; let tok = "";
     do {
-      const r = await fetch(FS + name + "?pageSize=300" + (tok ? "&pageToken=" + encodeURIComponent(tok) : "")); if (!r.ok) throw new Error(r.status);
+      const r = await fsFetch(FS + name + "?pageSize=300" + (tok ? "&pageToken=" + encodeURIComponent(tok) : "")); if (!r.ok) throw new Error(r.status);
       const j = await r.json(); (j.documents || []).forEach(d => docs.push({ data: () => fsPlain(d.fields) })); tok = j.nextPageToken || "";
     } while (tok);
     return { docs };
@@ -5639,10 +5673,10 @@ async function sendVote(c, v) {
 // Tu préfères : combien de groupes ont pris chaque choix (document choix/<carte> : a, b), sans nom
 const choixRoot = () => store.get("emu", 0) ? "http://127.0.0.1:8080/v1/" : "https://firestore.googleapis.com/v1/";
 const choixDoc = c => "projects/platoz-3abf9/databases/(default)/documents/choix/" + hashId(c.id);
-const choixGet = c => c.choix || (c.choix = fetch(choixRoot() + choixDoc(c)).then(r => r.ok ? r.json() : {}).then(j => fsPlain(j.fields)).catch(() => ({})));
+const choixGet = c => c.choix || (c.choix = fsFetch(choixRoot() + choixDoc(c)).then(r => r.ok ? r.json() : {}).then(j => fsPlain(j.fields)).catch(() => ({})));
 function choixAdd(c, k) {
   if (navigator.webdriver && !store.get("emu", 0)) return; // pas les tests automatiques
-  fetch(choixRoot() + "projects/platoz-3abf9/databases/(default)/documents:commit", { method: "POST", headers: { "Content-Type": "application/json" },
+  fsFetch(choixRoot() + "projects/platoz-3abf9/databases/(default)/documents:commit", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ writes: [{ transform: { document: choixDoc(c), fieldTransforms: [{ fieldPath: k, increment: { integerValue: "1" } }] } }] }) }).catch(() => {});
 }
 // statistiques anonymes : parties lancées et finies, par téléphone (identifiant au hasard, sans nom)
@@ -7441,8 +7475,6 @@ function testEnd(P, qs) {
 }
 
 /* -------- EN LIGNE : amis et parties où chacun joue sur son propre téléphone -------- */
-const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
-const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9" };
 const SITE = "https://fabz13220.github.io/Platon/";
 const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Débat", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 2], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Aligne 4", 2], uno: ["Vide ta main", 2] };
 // jeux longs : une manche = une partie entière, jamais tirés par le Mix
@@ -7454,10 +7486,10 @@ let NETP = null;
 const ON = { off: [], ctx: null, r: null, leaveArmed: 0 };
 function net() {
   return NETP || (NETP = (async () => {
-    const [{ initializeApp }, A, F] = await Promise.all(["app", "auth", "firestore"].map(m => import(FBV + m + ".js")));
+    const [{ fapp }, A, F] = await Promise.all([fbApp(), ...["auth", "firestore"].map(m => import(FBV + m + ".js"))]);
     // Safari (iPhone) depuis iOS 26.4 garde les nouvelles de la partie jusqu'à 30 s dans le mode de connexion par défaut de Firestore
     // (bug WebKit, firebase-js-sdk #9789) : on passe par des requêtes courtes, l'autre téléphone voit le coup en moins d'une seconde
-    const fapp = initializeApp(FBC), auth = A.getAuth(fapp), db = F.initializeFirestore(fapp, { experimentalForceLongPolling: true });
+    const auth = A.getAuth(fapp), db = F.initializeFirestore(fapp, { experimentalForceLongPolling: true });
     // tests locaux uniquement : base et comptes simulés sur l'ordinateur
     if (store.get("emu", 0)) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
     await auth.authStateReady();
@@ -8614,7 +8646,7 @@ applyContenu((store.get("contenu", {}) || {}).d || {});
 (async () => {
   try {
     const base = store.get("emu", 0) ? "http://127.0.0.1:8080/v1/projects/platoz-3abf9/databases/(default)/documents/" : FS;
-    const r = await fetch(base + "contenu/app"); if (!r.ok) return;
+    const r = await fsFetch(base + "contenu/app"); if (!r.ok) return;
     const f = (await r.json()).fields || {}, at = +((f.at || {}).integerValue || 0);
     if (!f.data || at <= ((store.get("contenu", {}) || {}).at || 0)) return;
     const d = JSON.parse(f.data.stringValue); store.set("contenu", { at, d }); applyContenu(d); newBadges();
