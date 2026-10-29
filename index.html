@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="f88e613c1f85">
+<meta name="build" content="9bcba9a509c1">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -4055,7 +4055,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "29 octobre · App Check";
+const VERSION = "29 octobre · App Check branché";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -5609,18 +5609,24 @@ function chooserTool() {
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 // App Check avec Fraud Defense (ex reCAPTCHA Enterprise, Firebase n'accepte plus la v3 classique) : identifiant de l'appli web et clé du site, les deux publics.
 // Vides : App Check éteint. Tant que Firebase n'exige pas le jeton, une demande sans jeton passe quand même.
-const FB_APPID = "", RECAPTCHA = "";
+const FB_APPID = "1:784463823089:web:9f691b0b4932bc35eca950", RECAPTCHA = "6LeiOAcuAAAAAHi-EVNylU-348lXSaO0BqOTdTYp";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9", ...(FB_APPID ? { appId: FB_APPID } : {}) };
+// si reCAPTCHA est bloqué (bloqueur de pub, réseau), App Check fait attendre chaque connexion 30 s puis échoue :
+// on vérifie d'abord qu'il répond, sinon on joue sans App Check
+const RECAPTCHA_JS = "https://www.google.com/recaptcha/enterprise.js";
+const reachable = url => Promise.race([fetch(url, { mode: "no-cors", cache: "no-store" }).then(() => true, () => false), new Promise(ok => setTimeout(() => ok(false), 5000))]);
 let FAPP = null;
 function fbApp() {
   return FAPP || (FAPP = (async () => {
+    // le module App Check 10.12.4 lit process.env en chargeant reCAPTCHA (oubli corrigé en 10.14) : sans ça, il plante dans un navigateur
+    if (typeof process === "undefined") window.process = { env: { NODE_ENV: "production" } };
     const [{ initializeApp }, C] = await Promise.all(["app", "app-check"].map(m => import(FBV + m + ".js")));
     const fapp = initializeApp(FBC);
     let ac = null;
     try {
       // en test : un faux jeton, rien ne part vers Google ; dans Claude la clé ne marche pas (autre adresse)
       if (store.get("emu", 0)) ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
-      else if (FB_APPID && RECAPTCHA && !window.claude) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+      else if (FB_APPID && RECAPTCHA && !window.claude && await reachable(RECAPTCHA_JS)) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
     } catch (e) {}
     return { fapp, C, ac };
   })());

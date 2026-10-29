@@ -116,18 +116,21 @@ html.in-app h1 { display: none; }
 <script type="module">
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
 // App Check : mêmes valeurs que FB_APPID et RECAPTCHA dans platoz.html
-const FB_APPID = "", RECAPTCHA = "";
+const FB_APPID = "1:784463823089:web:9f691b0b4932bc35eca950", RECAPTCHA = "6LeiOAcuAAAAAHi-EVNylU-348lXSaO0BqOTdTYp";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9", ...(FB_APPID ? { appId: FB_APPID } : {}) };
 const EMU = new URLSearchParams(location.search).has("emu");
 // dans l'appli (cadre ouvert depuis Réglages > Admin) : même compte que le joueur, celui de l'appli.
 // seule, la page a son compte à elle (« admin ») : se connecter ici ne touche plus au compte de joueur du même navigateur.
 const IN_APP = new URLSearchParams(location.search).has("app");
 if (IN_APP) document.documentElement.classList.add("in-app");
+// le module App Check 10.12.4 lit process.env en chargeant reCAPTCHA (oubli corrigé en 10.14)
+if (typeof process === "undefined") window.process = { env: { NODE_ENV: "production" } };
 const [{ initializeApp }, A, F, C] = await Promise.all(["app", "auth", "firestore", "app-check"].map(m => import(FBV + m + ".js")));
 const fapp = IN_APP ? initializeApp(FBC) : initializeApp(FBC, "admin"), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
 try {
   if (EMU) C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
-  else if (FB_APPID && RECAPTCHA) C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+  // reCAPTCHA bloqué (bloqueur de pub) : sans ce test, chaque connexion attendrait 30 s puis échouerait
+  else if (FB_APPID && RECAPTCHA && await Promise.race([fetch("https://www.google.com/recaptcha/enterprise.js", { mode: "no-cors", cache: "no-store" }).then(() => true, () => false), new Promise(ok => setTimeout(() => ok(false), 5000))])) C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
 } catch (e) {}
 if (EMU) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
 
