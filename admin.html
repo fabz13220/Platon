@@ -433,42 +433,88 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function owner() { return request.auth != null && request.auth.uid == "${uid}"; }
     function admin() { return owner() || request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function signed() { return request.auth != null; }
+    function d() { return request.resource.data; }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function int(v) { return v is int && v >= 0; }
+    // version des règles : la page admin la lit pour savoir si les règles collées sont les dernières
+    match /regles/{v} { allow get: if v == "v3"; }
     match /admins/{id} {
       allow read: if request.auth != null && (request.auth.uid == id || owner());
       allow write: if owner();
     }
-    match /votes/{id} { allow read, create, update: if true; }
-    match /propositions/{id} {
-      allow read: if admin();
-      allow create: if true;
+    // votes Lourd / Bof : écrits sans compte (identifiant du téléphone), lus par tous (Tester les cartes)
+    match /votes/{id} {
+      allow read: if true;
+      allow create, update: if id.matches("[a-z0-9]{1,16}_[a-z0-9]{1,16}") && d().keys().hasOnly(["card", "type", "text", "v", "at"])
+        && str(d().card, 1500) && str(d().type, 20) && str(d().text, 1500) && d().v in ["top", "mew", "aucun"] && int(d().at);
+      allow delete: if admin();
     }
+    // cartes proposées, idées et signalements : écrits sans compte, jamais modifiés, lus par l'admin
+    match /propositions/{id} {
+      allow read, delete: if admin();
+      allow create: if id.size() <= 60 && d().keys().hasOnly(["type", "card", "lvl", "at", "par", "jeu", "carte", "v", "tel", "app"])
+        && str(d().type, 20) && str(d().card, 1500) && int(d().lvl) && d().lvl <= 9 && int(d().at)
+        && str(d().get("par", ""), 20) && str(d().get("jeu", ""), 40) && str(d().get("carte", ""), 1500)
+        && (str(d().get("v", ""), 60) || d().v is int)
+        && str(d().get("tel", ""), 100) && d().get("app", false) is bool;
+    }
+    // code ami → compte : on lit un code précis, jamais la liste entière
     match /codes/{code} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-      allow update: if admin();
+      allow get: if signed();
+      allow list: if admin();
+      allow create: if signed() && code.matches("[A-Z0-9]{6}") && d().keys().hasOnly(["uid"]) && d().uid == request.auth.uid;
+      allow update, delete: if admin();
     }
     match /users/{uid} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid || admin();
+      allow get: if signed();
+      allow list: if admin();
+      // son propre profil : pseudo, code ami (le sien, enregistré dans codes), présence, salle ouverte
+      allow write: if admin() || request.auth != null && request.auth.uid == uid && (request.method == "delete" || (
+        d().keys().hasOnly(["name", "code", "at", "seen", "room"]) && str(d().get("name", ""), 30) && str(d().get("room", ""), 4)
+        && int(d().get("at", 0)) && int(d().get("seen", 0))
+        && (!("code" in d()) || resource != null && resource.data.get("code", "") == d().code
+            || get(/databases/$(database)/documents/codes/$(d().code)).data.uid == uid)));
       match /friends/{fid} {
         allow read: if request.auth != null && request.auth.uid == uid || admin();
         allow write: if request.auth != null && (request.auth.uid == uid || request.auth.uid == fid) || admin();
       }
+      // invitation : seulement de la part d'un joueur de la partie, vers une partie qui existe
       match /invites/{room} {
         allow read, delete: if request.auth != null && request.auth.uid == uid;
-        allow create, update: if request.auth != null;
+        allow create, update: if signed() && room.matches("[A-Z]{4}") && d().keys().hasOnly(["from", "room", "at"])
+          && str(d().from, 30) && d().room == room && int(d().at)
+          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(room)).data.players;
       }
     }
+    // parties en ligne : on lit une partie par son code ; seuls ses joueurs la modifient,
+    // un nouveau venu ne peut que s'ajouter lui-même tant qu'elle attend des joueurs
     match /rooms/{code} {
-      allow read, create, update, delete: if request.auth != null;
+      function fresh() { return code.matches("[A-Z]{4}") && d().host == request.auth.uid && d().players.keys().hasOnly([request.auth.uid]); }
+      allow get: if signed();
+      allow list: if admin();
+      allow create: if signed() && fresh();
+      allow update: if signed() && (request.auth.uid in resource.data.players
+        || resource.data.get("at", 0) < request.time.toMillis() - 6 * 3600000 && fresh()
+        || resource.data.status == "lobby" && d().diff(resource.data).affectedKeys().hasOnly(["players"])
+           && d().players.diff(resource.data.players).affectedKeys().hasOnly([request.auth.uid])
+           && d().players.size() <= 16 && d().players[request.auth.uid].keys().hasOnly(["name", "pts", "t"])
+           && str(d().players[request.auth.uid].name, 30) && d().players[request.auth.uid].pts == 0);
+      allow delete: if signed() && request.auth.uid in resource.data.players || admin();
     }
+    // Tu préfères : compteurs a / b, un de plus à la fois
     match /choix/{id} {
       allow read: if true;
-      allow create, update: if request.resource.data.keys().hasOnly(["a", "b"]);
+      allow create: if d().keys().hasOnly(["a", "b"]) && d().get("a", 0) is int && d().get("b", 0) is int && d().get("a", 0) + d().get("b", 0) == 1;
+      allow update: if d().keys().hasOnly(["a", "b"]) && d().get("a", 0) is int && d().get("b", 0) is int
+        && d().get("a", 0) + d().get("b", 0) == resource.data.get("a", 0) + resource.data.get("b", 0) + 1
+        && d().get("a", 0) >= resource.data.get("a", 0) && d().get("b", 0) >= resource.data.get("b", 0);
     }
     match /stats/{id} {
-      allow read: if admin();
-      allow create: if true;
+      allow read, delete: if admin();
+      allow create: if id.size() <= 40 && d().keys().hasOnly(["ev", "g", "n", "mode", "dev", "app", "claude", "at"])
+        && str(d().ev, 20) && str(d().g, 20) && int(d().n) && d().n <= 99 && str(d().mode, 10) && str(d().dev, 16)
+        && d().app is bool && d().claude is bool && int(d().at);
     }
     match /contenu/{id} {
       allow read: if true;
@@ -496,7 +542,7 @@ A.onAuthStateChanged(auth, async u => {
   render();
   if (IN_APP) return;
   // les règles collées sont-elles les dernières (accès admin dans l'appli) ? sinon, on affiche celles à coller, écrites pour ce compte (son identifiant, pas son e-mail)
-  try { await F.getDoc(F.doc(db, "admins", u.uid)); await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
+  try { await F.getDoc(F.doc(db, "admins", u.uid)); await F.getDoc(F.doc(db, "regles", "v3")); await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
   catch (e) {
     $("#rule").textContent = RULES(u.uid);
     $("#setup").hidden = false;
