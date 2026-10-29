@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="9164d26e8dca">
+<meta name="build" content="91780ce9aaf3">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -5671,8 +5671,10 @@ function fbApp() {
       if (store.get("emu", 0)) ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
       // appli iPhone : le jeton vient d'App Attest, par le plugin natif
       else if (NATIVE_AC) {
-        await NATIVE_AC.initialize({});
-        ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: () => NATIVE_AC.getToken({}).then(t => ({ token: t.token, expireTimeMillis: t.expireTimeMillis || Date.now() + 3600e3 })) }), isTokenAutoRefreshEnabled: true });
+        // le plugin peut ne jamais répondre (App Attest indisponible) : sans jeton en 5 s, on joue sans App Check
+        const within = (pr, ms) => Promise.race([pr, new Promise((_, no) => setTimeout(() => no(new Error("délai")), ms))]);
+        await within(NATIVE_AC.initialize({}).then(() => NATIVE_AC.getToken({})), 5000);
+        ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: () => within(NATIVE_AC.getToken({}), 5000).then(t => ({ token: t.token, expireTimeMillis: t.expireTimeMillis || Date.now() + 3600e3 })) }), isTokenAutoRefreshEnabled: true });
       }
       else if (FB_APPID && RECAPTCHA && !window.claude && !NATIVE && await reachable(RECAPTCHA_JS)) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
     } catch (e) {}
