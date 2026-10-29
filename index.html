@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="fe8512c06719">
+<meta name="build" content="68efa6da3ad0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1456,6 +1456,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .set-tiles.rail.grid .tile.rt:last-child:nth-child(odd) { min-height: 0; }
 .sheet-wrap .set-tiles .tile.rt .ill { position: static; transform: none; font-size: 28px; margin-bottom: auto; padding-bottom: 6px; }
 .set-tiles.rail.grid .tile.rt:last-child:nth-child(odd) .ill { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); padding: 0; font-size: 34px; }
+.prop-full { position: fixed; inset: 0; z-index: 70; background: var(--night); display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); }
+.prop-full .stage { flex: none; }
+.prop-full .imphold { min-height: 420px; position: relative; }
+.prop-prev { cursor: pointer; }
 .prop-prev { border-radius: 20px; padding: 14px 16px; background: rgba(255,255,255,.07); border: 1px dashed var(--hair); }
 .prop-prev small { display: block; font-weight: 900; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .prop-prev p { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.3; overflow-wrap: break-word; }
@@ -5702,6 +5706,7 @@ function testerShow(t, c) {
     imposteur: `<p class="text">Thème : ${d[0]}<br>Mot : <b>${d[1]}</b></p>`,
     taboo: `<p class="tb-word">${d[0]}</p><div class="tb-forbid"><small>Interdit de dire</small>${d.slice(1).map(w => `<span>${w}</span>`).join("")}</div>`
   }[t] || `<p class="text">${d[0]}</p>`;
+  if (t === "taboo") return `<div class="card tb-card tb-play" style="--c:var(--taboo)"><div class="band"><span class="mast">Sans le dire</span></div>${body}</div>`;
   return cardShell(shell, t === "verite" || t === "action" ? { label: t === "verite" ? "Vérité" : "Action", name: "✱".repeat(c[0]) } : null, body);
 }
 function testerRun(t) {
@@ -5777,7 +5782,7 @@ function proposeTool() {
       $$("[data-k]", w).forEach(b => b.onclick = () => { t = b.dataset.k; store.set("propType", t); draw(); });
       $$("#plv button", w).forEach(b => b.onclick = () => { lv = +b.dataset.l; $$("#plv button", w).forEach(x => x.setAttribute("aria-pressed", +x.dataset.l === lv)); });
       $$(".duo-in[data-i]", w).forEach(inp => inp.oninput = preview);
-      preview();
+      preview(); $("#pprev", w).onclick = full;
       $$(".duo-in[data-i]", w).forEach(inp => inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const nx = $(`.duo-in[data-i="${+inp.dataset.i + 1}"]`, w); nx ? nx.focus() : send(); } });
       $("#pby", w).oninput = e => { by = e.target.value; store.set("propBy", by); };
       $("#panon", w).onclick = () => { anon = !anon; store.set("propAnon", anon); const v = $$(".duo-in[data-i]", w).map(i => i.value); draw(); $$(".duo-in[data-i]", w).forEach((i, k) => i.value = v[k] || ""); };
@@ -5788,11 +5793,17 @@ function proposeTool() {
     const preview = () => {
       const box = $("#pprev", w); if (!box) return;
       const d = clean().map(v => v ? `<b>${esc(v.replace(/\{[pq]\}/g, "Inès"))}</b>` : `<i>…</i>`);
-      box.innerHTML = `<small>Aperçu</small><p>${{
+      box.innerHTML = `<small>Aperçu · touche pour voir la carte</small><p>${{
         jamais: `Je n'ai jamais ${d[0]}.`, qui: `Qui pourrait ${d[0]} ?`, pref: `Tu préfères ${d[0]} ou ${d[1]} ?`,
         classement: `Classe tout le monde : ${d[0]}.`, radar: `${d[0]} ↔ ${d[1]}`, imposteur: `Thème : ${d[0]}<br>Mot secret : ${d[1]}`,
         taboo: `${d[0]}<br><span class="pp-forb">Interdit : ${d.slice(1).join(", ")}</span>`
       }[t] || d[0]}</p>`;
+    };
+    // la vraie carte du jeu, en grand, avec ses couleurs
+    const full = () => {
+      const v = clean().map(x => x || "…"), o = document.createElement("div"), keep = S.level; o.className = "prop-full"; S.level = lv;
+      o.innerHTML = `<div class="stage">${t === "imposteur" ? `<div class="secret imphold on"><div class="imp-face">${impFace("civ", v[0], v[1])}</div></div>` : testerShow(t, [lv, ...v]).replace(/(<div class="who"><small>[^<]*<\/small>)[^<]*/, "$1Inès")}</div><p class="tool-hint">Touche pour revenir</p>`; S.level = keep;
+      o.onclick = () => o.remove(); w.appendChild(o);
     };
     const send = () => {
       const vals = clean();
