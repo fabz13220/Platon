@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="c8c68abc7c71">
+<meta name="build" content="fe8512c06719">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -3910,6 +3910,7 @@ function newBadges() {
 
 /* -------- ACCUEIL -------- */
 function home() {
+  S.bot = false;
   S.inGame = false; onStop(); ON.ctx = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
@@ -4047,7 +4048,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "29 octobre";
+const VERSION = "29 octobre · bots";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -4099,6 +4100,7 @@ function playersScreen() {
     $$("#chips .x").forEach(b => b.onclick = () => { S.names.splice(+b.dataset.i, 1); store.set("players", S.names); draw(); });
     const ok = S.names.length >= min;
     $("#next").disabled = !ok;
+    if ($("#vs-bot")) $("#vs-bot").innerHTML = S.mode === "p4" && S.names.length ? `Contre l'ordi <small>${esc(S.names[0])}</small>` : "Contre l'ordi";
     $("#next").innerHTML = ok ? `Continuer <small>${S.names.length} joueurs</small>` : `Encore ${min - S.names.length} joueur${min - S.names.length > 1 ? "s" : ""}`;
   };
   view(`
@@ -4110,7 +4112,7 @@ function playersScreen() {
     ${S.mode === "reflexe" ? rxSeg(true) : ""}
     ${S.mode === "uno" ? unoSeg() : ""}
     ${tutoLink()}
-    <div class="actions"><button class="btn red" id="next"></button></div>
+    <div class="actions">${S.mode === "p4" || S.mode === "uno" ? `<button class="btn white" id="vs-bot">Contre l'ordi</button>` : ""}<button class="btn red" id="next"></button></div>
   `, () => {
     $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg(); bindUnoSeg(); bindPurWho();
     // pas de <form> : le cadre de l'artifact bloque l'envoi des formulaires
@@ -4123,7 +4125,13 @@ function playersScreen() {
     };
     $("#add").onclick = add;
     $("#name-input").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
-    $("#next").onclick = () => { store.set("lastPlayers", S.names); S.mode === "uno" ? unoStart() : ambiance(); };
+    $("#next").onclick = () => { S.bot = false; store.set("lastPlayers", S.names); S.mode === "uno" ? unoStart() : ambiance(); };
+    // l'ordi ne rejoint jamais S.names : il n'existe que dans Aligne 4 et Vide ta main
+    const vb = $("#vs-bot"); if (vb) vb.onclick = () => {
+      if (!S.names.length) { toast("Ajoute ton prénom d'abord."); $("#name-input").focus(); return; }
+      if (S.mode === "uno" && S.names.length > 9) { toast("10 joueurs maximum à Vide ta main."); return; }
+      S.bot = true; S.mode === "uno" ? unoStart() : p4Start();
+    };
     draw(); groupBubbles(draw);
   });
 }
@@ -6110,6 +6118,7 @@ function tabooFinal() {
 
 /* -------- ALIGNE 4 (ex-Puissance 4) : un téléphone ; à deux, revanches ; à plus, tournoi jusqu'à la finale -------- */
 const P4 = { key: "", wins: {}, first: 0, round: 0, cup: null };
+const BOT = "L'ordi";
 // tournoi à élimination directe, partagé avec le mode en ligne : ro = paires à plat [a, b, a, b…], "" = qualifié d'office
 const P4_STAGE = m => ({ 2: "Finale", 4: "Demi-finale", 8: "Quart de finale" })[m] || "Huitième de finale";
 function cupNew(list) {
@@ -6139,17 +6148,16 @@ const cupPair = c => [c.ro[c.mi * 2], c.ro[c.mi * 2 + 1]];
 const nw = x => `<span class="nw">${esc(x)}</span>`;
 function p4Start() {
   if (tutoGate("p4", p4Start)) return;
-  if (S.names.length > 2) return p4Cup(true);
-  const key = S.names.join("|");
+  if (S.names.length > 2 && !S.bot) return p4Cup(true);
+  const names = S.bot ? [S.names[0], BOT] : S.names.slice(0, 2), key = names.join("|");
   if (P4.key !== key) Object.assign(P4, { key, wins: {}, first: 0, round: 0 });
   P4.round++;
-  const names = S.names.slice(0, 2);
   p4Board(names, P4.first, `Manche ${P4.round}`, `${P4.wins[names[0]] || 0} - ${P4.wins[names[1]] || 0}`, "", w => {
     // à deux : le perdant commence la revanche
     if (w >= 0) P4.wins[names[w]] = (P4.wins[names[w]] || 0) + 1;
     P4.first = w >= 0 ? 1 - w : 1 - P4.first;
     return { sub: "", btn: "Revanche", next: p4Start };
-  });
+  }, S.bot ? 1 : -1);
 }
 function p4Cup(fresh) {
   if (fresh || !P4.cup) P4.cup = cupNew(S.names);
@@ -6180,8 +6188,8 @@ function p4Champ() {
 }
 // « Au tour de Maximilienne » reste sur une ligne : le texte rapetisse plutôt que de passer à la ligne
 function p4Fit() { const m = $(".p4-msg"); if (!m) return; let f = 21; while (m.scrollHeight > 34 && f > 14) m.style.fontSize = --f + "px"; }
-// le plateau ; end(w) reçoit 0 ou 1 (gagnant) ou -1 (nul) et rend { sub, btn, next }
-function p4Board(names, first, top, mid, sub, end) {
+// le plateau ; end(w) reçoit 0 ou 1 (gagnant) ou -1 (nul) et rend { sub, btn, next } ; bot : le joueur tenu par l'ordi (-1 = aucun)
+function p4Board(names, first, top, mid, sub, end, bot = -1) {
   stat("start", "p4", S.names.length, "un");
   const R = 6, W = 7, g = Array.from({ length: R }, () => Array(W).fill(-1));
   let cur = first, over = null, line = null, last = null;
@@ -6212,17 +6220,29 @@ function p4Board(names, first, top, mid, sub, end) {
       $$(".p4-score .nm").forEach(el => { let f = 16; while (el.firstChild.offsetWidth > el.clientWidth + 1 && f > 10) el.style.fontSize = --f + "px"; });
       p4Fit();
       if (over) { $("#again").onclick = over.next; $("#home").onclick = home; return; }
-      $$(".p4col").forEach(b => b.onclick = () => {
-        const c = +b.dataset.c; let r = R - 1; while (r >= 0 && g[r][c] >= 0) r--;
-        if (r < 0) { buzz([20, 30, 20]); return; }
-        g[r][c] = cur; last = [r, c]; buzz(15);
-        line = win(r, c);
-        const full = g[0].every(x => x >= 0);
-        if (line || full) { stat("end", "p4", S.names.length, "un"); over = end(line ? cur : -1); if (line) buzz([60, 40, 120]); }
-        else cur = 1 - cur;
-        draw();
-      });
+      if (cur === bot) later(() => play(p4Bot()), 650);
+      $$(".p4col").forEach(b => b.onclick = () => { if (cur !== bot) play(+b.dataset.c); });
     });
+  };
+  const rowOf = c => { let r = R - 1; while (r >= 0 && g[r][c] >= 0) r--; return r; };
+  // l'ordi gagne s'il peut, bloque sinon, sinon joue au hasard
+  const p4Bot = () => {
+    const free = [...Array(W).keys()].filter(c => rowOf(c) >= 0);
+    for (const p of [bot, 1 - bot]) for (const c of free) {
+      const r = rowOf(c); g[r][c] = p; const w = win(r, c); g[r][c] = -1;
+      if (w) return c;
+    }
+    return free[Math.floor(Math.random() * free.length)];
+  };
+  const play = c => {
+    const r = rowOf(c);
+    if (r < 0) { buzz([20, 30, 20]); return; }
+    g[r][c] = cur; last = [r, c]; buzz(15);
+    line = win(r, c);
+    const full = g[0].every(x => x >= 0);
+    if (line || full) { stat("end", "p4", S.names.length, "un"); over = end(line ? cur : -1); if (line) buzz([60, 40, 120]); }
+    else cur = 1 - cur;
+    draw();
   };
   draw();
 }
@@ -6349,7 +6369,8 @@ const vmChoose = then => sheet(`<span class="mast" style="font-size:28px">Quelle
 function unoStart() {
   if (S.names.length > 10) { toast("10 joueurs maximum à Vide ta main."); return; }
   if (tutoGate("uno", unoStart)) return;
-  const P = shuffle(S.names).map(n => ({ name: n, hand: [] })), stack = unoStack();
+  // contre l'ordi : il s'ajoute aux joueurs, et si un seul humain joue, plus besoin de cacher sa main
+  const P = shuffle([...S.names.map(n => ({ name: n, hand: [] })), ...(S.bot ? [{ name: BOT, hand: [], bot: true }] : [])]), stack = unoStack(), solo = S.bot && S.names.length === 1;
   stat("start", "uno", P.length, "un");
   let id = 0, pile = unoDeck().map(k => Object.assign(k, { id: id++ })), disc = [], color, dir = 1, cur = 0, log = "", pen = 0, busy = true, drew = false; // pen : cartes à prendre en attente (cumul)
   const pick = () => { if (!pile.length) { const top = disc.pop(); pile = shuffle(disc); disc = [top]; } return pile.pop(); };
@@ -6372,6 +6393,8 @@ function unoStart() {
   const cover = () => {
     busy = false; drew = false;
     const p = P[cur];
+    if (p.bot) return botTurn();
+    if (solo) return show(!$("#vm-hand .uno"));
     paint(pen ? `${pen} cartes pour ${p.name}, sauf s'il renvoie.` : "", !!pen);
     $("#vm-hand").innerHTML = `<button class="vm-cover" id="vm-cov"><span class="eyebrow">Passe le tel à</span><span class="mast">${esc(p.name)}</span><small>Touche pour voir tes cartes</small></button>`;
     $("#vm-act").innerHTML = "";
@@ -6413,12 +6436,12 @@ function unoStart() {
   };
   const put = (k, col, el) => {
     const p = P[cur]; busy = true;
-    el.style.visibility = "hidden";
+    if (!p.bot) el.style.visibility = "hidden";
     vmFly(unoCard(k), el, $("#vm-disc .uno")).then(() => {
       p.hand.splice(p.hand.indexOf(k), 1); disc.push(k); color = col; buzz(20);
       log = `${p.name} pose ${unoSay(k, col)}.`;
       paint("", false, false, true);
-      vmHand(p.hand.map(x => ({ k: x, key: x.id, cls: "no" })));
+      if (!p.bot) vmHand(p.hand.map(x => ({ k: x, key: x.id, cls: "no" })));
       $("#vm-act").innerHTML = "";
       if (!p.hand.length) return later(() => end(p), 500);
       if (p.hand.length === 1) { stamp("Dernière carte !", "green"); log += " Plus qu'une carte !"; }
@@ -6434,6 +6457,29 @@ function unoStart() {
       paint("", false, false, true);
       later(cover, p.hand.length === 1 ? 1000 : 600);
     });
+  };
+  // l'ordi joue seul : il renvoie un +2/+4 s'il peut, sinon pose la couleur qu'il a le plus, sinon pioche
+  const botTurn = () => {
+    const p = P[cur], me = P.find(x => !x.bot); busy = true;
+    paint(`${p.name} réfléchit…`, false, false, true);
+    if (solo) vmHand(me.hand.map(k => ({ k, key: k.id, cls: "no" })));
+    else $("#vm-hand").innerHTML = "";
+    $("#vm-act").innerHTML = "";
+    const from = () => $$("#vm-opps .vm-opp")[P.indexOf(p)] || $("#vm-pile");
+    const most = () => { const n = {}; p.hand.forEach(k => { if (k.c !== "w") n[k.c] = (n[k.c] || 0) + 1; }); return Object.keys(n).sort((a, b) => n[b] - n[a])[0] || "rygb"[Math.floor(Math.random() * 4)]; };
+    const best = () => { const c = most(), l = p.hand.filter(ok); return l.find(k => k.c === c) || l.find(k => k.c !== "w") || l[0]; };
+    const go = k => put(k, k.c === "w" ? most() : k.c, from());
+    later(() => {
+      const k = best();
+      if (k) return go(k);
+      if (pen) { const n = pen; give(p, n); log = `${p.name} prend ${n} cartes.`; pen = 0; cur = nextIdx(); paint("", false, false, true); return later(cover, 900); }
+      const d = pick(); if (d) { p.hand.push(d); p.hand.sort(unoSort); }
+      paint(`${p.name} pioche.`, false, false, true);
+      later(() => {
+        if (d && ok(d)) return go(d);
+        log = `${p.name} pioche et passe.`; cur = nextIdx(); paint("", false, false, true); later(cover, 500);
+      }, 700);
+    }, 900);
   };
   const end = p => {
     stat("end", "uno", P.length, "un");
