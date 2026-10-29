@@ -8,7 +8,24 @@
     "backgroundColor": "#061224"
   },
   "plugins": {
-    "SplashScreen": { "launchShowDuration": 600, "backgroundColor": "#061224", "showSpinner": false },
-    "StatusBar": { "overlaysWebView": false }
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#061224",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "overlaysWebView": false
+    }
+  },
+  "experimental": {
+    "ios": {
+      "spm": {
+        "packageOptions": {
+          "@capacitor-firebase/app-check": {
+            "symlink": true
+          }
+        }
+      }
+    }
   }
 }

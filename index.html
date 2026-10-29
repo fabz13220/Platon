@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="93a02f3f5fa5">
+<meta name="build" content="9164d26e8dca">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -5657,6 +5657,7 @@ const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "pl
 // on vérifie d'abord qu'il répond, sinon on joue sans App Check
 const RECAPTCHA_JS = "https://www.google.com/recaptcha/enterprise.js";
 const reachable = url => Promise.race([fetch(url, { mode: "no-cors", cache: "no-store" }).then(() => true, () => false), new Promise(ok => setTimeout(() => ok(false), 5000))]);
+const NATIVE_AC = NATIVE && Capacitor.Plugins.FirebaseAppCheck;
 let FAPP = null;
 function fbApp() {
   return FAPP || (FAPP = (async () => {
@@ -5668,6 +5669,11 @@ function fbApp() {
     try {
       // en test : un faux jeton, rien ne part vers Google ; dans Claude la clé ne marche pas (autre adresse)
       if (store.get("emu", 0)) ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
+      // appli iPhone : le jeton vient d'App Attest, par le plugin natif
+      else if (NATIVE_AC) {
+        await NATIVE_AC.initialize({});
+        ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: () => NATIVE_AC.getToken({}).then(t => ({ token: t.token, expireTimeMillis: t.expireTimeMillis || Date.now() + 3600e3 })) }), isTokenAutoRefreshEnabled: true });
+      }
       else if (FB_APPID && RECAPTCHA && !window.claude && !NATIVE && await reachable(RECAPTCHA_JS)) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
     } catch (e) {}
     return { fapp, C, ac };
@@ -5675,7 +5681,7 @@ function fbApp() {
 }
 // en-tête à joindre aux demandes faites sans le SDK (votes, propositions, stats, Tu préfères, contenu)
 async function acHead() {
-  if (!store.get("emu", 0) && !(FB_APPID && RECAPTCHA && !window.claude && !NATIVE)) return {};
+  if (!store.get("emu", 0) && !NATIVE_AC && !(FB_APPID && RECAPTCHA && !window.claude && !NATIVE)) return {};
   try {
     const { C, ac } = await fbApp(); if (!ac) return {};
     const { token } = await Promise.race([C.getToken(ac), new Promise((_, no) => setTimeout(no, 4000))]);
