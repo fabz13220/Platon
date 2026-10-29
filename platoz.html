@@ -3892,7 +3892,7 @@ function home() {
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
-  const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Les règles du Uno."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
+  const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Règles classiques."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   // un jeu qui ne va pas avec le nombre de joueurs reste visible, grisé, avec le nombre qu'il faut
   const need = t => on => on ? "" : n < minOf(t) ? `dès ${minOf(t)}` : n > maxOf(t) ? `${maxOf(t)} max` : "";
   const tile = (t, on) => { const k = need(t)(on); return `<button class="tile rt${k ? " lock" : ""}" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span>${k ? `<span class="need">${k}</span>` : ""}<span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`; };
@@ -4880,7 +4880,7 @@ function cMentSolo(c) {
 }
 
 // L'Imposteur seul, façon Undercover : un téléphone qu'on se passe, sans points.
-// Rôles : civils (le mot), imposteurs (juste le thème), undercovers (un mot proche, sans le savoir). On vote pour éliminer jusqu'à la fin.
+// Rôles : civils (le mot), imposteurs (juste le thème), faux sosies (un mot proche, sans le savoir). On vote pour éliminer jusqu'à la fin.
 const UNDER = {
   "Raclette": "Fondue", "Fondue": "Raclette", "Pizza": "Lasagnes", "Kebab": "Tacos", "Tacos": "Burrito", "Sushi": "Ramen", "Crêpe": "Gaufre",
   "Burger": "Hot-dog", "Couscous": "Tajine", "Nutella": "Confiture",
@@ -4901,14 +4901,14 @@ const impNorm = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g
 const impSame = (a, b) => !!impNorm(a) && impNorm(a) === impNorm(b);
 // écrans de L'Imposteur : fond de nuit, lueur de la couleur du camp, gros emoji, titres qui claquent
 const IMP_EMO = { civ: "😇", und: "🎭", imp: "🕵️", white: "🎩" };
-const IMP_ROLE = { civ: "Civil", und: "Undercover", imp: "L'imposteur", white: "Mr. White" };
-// l'imposteur et Mr. White n'ont pas de mot : ils ne commencent jamais, et une fois éliminés ils tentent le mot
+const IMP_ROLE = { civ: "Civil", und: "Faux sosie", imp: "L'imposteur", white: "L'aveugle" };
+// l'imposteur et L'aveugle n'ont pas de mot : ils ne commencent jamais, et une fois éliminés ils tentent le mot
 const impBlind = ro => ro === "imp" || ro === "white";
 const impFace = (ro, cat, w) => ro === "imp"
   ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w" style="color:var(--red)">L'imposteur</span><p>Thème : « ${esc(cat)} ». Pas de mot, bluffe.</p>`
-  : ro === "white" ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w">Mr. White</span><p>Aucun indice, même pas le thème. Écoute et bluffe.</p>`
+  : ro === "white" ? `<span class="eyebrow" style="color:var(--paper)">Tu es</span><span class="mast imp-w">L'aveugle</span><p>Aucun indice, même pas le thème. Écoute et bluffe.</p>`
   : `<span class="eyebrow" style="color:var(--paper)">Ton mot</span><span class="mast imp-w">${esc(w)}</span><p>Ne le dis pas à voix haute.</p>`;
-// combien d'intrus de chaque sorte : au moins 1 intrus, au moins 2 civils (on retire Mr. White, puis les undercovers, puis les imposteurs)
+// combien d'intrus de chaque sorte : au moins 1 intrus, au moins 2 civils (on retire l'aveugle, puis les faux sosies, puis les imposteurs)
 function impCount(n, imp, und, wh) {
   imp = Math.max(0, imp | 0); und = Math.max(0, und | 0); wh = Math.max(0, wh | 0);
   const max = Math.max(1, n - 2);
@@ -4928,17 +4928,17 @@ const impTie = () => impScene("miss", `<span class="big">🤝</span><span class=
 function impEnd(w, ins, word, uw, g) {
   const kind = ins.every(x => x[1] === ins[0][1]) ? ins[0][1] : "", one = ins.length === 1;
   const title = w === "civ" ? "Les civils gagnent" : !one && kind !== "imp" ? "Les intrus gagnent"
-    : ({ imp: one ? "L'imposteur gagne" : "Les imposteurs gagnent", und: "L'undercover gagne", white: "Mr. White gagne" })[kind];
+    : ({ imp: one ? "L'imposteur gagne" : "Les imposteurs gagnent", und: "Le faux sosie gagne", white: "L'aveugle gagne" })[kind];
   const onlyImp = kind === "imp" || kind === "white";
   return impScene("end " + (w === "civ" ? "civ" : "inf"), `<span class="kick">Fin de la manche</span>
     <span class="big">${g && g.ok ? "🤯" : w === "civ" ? "🏆" : onlyImp ? IMP_EMO[kind] : "🎭"}</span>
     <span class="ttl">${title}</span>
     ${g ? `<p class="ln">${esc(g.by)} a tapé « ${esc(g.v)} »… ${g.ok ? "<b>bingo !</b>" : "raté !"}</p>` : ""}
-    <p class="ln">Le mot : <b>${esc(word)}</b>${uw ? `<br>Undercover : <b>${esc(uw)}</b>` : ""}</p>
+    <p class="ln">Le mot : <b>${esc(word)}</b>${uw ? `<br>Faux sosie : <b>${esc(uw)}</b>` : ""}</p>
     <div class="roles">${ins.map(([n, r]) => `<span>${IMP_EMO[r]} ${esc(n)}<i>${IMP_ROLE[r]}</i></span>`).join("")}</div>`);
 }
 // la police des titres (Unbounded) est très large : on calcule la taille pour que le mot le plus long tienne dans la carte
-const impWords = () => [...new Set([...C.imposteur.map(c => c[2]), ...C.imposteur.map(c => c[3]).filter(Boolean), ...Object.values(UNDER), "L'imposteur", "Mr. White"].flatMap(x => String(x).split(/\s+/)))]; // un mot composé peut passer à la ligne entre ses mots
+const impWords = () => [...new Set([...C.imposteur.map(c => c[2]), ...C.imposteur.map(c => c[3]).filter(Boolean), ...Object.values(UNDER), "L'imposteur", "L'aveugle"].flatMap(x => String(x).split(/\s+/)))]; // un mot composé peut passer à la ligne entre ses mots
 // pad : marge du calque où le mot s'affiche (le mot secret est dans un calque posé sur toute la carte) ; sinon la marge de la boîte
 function impFitSize(box, words, max, cls, pad) {
   const cs = getComputedStyle(box), avail = box.clientWidth - (pad != null ? pad * 2 : parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
@@ -4978,10 +4978,10 @@ function impSetup() {
     <div class="section-label">Imposteurs</div>
     ${seg("impn", 0)}
     <p class="hint muted">Ils n'ont pas de mot, juste le thème.</p>
-    <div class="section-label">Undercovers</div>
+    <div class="section-label">Faux sosies</div>
     ${seg("undn", 0)}
-    <p class="hint muted">Ils ont un mot proche du vrai, et ils ne savent pas qu'ils sont undercover.</p>
-    <div class="section-label">Mr. White</div>
+    <p class="hint muted">Ils ont un mot proche du vrai, et ils ne savent pas qu'ils sont faux sosies.</p>
+    <div class="section-label">L'aveugle</div>
     <div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}">${v}</button>`).join("")}</div>
     <p class="hint muted">Il n'a rien, même pas le thème. S'il est éliminé, il tente le mot.</p>
     <div class="actions"><button class="btn red" id="go">C'est parti</button></div>
@@ -4994,12 +4994,12 @@ function impSetup() {
     draw();
   });
 }
-// cartes de L'Imposteur : mots jamais coupés au milieu (« Undercover », « L'imposteur »)
+// cartes de L'Imposteur : mots jamais coupés au milieu (« Faux sosie », « L'imposteur »)
 const impShell = (...a) => cardShell(...a).replace('class="card ', 'class="card impc ');
 function cImpSolo(c) {
   const s0 = IMP_SET();
   let { imp: nImp, und: nUnd, wh: nWh } = impCount(S.players.length, s0.imp, s0.und, s0.wh);
-  // avec des undercovers, il faut un mot qui a un mot proche
+  // avec des faux sosies, il faut un mot qui a un mot proche
   if (nUnd && !underOf(c)) {
     const alt = pool("imposteur").find(x => underOf(x) && !S.deck.some(d => d.id === x.id));
     if (alt) { S.deck[S.idx] = c = alt; } else nUnd = 0;
@@ -5044,7 +5044,7 @@ function cImpSolo(c) {
   const talk = () => {
     here = talk;
     const live = S.players.filter(p => alive.has(p)), safe = live.filter(p => !impBlind(role.get(p)));
-    const first = rnd(safe.length ? safe : live); // l'imposteur et Mr. White ne commencent jamais
+    const first = rnd(safe.length ? safe : live); // l'imposteur et L'aveugle ne commencent jamais
     view(`${top(true)}
       <div class="stage">${impTalk(first.name, live.length)}</div>
       <div class="actions"><button class="btn red" id="vote">Voter</button></div>`, () => { bindHeader(); bindEye(); impFit(); $("#vote").onclick = vote; });
@@ -6563,10 +6563,10 @@ const TUTO = {
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe. Sur une carte duel, on choisit seulement entre les deux prénoms.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
   taboo: "Deux équipes. Tu fais deviner le mot sans dire les mots interdits. Swipe à droite si ton équipe trouve, à gauche pour passer (ça coûte 5 secondes). Quelqu'un de l'autre équipe te surveille. Parfois, un défi surprise rapporte du temps ou des points.",
-  imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, l'undercover a un mot proche sans le savoir, Mr. White n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
+  imposteur: "Tout le monde a le même mot, sauf les intrus. L'imposteur n'a que le thème, le faux sosie a un mot proche sans le savoir, L'aveugle n'a rien du tout. Chacun dit un mot, puis on vote pour éliminer quelqu'un. Les civils gagnent quand tous les intrus sont dehors.",
   menteur: "On se passe le tel. L'appli te dit en secret si tu mens ou pas. Tu réponds à la question, les autres te cuisinent, puis ils disent vrai ou mytho.",
   p4: "Chacun son tour, tu touches une colonne et ton jeton tombe. Le premier qui aligne 4 jetons gagne, en ligne, en colonne ou en diagonale. À plus de deux, c'est un tournoi : le perdant est éliminé, jusqu'à la finale.",
-  uno: "Les règles du Uno. On se passe le tel, chacun cache sa main. Tu poses la même couleur ou le même chiffre, sinon tu pioches. Le premier qui n'a plus de cartes gagne. Avec le cumul, un +2 ou un +4 se renvoie au suivant, et celui qui peut pas renvoyer prend tout.",
+  uno: "Règles classiques. On se passe le tel, chacun cache sa main. Tu poses la même couleur ou le même chiffre, sinon tu pioches. Le premier qui n'a plus de cartes gagne. Avec le cumul, un +2 ou un +4 se renvoie au suivant, et celui qui peut pas renvoyer prend tout.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
   mix: "La roue choisit le jeu pour vous. Pas envie ? Relance-la. Sinon, lance le jeu."
@@ -8504,12 +8504,12 @@ function lobbyView(r, host) {
       ${r.game === "p4" && n > 2 ? `<p class="hint muted">Tournoi : le perdant de chaque match sort, jusqu'à la finale.</p>` : `<div class="section-label">Manches</div>
       <div class="seg" id="nr">${roundOpts(r.game).map(v => `<button data-v="${v}" aria-pressed="${v === r.rounds}">${v}</button>`).join("")}</div>`}
       ${r.game === "imposteur" ? `<div class="section-label">Imposteurs</div><div class="seg" id="impn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.imp == null ? 1 : r.imp)}">${v}</button>`).join("")}</div>
-      <div class="section-label">Undercovers</div><div class="seg" id="undn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.und || 0)}">${v}</button>`).join("")}</div>
-      <div class="section-label">Mr. White</div><div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}" aria-pressed="${v === (r.white || 0)}">${v}</button>`).join("")}</div>
-      <p class="hint muted">L'undercover a un mot proche du vrai et ne le sait pas. Mr. White n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}
+      <div class="section-label">Faux sosies</div><div class="seg" id="undn">${[0, 1, 2, 3].map(v => `<button data-v="${v}" aria-pressed="${v === (r.und || 0)}">${v}</button>`).join("")}</div>
+      <div class="section-label">L'aveugle</div><div class="seg" id="whn">${[0, 1, 2].map(v => `<button data-v="${v}" aria-pressed="${v === (r.white || 0)}">${v}</button>`).join("")}</div>
+      <p class="hint muted">Le faux sosie a un mot proche du vrai et ne le sait pas. L'aveugle n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}
       ${r.game === "reflexe" ? `<div class="section-label">Pièges</div><div class="seg" id="trp"><button data-v="1" aria-pressed="${r.traps !== false}">Activés</button><button data-v="0" aria-pressed="${r.traps === false}">Désactivés</button></div>` : ""}
       ${r.game === "uno" ? `<div class="section-label">Cumuler les +2 et +4</div><div class="seg" id="stk"><button data-v="1" aria-pressed="${r.stack !== false}">Activé</button><button data-v="0" aria-pressed="${r.stack === false}">Désactivé</button></div>` : ""}`
-      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.game === "p4" && n > 2 ? "en tournoi" : r.rounds + " manches"}.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} Mr. White` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}${r.game === "uno" ? (r.stack === false ? " Sans cumul des +2 et +4." : " Avec cumul des +2 et +4.") : ""}</p>`}
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.game === "p4" && n > 2 ? "en tournoi" : r.rounds + " manches"}.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} L'aveugle` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}${r.game === "uno" ? (r.stack === false ? " Sans cumul des +2 et +4." : " Avec cumul des +2 et +4.") : ""}</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
     <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
