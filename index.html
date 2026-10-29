@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="aa4d0814e113">
+<meta name="build" content="93a02f3f5fa5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -4027,7 +4027,7 @@ function settingsSheet() {
     <div class="rail grid set-tiles">${t('data-tool="propose"', "✍️", "Proposer une carte", "Elle arrive dans le jeu", "#FF3B6E")}${t('id="idea"', "💡", "Proposer une idée", "Un jeu, un truc à changer", "#FFB21F")}${t('id="tester"', "🗳️", "Tester les cartes", "Dis si elles sont lourdes ou bof", "#5B5CF0")}</div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <div class="set-links">${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}<button class="linkbtn" id="report">Signaler un problème</button></div>
+    <div class="set-links">${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}<button class="linkbtn" id="report">Signaler un problème</button><a class="linkbtn" href="${SITE}confidentialite.html" target="_blank" rel="noopener">Confidentialité</a><button class="linkbtn" id="delacc">Supprimer mon compte</button></div>
     <p class="hint muted" style="text-align:center;margin:0">Version du ${VERSION}</p>
     ${RECAPTCHA ? `<p class="hint muted" style="text-align:center;margin:0;font-size:11px">Protégé par reCAPTCHA : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">confidentialité</a> et <a href="https://policies.google.com/terms" target="_blank" rel="noopener">conditions</a> de Google.</p>` : ""}`, w => {
     bindTools(w, settingsSheet);
@@ -4035,6 +4035,7 @@ function settingsSheet() {
     if ($("#bans", w)) $("#bans", w).onclick = () => { w.remove(); banList(settingsSheet); };
     $("#idea", w).onclick = () => ideaSheet(settingsSheet);
     $("#report", w).onclick = () => reportSheet(false, settingsSheet);
+    $("#delacc", w).onclick = () => deleteAccountSheet(settingsSheet);
     $("#close", w).onclick = () => w.remove();
     const ts = $("#theme-seg", w), paintT = () => $$("button", ts).forEach(b => b.setAttribute("aria-pressed", b.dataset.v === store.get("theme", "auto")));
     $$("button", ts).forEach(b => b.onclick = () => { store.set("theme", b.dataset.v); applyTheme(); paintT(); });
@@ -4077,6 +4078,31 @@ const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
   return m ? `${m[1]} iOS ${m[2]}.${m[3]}` : a ? "Android " + a[1] : /Mac OS X/.test(u) ? "Mac" : /Windows/.test(u) ? "PC Windows" : "Autre";
 };
+// exigé par Apple (règle 5.1.1) : effacer le compte depuis l'appli. Pseudo, amis, invitations et compte Firebase partent ;
+// les cartes proposées et les votes restent, sans lien avec le joueur.
+function deleteAccountSheet(back) {
+  sheet(`<span class="mast" style="font-size:28px">Supprimer ton compte ?</span>
+    <p class="hint">Ton pseudo, ton code ami et ta liste d'amis seront effacés pour de bon. Les jeux sur un téléphone marcheront toujours.</p>
+    <button class="btn red" id="del">Supprimer</button>
+    <button class="btn" id="close">Annuler</button>`, w => {
+    $("#close", w).onclick = () => { w.remove(); back && back(); };
+    $("#del", w).onclick = async () => {
+      $("#del", w).disabled = true;
+      try {
+        const { F, db, A, auth, uid } = await net();
+        const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => d.id);
+        const inv = (await F.getDocs(F.collection(db, "users", uid, "invites"))).docs.map(d => d.id);
+        await Promise.all([
+          ...fr.flatMap(id => [F.deleteDoc(F.doc(db, "users", uid, "friends", id)), F.deleteDoc(F.doc(db, "users", id, "friends", uid)).catch(() => {})]),
+          ...inv.map(id => F.deleteDoc(F.doc(db, "users", uid, "invites", id)))]);
+        await F.deleteDoc(F.doc(db, "users", uid));
+        onStop(); await A.deleteUser(auth.currentUser).catch(() => A.signOut(auth)); NETP = null;
+        ["me", "room", "multi"].forEach(k => { try { localStorage.removeItem("scandale:" + k); } catch (e) {} });
+        w.remove(); toast("Compte supprimé."); home();
+      } catch (e) { $("#del", w).disabled = false; toast("Pas réussi, vérifie ta connexion et réessaie."); }
+    };
+  });
+}
 function reportSheet(inGame, back) {
   // la carte affichée seulement si elle vient du jeu en cours (le paquet d'une partie d'avant peut rester en mémoire)
   const k = inGame ? curCard() : null, g = inGame ? S.mode || "" : "";
