@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="68efa6da3ad0">
+<meta name="build" content="b425a7220e39">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -4052,7 +4052,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "29 octobre · bots";
+const VERSION = "29 octobre · niveaux";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -4115,10 +4115,11 @@ function playersScreen() {
     <div id="bubbles"></div>
     ${S.mode === "reflexe" ? rxSeg(true) : ""}
     ${S.mode === "uno" ? unoSeg() : ""}
+    ${S.mode === "uno" || S.mode === "p4" ? botSeg() : ""}
     ${tutoLink()}
     <div class="actions">${S.mode === "p4" || S.mode === "uno" ? `<button class="btn white" id="vs-bot">Contre l'ordi</button>` : ""}<button class="btn red" id="next"></button></div>
   `, () => {
-    $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg(); bindUnoSeg(); bindPurWho();
+    $("#back").onclick = home; bindTutoLink(S.mode); bindRxSeg(); bindUnoSeg(); bindBotSeg(); bindPurWho();
     // pas de <form> : le cadre de l'artifact bloque l'envoi des formulaires
     const add = () => {
       const v = $("#name-input").value.trim().replace(/\s+/g, " ");
@@ -6236,12 +6237,49 @@ function p4Board(names, first, top, mid, sub, end, bot = -1) {
     });
   };
   const rowOf = c => { let r = R - 1; while (r >= 0 && g[r][c] >= 0) r--; return r; };
-  // l'ordi gagne s'il peut, bloque sinon, sinon joue au hasard
+  const winsAt = (c, p) => { const r = rowOf(c); if (r < 0) return false; g[r][c] = p; const w = win(r, c); g[r][c] = -1; return !!w; };
+  // valeur d'une position pour p : chaque groupe de 4 cases où un seul joueur a des jetons compte, le centre aussi
+  const score = p => {
+    let v = 0;
+    for (let r = 0; r < R; r++) if (g[r][3] === p) v += 3;
+    for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) for (let r = 0; r < R; r++) for (let c = 0; c < W; c++) {
+      const er = r + dr * 3, ec = c + dc * 3; if (er < 0 || er >= R || ec < 0 || ec >= W) continue;
+      let a = 0, b = 0; for (let k = 0; k < 4; k++) { const x = g[r + dr * k][c + dc * k]; if (x === p) a++; else if (x >= 0) b++; }
+      if (!b) v += [0, 1, 5, 40][a] || 0; else if (!a) v -= [0, 1, 6, 60][b] || 0;
+    }
+    return v;
+  };
+  const ORDER = [3, 2, 4, 1, 5, 0, 6];
+  // recherche à plusieurs coups d'avance (alpha-bêta)
+  const nega = (p, d, al, be) => {
+    const free = ORDER.filter(c => rowOf(c) >= 0);
+    if (!free.length) return 0;
+    for (const c of free) if (winsAt(c, p)) return 10000 + d;
+    if (!d) return score(p);
+    let best = -1e9;
+    for (const c of free) {
+      const r = rowOf(c); g[r][c] = p; const v = -nega(1 - p, d - 1, -be, -al); g[r][c] = -1;
+      if (v > best) best = v; if (v > al) al = v; if (al >= be) break;
+    }
+    return best;
+  };
+  // facile : gagne s'il peut, bloque sinon, sinon au hasard ; moyen : en plus, ne laisse pas gagner au coup d'après et vise le centre ; difficile : calcule 7 coups d'avance
   const p4Bot = () => {
-    const free = [...Array(W).keys()].filter(c => rowOf(c) >= 0);
-    for (const p of [bot, 1 - bot]) for (const c of free) {
-      const r = rowOf(c); g[r][c] = p; const w = win(r, c); g[r][c] = -1;
-      if (w) return c;
+    const free = [...Array(W).keys()].filter(c => rowOf(c) >= 0), lvl = botLvl();
+    for (const p of [bot, 1 - bot]) for (const c of free) if (winsAt(c, p)) return c;
+    if (lvl === 2) {
+      let best = -1e9, pick = free[0];
+      for (const c of ORDER.filter(c => free.includes(c))) {
+        const r = rowOf(c); g[r][c] = bot; const v = -nega(1 - bot, 6, -1e9, 1e9) + Math.random(); g[r][c] = -1;
+        if (v > best) { best = v; pick = c; }
+      }
+      return pick;
+    }
+    if (lvl === 1) {
+      const safe = free.filter(c => { const r = rowOf(c); g[r][c] = bot; const bad = winsAt(c, 1 - bot); g[r][c] = -1; return !bad; }), l = safe.length ? safe : free;
+      const wt = l.map(c => 4 - Math.abs(3 - c)); let x = Math.random() * wt.reduce((a, b) => a + b, 0);
+      for (let i = 0; i < l.length; i++) if ((x -= wt[i]) < 0) return l[i];
+      return l[0];
     }
     return free[Math.floor(Math.random() * free.length)];
   };
@@ -6308,6 +6346,10 @@ function unoLay(box) {
   }
 }
 const unoStack = () => store.get("unoStack", true);
+// niveau de l'ordi : 0 facile, 1 moyen, 2 difficile
+const botLvl = () => store.get("botLvl", 1);
+const botSeg = () => `<div class="section-label">Niveau de l'ordi</div><div class="seg" id="bot-lvl">${["Facile", "Moyen", "Difficile"].map((t, i) => `<button data-v="${i}" aria-pressed="${botLvl() === i}">${t}</button>`).join("")}</div>`;
+const bindBotSeg = () => $$("#bot-lvl button").forEach(b => b.onclick = () => { store.set("botLvl", +b.dataset.v); buzz(10); $$("#bot-lvl button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
 const unoSeg = () => `<div class="section-label">Cumuler les +2 et +4</div><div class="seg" id="vm-stack"><button data-v="1" aria-pressed="${unoStack()}">Activé</button><button data-v="0" aria-pressed="${!unoStack()}">Désactivé</button></div>`;
 const bindUnoSeg = () => $$("#vm-stack button").forEach(b => b.onclick = () => { store.set("unoStack", b.dataset.v === "1"); buzz(10); $$("#vm-stack button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
 
@@ -6469,7 +6511,8 @@ function unoStart() {
       later(cover, p.hand.length === 1 ? 1000 : 600);
     });
   };
-  // l'ordi joue seul : il renvoie un +2/+4 s'il peut, sinon pose la couleur qu'il a le plus, sinon pioche
+  // l'ordi joue seul ; facile : une carte au hasard ; moyen : la couleur qu'il a le plus, jokers gardés pour la fin ;
+  // difficile : en plus, il attaque (+2, +4, stop) le suivant quand il lui reste peu de cartes, et garde ses attaques sinon
   const botTurn = () => {
     const p = P[cur], me = P.find(x => !x.bot); busy = true;
     paint(`${p.name} réfléchit…`, false, false, true);
@@ -6478,7 +6521,15 @@ function unoStart() {
     $("#vm-act").innerHTML = "";
     const from = () => $$("#vm-opps .vm-opp")[P.indexOf(p)] || $("#vm-pile");
     const most = () => { const n = {}; p.hand.forEach(k => { if (k.c !== "w") n[k.c] = (n[k.c] || 0) + 1; }); return Object.keys(n).sort((a, b) => n[b] - n[a])[0] || "rygb"[Math.floor(Math.random() * 4)]; };
-    const best = () => { const c = most(), l = p.hand.filter(ok); return l.find(k => k.c === c) || l.find(k => k.c !== "w") || l[0]; };
+    const best = () => {
+      const l = p.hand.filter(ok), lvl = botLvl(); if (!l.length) return null;
+      if (lvl === 0) return l[Math.floor(Math.random() * l.length)];
+      const n = {}; p.hand.forEach(k => { if (k.c !== "w") n[k.c] = (n[k.c] || 0) + 1; });
+      const nx = P[nextIdx()], danger = nx.hand.length <= 2, atk = k => ["+2", "+4", "skip"].includes(k.v) || (k.v === "rev" && P.length === 2);
+      const val = k => (n[k.c] || 0) * 2 - (k.c === "w" ? 6 + p.hand.length : 0)
+        + (lvl === 2 ? (danger ? (atk(k) ? 30 : 0) : (atk(k) ? -3 : 0)) + (k.v === "+4" ? 0 : (+k.v || 0) * .2) : 0);
+      return l.sort((a, b) => val(b) - val(a))[0];
+    };
     const go = k => put(k, k.c === "w" ? most() : k.c, from());
     later(() => {
       const k = best();
