@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="c388c19dc38a">
+<meta name="build" content="39e234673879">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1411,7 +1411,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tab-mix:active { transform: scale(.94); }
 
 /* accueil calé sur la maquette E : tuiles unies, texte en bas */
-.home-head .logo { background: none; -webkit-text-fill-color: #FF3B6E; color: #FF3B6E; filter: none; font-size: 30px; }
+.home-head .logo { background: none; -webkit-text-fill-color: #FF3B6E; color: #FF3B6E; filter: none; font-size: 40px; }
 .tile.rt { width: 128px; height: 150px; border-radius: 20px; padding: 14px; box-shadow: none; background: var(--rc); color: var(--rf, #fff); }
 .tile.rt::after { display: none; }
 .tile.rt .mast { font-family: Nunito, var(--body, sans-serif); font-weight: 900; font-size: 16px; line-height: 1.15; text-shadow: none !important; letter-spacing: 0; }
@@ -3708,6 +3708,8 @@ const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
   tick:   [3, () => { sfxNoise(.4, 0, .02, 1500, 1.4); toc(520, .1, 0, .03); }],
   swish:  [3, () => slide(.22)],
   win:    [6, () => { clap(.5); clap(.5, .13); toc(D4, .25, .13, .18); }],
+  // Sans le dire : mot trouvé, deux tocs graves qui montent d'une quarte, courts pour ne pas gêner la carte suivante
+  found:  [5, () => { toc(D4, .3, 0, .13); toc(G4, .26, .08, .2); }],
   fail:   [6, () => { toc(B3, .3, 0, .15); toc(G3 / 2 * 1.5, .3, .14, .22); }],
   timeup: [7, () => { toc(D4, .3, 0, .15); toc(A3, .3, .15, .15); toc(147, .32, .3, .25); }],
   end:    [8, () => { [G4, B4, D5].forEach((f, i) => note(f, .17, i * .11, .3)); note(G5, .17, .33, 1.4); note(G4, .1, .33, 1.4); }]
@@ -4040,7 +4042,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "28 octobre";
+const VERSION = "29 octobre";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -5959,7 +5961,7 @@ function tabooPlay(t, g, d) {
     const act = (r, id) => {
       if (over || id !== c.id) return; // un double toucher ne compte qu'une fois
       log.push({ w: c.data[1], r, gold });
-      if (r === "ok") { buzz(gold ? [30, 30, 60] : 20); streak++; check(); }
+      if (r === "ok") { buzz(gold ? [30, 30, 60] : 20, gold ? "win" : "found"); streak++; check(); }
       else if (free) { streak = 0; buzz(10); }
       else { // passer coûte du temps, et ça se voit sous le chrono
         streak = 0;
@@ -8483,6 +8485,8 @@ const cle = (() => { try { return new URLSearchParams(location.search).get("cle"
 if (cle) { setUrl(""); home(); keyLogin(cle, () => { store.set("multi", true); home(); }); }
 else if (salle) onlineHome(salle);
 else {
+  // à chaque ouverture de l'appli : menu principal sur « Un téléphone » (Fabio, 29/10)
+  store.set("multi", false);
   home();
   // lien « ?ami=CODE » : on ajoute l'ami, puis on ouvre l'écran Amis
   if (ami) {
