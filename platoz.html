@@ -3676,7 +3676,8 @@ const SOUNDS = { // [importance, jouer] ; les autres moments restent silencieux
   bubble: [2, () => toc(rnd([G3, A3, B3, D4]), .25, 0, .12)],
   pop:    [4, () => { toc(B3, .25, 0); toc(D4, .25, .09); }],
   reveal: [6, () => { note(D5, .17, 0, .35); note(G5, .17, .11, .8); }],
-  spin:   [5, (d = 3.6) => { for (let k = 0, N = 34; k < N; k++) sfxNoise(.18, d * (1 - Math.pow(1 - k / N, .25)), .025, 700, 1.2); }],
+  // roue : un « clac » de languette à chaque barre qui passe sous la flèche (wheelTicks)
+  tick:   [3, () => { sfxNoise(.4, 0, .02, 1500, 1.4); toc(520, .1, 0, .03); }],
   swish:  [3, () => slide(.22)],
   win:    [6, () => { clap(.5); clap(.5, .13); toc(D4, .25, .13, .18); }],
   fail:   [6, () => { toc(B3, .3, 0, .15); toc(G3 / 2 * 1.5, .3, .14, .22); }],
@@ -3694,7 +3695,7 @@ function sfx(name, arg) {
   if (SFX.qt) return;
   SFX.qt = setTimeout(() => {
     const [n, a] = SFX.q; SFX.q = null; SFX.qt = 0;
-    const now = performance.now(); if (now - (SFX.last[n] || 0) < (n === "bounce" ? 120 : 40)) return; SFX.last[n] = now;
+    const now = performance.now(); if (now - (SFX.last[n] || 0) < (n === "bounce" ? 120 : n === "tick" ? 22 : 40)) return; SFX.last[n] = now;
     const c = sfxCtx(), play = () => { try { SOUNDS[n][1](a); } catch (e) {} };
     if (!c) return;
     if (c.state === "running") return play();
@@ -4356,6 +4357,21 @@ function startGame() {
 }
 
 /* -------- LA ROUE (mode Mix) : elle choisit le jeu, on le lance avec ses réglages habituels -------- */
+// pendant que la roue tourne : on lit sa vraie position à chaque image, et chaque barre qui passe sous la flèche
+// (en haut, les barres sont à i × seg degrés) fait un clac ; quand la roue ralentit, les clacs s'espacent tout seuls
+function wheelTicks(seg, ms) {
+  const el = $("#wheel"); if (!el || seg >= 360) return;
+  const ang = () => { const m = getComputedStyle(el).transform; if (!m || m === "none") return 0; const v = m.match(/-?[\d.e]+/g).map(Number); return Math.atan2(v[1], v[0]) * 180 / Math.PI; };
+  let last = ang(), cum = 0, slot = 0;
+  const end = performance.now() + ms;
+  const step = () => {
+    if (!document.body.contains(el)) return;
+    const a = ang(); let d = a - last; last = a; if (d > 180) d -= 360; if (d < -180) d += 360;
+    cum += d; const k = Math.floor(cum / seg); if (k !== slot) { slot = k; sfx("tick"); }
+    if (performance.now() < end) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 // dessin commun aux deux roues : parts, anneau de petites lumières, moyeu fixe au centre
 function wheelSvg(games, label) {
   const n = games.length, seg = 360 / n, R = 136, C0 = 150;
@@ -4391,7 +4407,7 @@ function wheel(auto) {
       const jitter = (Math.random() - .5) * seg * .6, stop = 360 - (pick * seg + seg / 2) + jitter;
       turned += 360 * 6 + ((stop - turned) % 360 + 360) % 360;
       $(".actions").innerHTML = `<button class="btn red" id="spin" disabled>Ça tourne…</button>`; $("#res").textContent = "…";
-      buzz(20, false); sfx("spin", 3.6); $("#wheel").style.transform = `rotate(${turned}deg)`; $(".wheel-box").classList.add("on");
+      buzz(20, false); $("#wheel").style.transform = `rotate(${turned}deg)`; wheelTicks(seg, 3700); $(".wheel-box").classList.add("on");
       later(() => {
         busy = false; S.lastGame = g.t; buzz([40, 30, 60]); $(".wheel-box").classList.remove("on");
         $("#res").innerHTML = `<small>On joue à</small>${esc(TYPES[g.t] ? TYPES[g.t].label : g.short)}`;
@@ -4421,8 +4437,8 @@ function soloWheel() {
     $("#back").onclick = home;
     const pick = Math.floor(Math.random() * 2), g = games[pick];
     const rot = 360 * 5 + (360 - (pick * 180 + 90)) + (Math.random() - .5) * 90;
-    buzz(20, false); sfx("spin", 2.5);
-    later(() => { $("#wheel").style.transform = `rotate(${rot}deg)`; $(".wheel-box").classList.add("on"); }, 60);
+    buzz(20, false);
+    later(() => { $("#wheel").style.transform = `rotate(${rot}deg)`; $(".wheel-box").classList.add("on"); wheelTicks(180, 2700); }, 60);
     later(() => { buzz([40, 30, 60]); $(".wheel-box").classList.remove("on"); $("#res").innerHTML = `<small>On joue à</small>${esc(g.short)}`; }, 2700);
     later(() => g.run(), 3900);
   });
