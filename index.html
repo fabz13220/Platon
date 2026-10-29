@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="9bcba9a509c1">
+<meta name="build" content="bbd985f31215">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -40,6 +40,9 @@ function applyTheme() {
   let m = document.querySelector('meta[name="theme-color"]');
   if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
   m.content = t === "dark" ? "#061224" : "#DDBFD2";
+  // appli iPhone (Capacitor) : la barre de l'heure suit le thème
+  const SB = window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins.StatusBar;
+  if (SB) try { SB.setStyle({ style: t === "dark" ? "DARK" : "LIGHT" }); SB.setBackgroundColor && SB.setBackgroundColor({ color: m.content }); } catch (e) {}
 }
 applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
@@ -3613,7 +3616,17 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { c
 // relié à un interrupteur caché. Le toucher passe par le label (vibration), puis remonte au bouton comme d'habitude.
 // Hors boutons (swipe, bulles), l'iPhone ne peut pas vibrer.
 const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-function haptic(p) { if (navigator.vibrate && store.get("vib", 1)) try { navigator.vibrate(p); } catch (e) {} }
+// appli iPhone (Capacitor) : vraies vibrations natives, partout (swipe et bulles compris)
+const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+const HAPTICS = NATIVE && Capacitor.Plugins.Haptics;
+function haptic(p) {
+  if (!store.get("vib", 1)) return;
+  if (HAPTICS) try {
+    if (Array.isArray(p)) HAPTICS.notification({ type: p.length > 3 ? "SUCCESS" : "WARNING" });
+    else HAPTICS.impact({ style: p <= 15 ? "LIGHT" : p <= 40 ? "MEDIUM" : "HEAVY" });
+  } catch (e) {}
+  else if (navigator.vibrate) try { navigator.vibrate(p); } catch (e) {}
+}
 function hxArm() {
   $$("button").forEach(b => {
     if (b.querySelector(":scope > .hx")) return;
@@ -3623,7 +3636,7 @@ function hxArm() {
     l.append(i); if (getComputedStyle(b).position === "static") b.style.position = "relative"; b.append(l);
   });
 }
-if (IOS && !navigator.vibrate) {
+if (IOS && !navigator.vibrate && !HAPTICS) {
   let hxQ = 0;
   new MutationObserver(() => { if (!hxQ) hxQ = requestAnimationFrame(() => { hxQ = 0; hxArm(); }); }).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener("DOMContentLoaded", hxArm);
@@ -3752,6 +3765,9 @@ function toast(msg) {
   const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
   setTimeout(() => t.remove(), 2600);
 }
+// internet coupé ou revenu : on le dit, au lieu de laisser une partie en ligne figée
+addEventListener("offline", () => toast("Plus d'internet. Les jeux sur un téléphone marchent toujours."));
+addEventListener("online", () => toast("Internet est revenu."));
 function stamp(word, cls = "") {
   const s = document.createElement("div"); s.className = "stamp " + cls; s.textContent = word; document.body.appendChild(s);
   buzz([30, 40, 60]); setTimeout(() => s.remove(), 1100);
@@ -5626,14 +5642,14 @@ function fbApp() {
     try {
       // en test : un faux jeton, rien ne part vers Google ; dans Claude la clé ne marche pas (autre adresse)
       if (store.get("emu", 0)) ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
-      else if (FB_APPID && RECAPTCHA && !window.claude && await reachable(RECAPTCHA_JS)) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+      else if (FB_APPID && RECAPTCHA && !window.claude && !NATIVE && await reachable(RECAPTCHA_JS)) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
     } catch (e) {}
     return { fapp, C, ac };
   })());
 }
 // en-tête à joindre aux demandes faites sans le SDK (votes, propositions, stats, Tu préfères, contenu)
 async function acHead() {
-  if (!store.get("emu", 0) && !(FB_APPID && RECAPTCHA && !window.claude)) return {};
+  if (!store.get("emu", 0) && !(FB_APPID && RECAPTCHA && !window.claude && !NATIVE)) return {};
   try {
     const { C, ac } = await fbApp(); if (!ac) return {};
     const { token } = await Promise.race([C.getToken(ac), new Promise((_, no) => setTimeout(no, 4000))]);

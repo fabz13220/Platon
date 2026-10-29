@@ -1,0 +1,14 @@
+{
+  "appId": "fr.bliz.app",
+  "appName": "BLIZ",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "backgroundColor": "#061224"
+  },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 600, "backgroundColor": "#061224", "showSpinner": false },
+    "StatusBar": { "overlaysWebView": false }
+  }
+}
