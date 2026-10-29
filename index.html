@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="c283ce777b03">
+<meta name="build" content="f88e613c1f85">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -5607,7 +5607,7 @@ function chooserTool() {
 
 /* -------- FIREBASE : la base partagée, et App Check qui prouve que les demandes viennent bien de l'appli -------- */
 const FBV = "https://www.gstatic.com/firebasejs/10.12.4/firebase-";
-// App Check (reCAPTCHA v3) : identifiant de l'appli web et clé du site, les deux publics, donnés par la console Firebase.
+// App Check avec Fraud Defense (ex reCAPTCHA Enterprise, Firebase n'accepte plus la v3 classique) : identifiant de l'appli web et clé du site, les deux publics.
 // Vides : App Check éteint. Tant que Firebase n'exige pas le jeton, une demande sans jeton passe quand même.
 const FB_APPID = "", RECAPTCHA = "";
 const FBC = { apiKey: "AIzaSyBlYjcYHalrJI8KDhpG8G0JGYOgwayExwg", authDomain: "platoz-3abf9.firebaseapp.com", projectId: "platoz-3abf9", ...(FB_APPID ? { appId: FB_APPID } : {}) };
@@ -5620,7 +5620,7 @@ function fbApp() {
     try {
       // en test : un faux jeton, rien ne part vers Google ; dans Claude la clé ne marche pas (autre adresse)
       if (store.get("emu", 0)) ac = C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
-      else if (FB_APPID && RECAPTCHA && !window.claude) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaV3Provider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+      else if (FB_APPID && RECAPTCHA && !window.claude) ac = C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
     } catch (e) {}
     return { fapp, C, ac };
   })());

@@ -127,7 +127,7 @@ const [{ initializeApp }, A, F, C] = await Promise.all(["app", "auth", "firestor
 const fapp = IN_APP ? initializeApp(FBC) : initializeApp(FBC, "admin"), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
 try {
   if (EMU) C.initializeAppCheck(fapp, { provider: new C.CustomProvider({ getToken: async () => ({ token: "emu", expireTimeMillis: Date.now() + 3600e3 }) }) });
-  else if (FB_APPID && RECAPTCHA) C.initializeAppCheck(fapp, { provider: new C.ReCaptchaV3Provider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
+  else if (FB_APPID && RECAPTCHA) C.initializeAppCheck(fapp, { provider: new C.ReCaptchaEnterpriseProvider(RECAPTCHA), isTokenAutoRefreshEnabled: true });
 } catch (e) {}
 if (EMU) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
 
