@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="33bbb774a137">
+<meta name="build" content="5869850c746b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -3938,7 +3938,7 @@ function home() {
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["reflexe"], "", true)}` : `
-      <div id="invites"></div>
+      <div id="resume"></div><div id="invites"></div>
       ${n === 1 ? rail("En solo", ["reflexe", "test"]) : ""}
       ${rail("Votes et devinettes", ["classement", "qui", "radar"])}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"]).replace('class="rail-box"', 'class="rail-box short"')}
@@ -4052,7 +4052,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "29 octobre · niveaux";
+const VERSION = "29 octobre · en ligne plus rapide";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -7455,7 +7455,9 @@ const ON = { off: [], ctx: null, r: null, leaveArmed: 0 };
 function net() {
   return NETP || (NETP = (async () => {
     const [{ initializeApp }, A, F] = await Promise.all(["app", "auth", "firestore"].map(m => import(FBV + m + ".js")));
-    const fapp = initializeApp(FBC), auth = A.getAuth(fapp), db = F.getFirestore(fapp);
+    // Safari (iPhone) depuis iOS 26.4 garde les nouvelles de la partie jusqu'à 30 s dans le mode de connexion par défaut de Firestore
+    // (bug WebKit, firebase-js-sdk #9789) : on passe par des requêtes courtes, l'autre téléphone voit le coup en moins d'une seconde
+    const fapp = initializeApp(FBC), auth = A.getAuth(fapp), db = F.initializeFirestore(fapp, { experimentalForceLongPolling: true });
     // tests locaux uniquement : base et comptes simulés sur l'ordinateur
     if (store.get("emu", 0)) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
     await auth.authStateReady();
@@ -7519,7 +7521,7 @@ async function syncMe(F, db, uid) {
 }
 // accueil en mode « chacun le sien » : jeux jouables à plusieurs téléphones
 function multiHome() {
-  return `<div id="invites"></div>
+  return `<div id="resume"></div><div id="invites"></div>
     <section class="rail-box"><h2 class="rail-title">Rejoindre une partie</h2>
     <div class="field"><input id="room-in" maxlength="4" placeholder="Code de la partie" autocomplete="off" autocapitalize="characters" enterkeyhint="go" aria-label="Code de la partie"><button class="btn" id="join">Go</button></div></section>`;
 }
@@ -7542,6 +7544,16 @@ function homeOnline(multi) {
       $$("[data-room]", box).forEach(b => b.onclick = () => roomJoin(b.dataset.room));
       if (inv.length) buzz(20);
     }, () => {}));
+    // partie quittée, ou appli fermée en pleine partie : un bouton pour y revenir tant qu'elle n'est pas finie
+    const rm = store.get("room", null);
+    if (rm && Date.now() - rm.at < 6 * 3600e3) F.getDoc(F.doc(db, "rooms", rm.code)).then(d => {
+      const r = d.exists() && d.data(), box = $("#resume");
+      if (!r || r.status === "end" || !(r.players[uid] || (r.left && r.left[uid]))) { store.set("room", null); return; }
+      if (!box) return;
+      box.innerHTML = `<div class="section-label">Ta partie en cours</div><div class="on-list"><div class="on-row"><span><b>${esc((ON_GAMES[r.game] || ["Partie"])[0])}</b><small>${r.status === "lobby" ? "Salle d'attente" : `Manche ${r.round} / ${r.rounds}`} · ${esc(rm.code)}</small></span><button class="btn red" id="resume-go">Revenir</button></div></div>`;
+      $("#resume-go").onclick = () => { $("#resume-go").disabled = true; roomJoin(rm.code).then(ok => { if (!ok) home(); }); };
+      fitPage();
+    }).catch(() => {});
     // nombre d'amis en ligne sur le bouton Amis (relu au plus une fois par minute : l'accueil se redessine à chaque + ou − du nombre de joueurs)
     if (Date.now() - frOn.at > 60e3) {
       const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => d.id);
@@ -7819,11 +7831,13 @@ async function roomJoin(raw) {
     if (!s.exists()) { toast("Aucune partie avec ce code."); return false; }
     const r = s.data();
     if (!r.players[uid]) {
-      if (r.status !== "lobby") { toast("La partie a déjà commencé."); return false; }
+      if (r.status === "end") { toast("Cette partie est finie."); store.set("room", null); return false; }
       if (Object.keys(r.players).length >= 16) { toast("La partie est pleine."); return false; }
-      const taken = Object.values(r.players).map(p => p.name.toLowerCase());
-      let name = me.name; for (let k = 2; taken.includes(name.toLowerCase()); k++) name = me.name + " " + k;
-      await F.updateDoc(ref, { [`players.${uid}`]: { name, pts: 0, t: Date.now() } });
+      // revenu après avoir quitté : on retrouve sa place et ses points ; sinon on arrive avec 0 point, même en pleine partie
+      const back = r.left && r.left[uid], taken = Object.values(r.players).map(p => p.name.toLowerCase()), base = back ? back.name : me.name;
+      let name = base; for (let k = 2; taken.includes(name.toLowerCase()); k++) name = base + " " + k;
+      await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: { name, pts: back ? back.pts : 0, t: back ? back.t : Date.now() } }, back ? { [`left.${uid}`]: F.deleteField() } : {}));
+      if (r.status === "play") toast(back ? "Te revoilà dans la partie !" : "La partie a commencé : tu joues dès la prochaine manche.");
     }
     roomOpen(code);
     return true;
@@ -7833,12 +7847,13 @@ async function roomOpen(code) {
   onStop(); heartbeat();
   const N = await net(), { F, db, uid } = N, ref = F.doc(db, "rooms", code);
   ON.ctx = { N, ref, code, busy: "", last: "" };
-  setUrl("?salle=" + code);
+  setUrl("?salle=" + code); store.set("room", { code, at: Date.now() }); // pour revenir dans la partie si l'appli se ferme
   keepAwake();
   ON.off.push(F.onSnapshot(ref, s => {
     if (!ON.ctx || ON.ctx.ref !== ref) return;
-    if (!s.exists()) { toast("La partie a été fermée."); return home(); }
+    if (!s.exists()) { toast("La partie a été fermée."); store.set("room", null); return home(); }
     const r = s.data();
+    if (r.status === "end") store.set("room", null);
     if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return home(); }
     // tant que la partie attend des joueurs, les amis la voient dans Amis avec un bouton « Rejoindre »
     const pub = r.status === "lobby" ? code : "";
@@ -7870,8 +7885,9 @@ async function roomLeave() {
   onStop(); ON.ctx = null;
   F.setDoc(F.doc(db, "users", uid), { room: "" }, { merge: true }).catch(() => {});
   try {
-    if (!rest.length) await F.deleteDoc(ref);
-    else await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: F.deleteField() }, r.host === uid ? { host: rest[0] } : {}));
+    if (!rest.length) { store.set("room", null); await F.deleteDoc(ref); }
+    // sa place et ses points sont gardés de côté : en revenant avec le code, on les retrouve
+    else await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: F.deleteField(), [`left.${uid}`]: r.players[uid] }, r.host === uid ? { host: rest[0] } : {}));
   } catch (e) {}
   setUrl(""); home();
 }

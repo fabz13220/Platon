@@ -438,7 +438,7 @@ service cloud.firestore {
     function str(v, max) { return v is string && v.size() <= max; }
     function int(v) { return v is int && v >= 0; }
     // version des règles : la page admin la lit pour savoir si les règles collées sont les dernières
-    match /regles/{v} { allow get: if v == "v3"; }
+    match /regles/{v} { allow get: if v == "v4"; }
     match /admins/{id} {
       allow read: if request.auth != null && (request.auth.uid == id || owner());
       allow write: if owner();
@@ -488,7 +488,7 @@ service cloud.firestore {
       }
     }
     // parties en ligne : on lit une partie par son code ; seuls ses joueurs la modifient,
-    // un nouveau venu ne peut que s'ajouter lui-même tant qu'elle attend des joueurs
+    // un nouveau venu ne peut que s'ajouter lui-même (0 point, ou les points gardés s'il avait quitté), tant que la partie n'est pas finie
     match /rooms/{code} {
       function fresh() { return code.matches("[A-Z]{4}") && d().host == request.auth.uid && d().players.keys().hasOnly([request.auth.uid]); }
       allow get: if signed();
@@ -496,10 +496,13 @@ service cloud.firestore {
       allow create: if signed() && fresh();
       allow update: if signed() && (request.auth.uid in resource.data.players
         || resource.data.get("at", 0) < request.time.toMillis() - 6 * 3600000 && fresh()
-        || resource.data.status == "lobby" && d().diff(resource.data).affectedKeys().hasOnly(["players"])
+        || resource.data.status != "end" && d().diff(resource.data).affectedKeys().hasOnly(["players", "left"])
            && d().players.diff(resource.data.players).affectedKeys().hasOnly([request.auth.uid])
+           && d().get("left", {}).diff(resource.data.get("left", {})).affectedKeys().hasOnly([request.auth.uid])
+           && !(request.auth.uid in d().get("left", {}))
            && d().players.size() <= 16 && d().players[request.auth.uid].keys().hasOnly(["name", "pts", "t"])
-           && str(d().players[request.auth.uid].name, 30) && d().players[request.auth.uid].pts == 0);
+           && str(d().players[request.auth.uid].name, 30) && int(d().players[request.auth.uid].t)
+           && d().players[request.auth.uid].pts == resource.data.get("left", {}).get(request.auth.uid, {"pts": 0}).pts);
       allow delete: if signed() && request.auth.uid in resource.data.players || admin();
     }
     // Tu préfères : compteurs a / b, un de plus à la fois
@@ -542,7 +545,7 @@ A.onAuthStateChanged(auth, async u => {
   render();
   if (IN_APP) return;
   // les règles collées sont-elles les dernières (accès admin dans l'appli) ? sinon, on affiche celles à coller, écrites pour ce compte (son identifiant, pas son e-mail)
-  try { await F.getDoc(F.doc(db, "admins", u.uid)); await F.getDoc(F.doc(db, "regles", "v3")); await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
+  try { await F.getDoc(F.doc(db, "admins", u.uid)); await F.getDoc(F.doc(db, "regles", "v4")); await F.setDoc(F.doc(db, "contenu_hist", "verif"), { at: Date.now(), par: u.email || "" }); $("#setup").hidden = true; }
   catch (e) {
     $("#rule").textContent = RULES(u.uid);
     $("#setup").hidden = false;
