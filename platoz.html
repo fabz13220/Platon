@@ -6885,6 +6885,7 @@ function bindStory(o, file) {
   later(make, 700);
   const pick = async () => {
     const { blob } = await make(), f = new File([blob], "bliz-" + file + ".png", { type: "image/png" });
+    if (NATIVE) return shareNativeFile(blob, f.name);
     if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); return true; } catch (e) { if (e && e.name === "AbortError") return true; } }
     return false;
   };
@@ -7495,7 +7496,17 @@ const onStop = () => { ON.off.forEach(f => { try { f(); } catch (e) {} }); ON.of
 const genCode = (n, abc = "ABCDEFGHJKMNPQRSTUVWXYZ23456789") => Array.from({ length: n }, () => rnd([...abc])).join("");
 const roomUrl = code => (location.protocol.startsWith("http") && !window.claude ? location.origin + location.pathname : SITE) + "?salle=" + code;
 const setUrl = q => { try { if (!window.claude) history.replaceState(null, "", location.pathname + q); } catch (e) {} };
+// appli iPhone : l'image passe par un fichier temporaire, puis la feuille de partage d'iOS
+async function shareNativeFile(blob, name) {
+  try {
+    const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(",")[1]); fr.readAsDataURL(blob); });
+    const { uri } = await Capacitor.Plugins.Filesystem.writeFile({ path: name, data, directory: "CACHE" });
+    await Capacitor.Plugins.Share.share({ files: [uri] });
+  } catch (e) {}
+  return true;
+}
 async function shareIt(text, url) {
+  if (NATIVE) { try { await Capacitor.Plugins.Share.share({ text, url }); } catch (e) {} return; }
   if (navigator.share) { try { await navigator.share({ text, url }); } catch (e) {} return; }
   try { await navigator.clipboard.writeText(url ? text + " " + url : text); toast("Copié, colle-le à tes potes."); } catch (e) { toast(url || text); }
 }
