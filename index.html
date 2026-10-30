@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="91780ce9aaf3">
+<meta name="build" content="9e1ea74c061b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -7546,7 +7546,8 @@ function net() {
     const [{ fapp }, A, F] = await Promise.all([fbApp(), ...["auth", "firestore"].map(m => import(FBV + m + ".js"))]);
     // Safari (iPhone) depuis iOS 26.4 garde les nouvelles de la partie jusqu'à 30 s dans le mode de connexion par défaut de Firestore
     // (bug WebKit, firebase-js-sdk #9789) : on passe par des requêtes courtes, l'autre téléphone voit le coup en moins d'une seconde
-    const auth = A.getAuth(fapp), db = F.initializeFirestore(fapp, { experimentalForceLongPolling: true });
+    // appli iPhone (Capacitor) : getAuth() charge un cadre de connexion Google qui ne répond jamais hors d'un vrai site, la connexion reste bloquée
+    const auth = NATIVE ? A.initializeAuth(fapp, { persistence: A.indexedDBLocalPersistence }) : A.getAuth(fapp), db = F.initializeFirestore(fapp, { experimentalForceLongPolling: true });
     // tests locaux uniquement : base et comptes simulés sur l'ordinateur
     if (store.get("emu", 0)) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
     await auth.authStateReady();

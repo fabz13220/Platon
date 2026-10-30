@@ -7518,7 +7518,8 @@ function net() {
     const [{ fapp }, A, F] = await Promise.all([fbApp(), ...["auth", "firestore"].map(m => import(FBV + m + ".js"))]);
     // Safari (iPhone) depuis iOS 26.4 garde les nouvelles de la partie jusqu'à 30 s dans le mode de connexion par défaut de Firestore
     // (bug WebKit, firebase-js-sdk #9789) : on passe par des requêtes courtes, l'autre téléphone voit le coup en moins d'une seconde
-    const auth = A.getAuth(fapp), db = F.initializeFirestore(fapp, { experimentalForceLongPolling: true });
+    // appli iPhone (Capacitor) : getAuth() charge un cadre de connexion Google qui ne répond jamais hors d'un vrai site, la connexion reste bloquée
+    const auth = NATIVE ? A.initializeAuth(fapp, { persistence: A.indexedDBLocalPersistence }) : A.getAuth(fapp), db = F.initializeFirestore(fapp, { experimentalForceLongPolling: true });
     // tests locaux uniquement : base et comptes simulés sur l'ordinateur
     if (store.get("emu", 0)) { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); F.connectFirestoreEmulator(db, "127.0.0.1", 8080); }
     await auth.authStateReady();
