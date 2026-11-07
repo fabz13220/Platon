@@ -20,7 +20,7 @@ applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
 // langue : français de base. Une autre langue (Réglages > Langue, ou ?lang=en dans le lien) charge i18n/<langue>.js et i18n/i18n.js,
 // qui traduisent les cartes et l'écran. Si les fichiers manquent (hors ligne la 1re fois, lecteur Claude), tout reste en français.
-const LANGS = { fr: "Français", en: "English" };
+const LANGS = { fr: "Français", en: "English", es: "Español" };
 window.LANG = (function () {
   let l = "fr";
   try {
@@ -3807,9 +3807,9 @@ const WHEEL = [
 function others(name) { return S.players.filter(p => p.name !== name); }
 function fill(t, p) {
   const o = others(p ? p.name : "");
-  const q = o.length ? rnd(o).name : "quelqu'un";
-  // « de Inès » → « d'Inès »
-  const el = (w, n) => /^[aeiouyhâàéèêëîïôûü]/i.test(n) ? w.slice(0, -1) + "'" + n : w + " " + n;
+  const q = o.length ? rnd(o).name : (window.I18N ? I18N.tr("quelqu'un") : "quelqu'un");
+  // « de Inès » → « d'Inès » (en français seulement)
+  const el = (w, n) => !window.I18N && /^[aeiouyhâàéèêëîïôûü]/i.test(n) ? w.slice(0, -1) + "'" + n : w + " " + n;
   return t.replace(/\b(de|que) \{p\}/g, (m, w) => el(w, p ? p.name : "")).replace(/\b(de|que) \{q\}/g, (m, w) => el(w, q))
     .replace(/\{p\}/g, p ? p.name : "").replace(/\{q\}/g, q);
 }
