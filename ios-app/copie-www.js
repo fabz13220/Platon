@@ -6,4 +6,6 @@ fs.rmSync(www, { recursive: true, force: true });
 fs.mkdirSync(www);
 for (const f of ["index.html", "contenu-defaut.json", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"])
   fs.copyFileSync(path.join(src, f), path.join(www, f));
+// traductions (i18n/*.js), chargées quand la langue n'est pas le français
+fs.cpSync(path.join(src, "i18n"), path.join(www, "i18n"), { recursive: true });
 console.log("www prêt");

@@ -18,6 +18,22 @@ function applyTheme() {
 }
 applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
+// langue : français de base. Une autre langue (Réglages > Langue, ou ?lang=en dans le lien) charge i18n/<langue>.js et i18n/i18n.js,
+// qui traduisent les cartes et l'écran. Si les fichiers manquent (hors ligne la 1re fois, lecteur Claude), tout reste en français.
+const LANGS = { fr: "Français", en: "English" };
+window.LANG = (function () {
+  let l = "fr";
+  try {
+    const q = new URLSearchParams(location.search).get("lang");
+    if (q && LANGS[q]) localStorage.setItem("scandale:lang", JSON.stringify(q));
+    l = JSON.parse(localStorage.getItem("scandale:lang")) || "fr";
+  } catch (e) {}
+  return LANGS[l] ? l : "fr";
+})();
+if (LANG !== "fr") {
+  const v = (document.querySelector('meta[name="build"]') || {}).content || "1";
+  document.write('<script src="i18n/' + LANG + '.js?v=' + v + '"><\/script><script src="i18n/i18n.js?v=' + v + '"><\/script>');
+}
 </script>
 <style>
 /* =====================================================================
@@ -3552,7 +3568,7 @@ const C = {
 const C0 = Object.fromEntries(Object.keys(C).map(k => [k, C[k].slice()]));
 /* contenu « ex et sexe » : masqué quand l'interrupteur est coupé */
 const HOT = /(^|[\s'’])ex([\s,.?!]|$)|sex|coquin|nude|plan cul|au lit|fantasme|érotique|orgasm|simul|couch|l'amour|plan à trois|(^|[\s'’])osée?|sensuel|tromp|capote|préservatif|body count/i;
-const isHot = parts => HOT.test(parts.join(" "));
+const isHot = parts => HOT.test(parts.join(" ")) || !!(window.I18N && I18N.hot.has(parts.join(" ")));
 const TYPES = {
   uno:       { label: "Vide ta main", color: "var(--yellow)", dark: false, desc: "" },
   jamais:    { label: "Je n'ai jamais", color: "var(--violet)", dark: true,  desc: "Ceux qui l'ont fait se balancent." },
@@ -3763,7 +3779,7 @@ const used = new Set(store.get("used", []));
 const seen = new Set();
 const useCard = id => { used.add(id); seen.add(id); };
 const ban = new Set(store.get("ban", []));
-const cardId = (type, c) => type + ":" + c.slice(1).join("|");
+const cardId = (type, c) => type + ":" + (c.fr || c).slice(1).join("|");
 // cartes de joueurs validées sur la page admin : identifiant de la carte → prénom de celui qui l'a proposée
 const AUTEURS = {};
 const byHtml = c => c && AUTEURS[c.id] ? `<span class="card-by">Proposé par <b>${esc(AUTEURS[c.id])}</b></span>` : "";
@@ -3880,7 +3896,7 @@ function appHeight() {
 }
 appHeight();
 if (document.fonts) document.fonts.ready.then(() => fitPage(true));
-function today() { return new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
+function today() { return new Date().toLocaleDateString((window.I18N && I18N.locale) || "fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
 
 /* -------- NOUVELLES CARTES : badge sur le jeu quand des cartes sont arrivées depuis la dernière partie à ce jeu -------- */
 const NEW_SRC = { jamais: ["jamais"], av: ["verite", "action"], pref: ["pref"], qui: ["qui"], ouinon: ["ouinon"], menteur: ["menteur"], classement: ["classement"], radar: ["radar"], taboo: ["taboo"], imposteur: ["imposteur"] };
@@ -3999,7 +4015,7 @@ function settingsSheet() {
     <div class="rail grid set-tiles">${t('data-tool="propose"', "✍️", "Proposer une carte", "Elle arrive dans le jeu", "#FF3B6E")}${t('id="idea"', "💡", "Proposer une idée", "Un jeu, un truc à changer", "#FFB21F")}${t('id="tester"', "🗳️", "Tester les cartes", "Dis si elles sont lourdes ou bof", "#5B5CF0")}</div>
     <button class="btn white" id="admin-btn"${store.get("admin", 0) ? "" : " hidden"}>Admin</button>
     <button class="btn" id="close">Fermer</button>
-    <div class="set-links">${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}<button class="linkbtn" id="report">Signaler un problème</button><a class="linkbtn" href="${SITE}confidentialite.html" target="_blank" rel="noopener">Confidentialité</a><button class="linkbtn" id="delacc">Supprimer mon compte</button></div>
+    <div class="set-links"><button class="linkbtn" id="lang-btn" aria-label="Langue">🌍 ${LANGS[LANG]}</button>${ban.size ? `<button class="linkbtn" id="bans">Cartes retirées (${ban.size})</button>` : ""}<button class="linkbtn" id="report">Signaler un problème</button><a class="linkbtn" href="${SITE}confidentialite.html" target="_blank" rel="noopener">Confidentialité</a><button class="linkbtn" id="delacc">Supprimer mon compte</button></div>
     <p class="hint muted" style="text-align:center;margin:0">Version du ${VERSION}</p>
     ${RECAPTCHA ? `<p class="hint muted" style="text-align:center;margin:0;font-size:11px">Protégé par reCAPTCHA : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">confidentialité</a> et <a href="https://policies.google.com/terms" target="_blank" rel="noopener">conditions</a> de Google.</p>` : ""}`, w => {
     bindTools(w, settingsSheet);
@@ -4009,6 +4025,7 @@ function settingsSheet() {
     $("#report", w).onclick = () => reportSheet(false, settingsSheet);
     $("#delacc", w).onclick = () => deleteAccountSheet(settingsSheet);
     $("#close", w).onclick = () => w.remove();
+    $("#lang-btn", w).onclick = () => { w.remove(); langSheet(settingsSheet); };
     const ts = $("#theme-seg", w), paintT = () => $$("button", ts).forEach(b => b.setAttribute("aria-pressed", b.dataset.v === store.get("theme", "auto")));
     $$("button", ts).forEach(b => b.onclick = () => { store.set("theme", b.dataset.v); applyTheme(); paintT(); });
     paintT();
@@ -4020,6 +4037,21 @@ function settingsSheet() {
     paintV();
     $("#admin-btn", w).onclick = () => { w.remove(); adminOpen(settingsSheet); };
     adminCheck().then(ok => { const b = $("#admin-btn", w); if (b) b.hidden = !ok; });
+  });
+}
+// choix de la langue : on recharge la page dans la nouvelle langue
+function langSheet(back) {
+  sheet(`<span class="mast" style="font-size:28px">Langue</span>
+    ${Object.entries(LANGS).map(([k, n]) => `<button class="btn${k === LANG ? " red" : " white"}" data-l="${k}" lang="${k}">${n}</button>`).join("")}
+    <button class="btn" id="lclose">Fermer</button>`, w => {
+    $$("[data-l]", w).forEach(b => b.onclick = () => {
+      w.remove();
+      if (b.dataset.l === LANG) { if (back) back(); return; }
+      store.set("lang", b.dataset.l);
+      try { const u = new URL(location.href); u.searchParams.delete("lang"); history.replaceState(null, "", u); } catch (e) {}
+      location.reload();
+    });
+    $("#lclose", w).onclick = () => { w.remove(); if (back) back(); };
   });
 }
 // un écran ouvert depuis les Réglages : la croix ou la flèche ramène à l'accueil, Réglages ouverts
@@ -8674,12 +8706,23 @@ function applyContenu(d) {
       C[k].length = 0; C[k].push(...pub, ...(C0[k] || []).filter(c => !ids.has(cardId(k, c))));
     }
     if (Array.isArray(d.deux) && d.deux.length) { DEUX.length = 0; DEUX.push(...d.deux); }
+    if (window.I18N) d = Object.assign({}, d, { desc: null, levels: null, tuto: null }); // textes réécrits en français dans l'admin : on garde ceux du code, traduits
     if (d.desc) for (const k in d.desc) if (TYPES[k] && typeof d.desc[k] === "string") TYPES[k].desc = d.desc[k];
     if (Array.isArray(d.levels)) d.levels.forEach((x, i) => { if (LEVELS[i] && x) LEVELS[i].desc = x; });
     if (d.tuto) for (const k in d.tuto) if (d.tuto[k]) TUTO[k] = d.tuto[k];
     for (const k in AUTEURS) delete AUTEURS[k];
     if (d.auteurs) for (const k in d.auteurs) if (typeof d.auteurs[k] === "string" && d.auteurs[k].trim()) AUTEURS[k] = d.auteurs[k].trim().slice(0, 14);
     store.get("custom", []).forEach(o => { if (C[o.type] && !C[o.type].some(c => cardId(o.type, c) === cardId(o.type, o.card))) C[o.type].push(o.card); });
+  } catch (e) {}
+  if (window.I18N) i18nCards();
+}
+// autre langue : les cartes traduites remplacent les françaises (celles pas encore traduites sont retirées)
+function i18nCards() {
+  try {
+    I18N.cards(C, {
+      isHot: (k, c) => !(k === "taboo" && TB_SAGE.has(c[1])) && HOT.test(c.slice(1).join(" "))
+    });
+    CLASS_FAM.forEach(f => f.forEach((t, i) => { f[i] = I18N.cardText("classement", t); }));
   } catch (e) {}
 }
 applyContenu((store.get("contenu", {}) || {}).d || {});

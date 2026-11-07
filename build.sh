@@ -74,6 +74,6 @@ cat <<'U'
 U
 } > index.html
 # empreinte de la version : l'appli la compare avec celle en ligne pour se mettre à jour
-sed -i "s/@BUILD@/$(sha1sum platoz.html | cut -c1-12)/" index.html
+sed -i "s/@BUILD@/$(cat platoz.html i18n/*.js 2>/dev/null | sha1sum | cut -c1-12)/" index.html
 # contenu de départ de la page admin (cartes, textes) tiré de platoz.html
 node outils/defaut.js

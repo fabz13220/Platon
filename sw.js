@@ -35,6 +35,13 @@ self.addEventListener("fetch", e => {
     })());
     return;
   }
+  // traductions (i18n/*.js?v=…) : le réseau d'abord, la dernière copie gardée sans internet (une seule copie par fichier)
+  if (u.origin === location.origin && /\/i18n\/[\w-]+\.js$/.test(u.pathname)) {
+    const key = u.origin + u.pathname;
+    e.respondWith(caches.open(CACHE).then(c => fetch(r).then(res => { if (res.ok) c.put(key, res.clone()); return res; })
+      .catch(async err => (await c.match(key)) || Promise.reject(err))));
+    return;
+  }
   // polices, Firebase et icônes : la copie gardée tout de suite, rafraîchie en arrière-plan
   const keep = /^(fonts\.googleapis\.com|fonts\.gstatic\.com)$/.test(u.hostname) || (u.hostname === "www.gstatic.com" && u.pathname.startsWith("/firebasejs/"))
     || (u.origin === location.origin && /\.(png|webmanifest)$/.test(u.pathname));
