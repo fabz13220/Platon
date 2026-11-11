@@ -4076,7 +4076,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "29 octobre · App Check branché";
+const VERSION = "11 novembre · demande d'étoiles";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -5742,7 +5742,21 @@ function choixAdd(c, k) {
 // statistiques anonymes : parties lancées et finies, par téléphone (identifiant au hasard, sans nom)
 const statMode = () => store.get("multi", false) ? "multi" : "un";
 const standalone = (() => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } })();
+// demande d'étoiles d'Apple (appli iPhone seulement) : après la 2e partie finie, puis au plus tous les 90 jours.
+// Apple décide s'il affiche vraiment la fenêtre (3 fois par an maximum).
+function askReview() {
+  try {
+    const R = NATIVE && Capacitor.Plugins.InAppReview;
+    if (!R) return;
+    const fins = store.get("fins", 0) + 1, last = store.get("revAt", 0);
+    store.set("fins", fins);
+    if (fins < 2 || Date.now() - last < 90 * 864e5) return;
+    store.set("revAt", Date.now());
+    setTimeout(() => { R.requestReview().catch(() => {}); }, 1800);
+  } catch (e) {}
+}
 function stat(ev, g, n, mode) {
+  if (ev === "end") askReview();
   try {
     if (navigator.webdriver || store.get("emu", 0)) return; // pas les tests automatiques
     fsDb.doc("stats/" + devId + "_" + Date.now().toString(36)).set({ ev, g: g || "", n: n || 0, mode: mode || statMode(), dev: devId, app: standalone, claude: !!window.claude, at: Date.now() }).catch(() => {});

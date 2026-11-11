@@ -6,6 +6,7 @@
     "ios": "npm run www && npx cap sync ios && npx cap open ios"
   },
   "dependencies": {
+    "@capacitor-community/in-app-review": "^8.0.0",
     "@capacitor-firebase/app-check": "^8.5.2",
     "@capacitor/core": "^8.0.0",
     "@capacitor/filesystem": "^8.1.5",
