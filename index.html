@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="db7e7b96f38c">
+<meta name="build" content="d0261e845b14">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -6801,11 +6801,13 @@ function pauseMenu() {
     <div class="mini-rank"${noPts() ? ' style="display:none"' : ""}>${st.map(r => `<div><span>${r.rank}. ${esc(r.name)}</span><b>${r.pts}</b></div>`).join("")}</div>
     <div class="section-label">Intensité</div>
     <div class="seg" id="lvl">${LEVELS.map(l => `<button data-l="${l.n}" aria-pressed="${l.n === S.level}">${l.name}</button>`).join("")}</div>
+    ${svRow()}
     <button class="btn ink" id="end">Terminer la partie <small>${noPts() ? "Fin de la partie" : "Voir le classement"}</small></button>
     <button class="linkbtn" id="quit">Abandonner et revenir à l'accueil</button>
     <button class="linkbtn" id="report">Signaler un problème</button>
   `, w => {
     $("#resume", w).onclick = () => w.remove();
+    bindSv(w);
     bindTools(w, pauseMenu);
     $("#end", w).onclick = () => { w.remove(); ranking(); };
     $("#quit", w).onclick = () => { w.remove(); home(); };
@@ -7223,13 +7225,29 @@ const PUR = [
   ]]
 ];
 
+// Son et vibrations pendant la partie (menu Pause et « Quitter la partie ? ») : mêmes réglages que dans Réglages
+const svRow = () => `<div class="seg" id="sv-seg"><button data-k="sound"></button><button data-k="vib"></button></div>`;
+function bindSv(w) {
+  const paint = () => $$("#sv-seg button", w).forEach(b => {
+    const on = !!store.get(b.dataset.k, 1); b.setAttribute("aria-pressed", on);
+    b.textContent = b.dataset.k === "sound" ? (on ? "🔊 Son" : "🔇 Son coupé") : (on ? "📳 Vibrations" : "📴 Sans vibration");
+  });
+  $$("#sv-seg button", w).forEach(b => b.onclick = () => {
+    const v = store.get(b.dataset.k, 1) ? 0 : 1; store.set(b.dataset.k, v);
+    if (b.dataset.k === "vib") { applyVib(); if (v) haptic(20); }
+    paint();
+  });
+  paint();
+}
+
 /* deux prénoms pour les jeux à deux */
 function quitBtn() { return `<button class="iconbtn" id="quit" aria-label="Quitter">×</button>`; }
 function bindQuit() {
   const ask = () => sheet(`<span class="mast" style="font-size:30px">Quitter la partie ?</span>
     <div class="row"><button class="btn white" id="stay">Continuer</button><button class="btn ink" id="leave">Quitter</button></div>
+    ${svRow()}
     <button class="linkbtn" id="report">Signaler un problème</button>`,
-    w => { $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; $("#report", w).onclick = () => reportSheet(true, ask); });
+    w => { bindSv(w); $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; $("#report", w).onclick = () => reportSheet(true, ask); });
   $("#quit").onclick = ask;
 }
 
