@@ -2139,6 +2139,14 @@ html[data-theme="dark"] {
 };</script>
 <div id="splash" aria-hidden="true"><div class="spl-logo">Bliz</div><div class="spl-dots"><i></i><i></i><i></i><i></i></div></div>
 <script>setTimeout(function () { var s = document.getElementById("splash"); if (s) s.remove(); }, 5000);</script>
+<script>
+// appli iPhone : l'écran de lancement natif (uni, même couleur) s'efface dès que l'écran d'ouverture BLIZ est affiché, au lieu d'attendre ; au pire il part seul après 3 s (capacitor.config.json)
+(function () {
+  var C = window.Capacitor; if (!(C && C.isNativePlatform && C.isNativePlatform() && C.Plugins.SplashScreen)) return;
+  var hide = function () { try { C.Plugins.SplashScreen.hide({ fadeOutDuration: 200 }); } catch (e) {} };
+  requestAnimationFrame(function () { requestAnimationFrame(hide); });
+})();
+</script>
 <div id="app"></div>
 
 <script>
@@ -3924,7 +3932,7 @@ function home() {
   S.inGame = false; onStop(); ON.ctx = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
-  const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: 2, uno: 2, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
+  const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: multi ? 2 : 1, uno: multi ? 2 : 1, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
   const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Règles classiques."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   // un jeu qui ne va pas avec le nombre de joueurs reste visible, grisé, avec le nombre qu'il faut
@@ -3945,11 +3953,11 @@ function home() {
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["reflexe"], "", true)}` : `
       <div id="resume"></div><div id="invites"></div>
-      ${n === 1 ? rail("En solo", ["reflexe", "test"]) : ""}
+      ${n === 1 ? rail("En solo", ["p4", "uno", "reflexe", "test"]) : ""}
       ${rail("Votes et devinettes", ["classement", "qui", "radar"])}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"]).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Questions", ["jamais", "av", "pref", "ouinon"])}
-      ${rail("Jeux de société", n > 1 ? ["p4", "uno", "reflexe", "test"] : ["p4", "uno"], "row-societe")}`}
+      ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe", "test"], "row-societe") : ""}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
     <div class="tabbar-space"></div>
     <nav class="tabbar" aria-label="Menu">
