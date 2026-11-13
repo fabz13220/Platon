@@ -4192,7 +4192,7 @@ function playersScreen() {
     const vb = $("#vs-bot"); if (vb) vb.onclick = () => {
       if (!S.names.length) { toast("Ajoute ton prénom d'abord."); $("#name-input").focus(); return; }
       if (S.mode === "uno" && S.names.length > 9) { toast("10 joueurs maximum à Vide ta main."); return; }
-      S.bot = true; S.mode === "uno" ? unoStart() : p4Start();
+      S.bot = true; S.mode === "uno" ? unoStart() : p4Start(true);
     };
     draw(); groupBubbles(draw);
   });
@@ -6274,11 +6274,13 @@ function cupLabel(c) {
 const cupPair = c => [c.ro[c.mi * 2], c.ro[c.mi * 2 + 1]];
 // un prénom composé ne passe jamais à la ligne au milieu
 const nw = x => `<span class="nw">${esc(x)}</span>`;
-function p4Start() {
-  if (tutoGate("p4", p4Start)) return;
+function p4Start(fresh) {
+  if (tutoGate("p4", () => p4Start(fresh))) return;
   if (S.names.length > 2 && !S.bot) return p4Cup(true);
   const names = S.bot ? [S.names[0], BOT] : S.names.slice(0, 2), key = names.join("|");
   if (P4.key !== key) Object.assign(P4, { key, wins: {}, first: 0, round: 0 });
+  // contre l'ordi : qui commence la première manche est tiré au sort (ensuite, le perdant commence la revanche)
+  if (S.bot && (fresh === true || P4.round === 0)) P4.first = Math.random() < .5 ? 1 : 0;
   P4.round++;
   p4Board(names, P4.first, `Manche ${P4.round}`, `${P4.wins[names[0]] || 0} - ${P4.wins[names[1]] || 0}`, "", w => {
     // à deux : le perdant commence la revanche
