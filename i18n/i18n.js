@@ -66,7 +66,7 @@
 
   /* ---------- écran ---------- */
   const ATTR = ["placeholder", "aria-label", "title", "alt"];
-  const SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, svg: 1 };
+  const SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1 }; // les <svg> sont parcourus : la roue des jeux y écrit le nom des jeux
   function fixEl(el) {
     for (const a of ATTR) { const v = el.getAttribute(a); if (v) { const t = tr(v); if (t !== v) el.setAttribute(a, t); } }
   }
