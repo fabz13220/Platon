@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="443f7c8e84ba">
+<meta name="build" content="a6d51653c71b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -48,7 +48,7 @@ applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
 // langue : français de base. Une autre langue (Réglages > Langue, ou ?lang=en dans le lien) charge i18n/<langue>.js et i18n/i18n.js,
 // qui traduisent les cartes et l'écran. Si les fichiers manquent (hors ligne la 1re fois, lecteur Claude), tout reste en français.
-const LANGS = { fr: "Français", en: "English", es: "Español", it: "Italiano", de: "Deutsch", pt: "Português", nl: "Nederlands", pl: "Polski", tr: "Türkçe", ro: "Română", sv: "Svenska" };
+const LANGS = { fr: "Français", en: "English", es: "Español", it: "Italiano", de: "Deutsch", pt: "Português", nl: "Nederlands", pl: "Polski", tr: "Türkçe", ro: "Română", sv: "Svenska", da: "Dansk" };
 window.LANG = (function () {
   let l = "fr";
   try {
@@ -4506,6 +4506,8 @@ function wheelTicks(seg, ms) {
   requestAnimationFrame(step);
 }
 // dessin commun aux deux roues : parts, anneau de petites lumières, moyeu fixe au centre
+// noms trop longs (traductions) : on les resserre pour qu'ils restent dans leur part
+const fitWheel = () => requestAnimationFrame(() => document.querySelectorAll(".wheel .wl").forEach(t => { try { if (t.getComputedTextLength() > 104) { t.setAttribute("textLength", 104); t.setAttribute("lengthAdjust", "spacingAndGlyphs"); } } catch (e) {} }));
 function wheelSvg(games, label) {
   const n = games.length, seg = 360 / n, R = 136, C0 = 150;
   const pt = (a, r) => { const t = (a - 90) * Math.PI / 180; return [C0 + r * Math.cos(t), C0 + r * Math.sin(t)]; };
@@ -4531,7 +4533,7 @@ function wheel(auto) {
     </div>
     <div class="actions"><button class="btn red" id="spin">Lancer la roue</button></div>
   `, () => {
-    $("#back").onclick = home;
+    $("#back").onclick = home; fitWheel();
     let busy = false;
     const spin = () => {
       if (busy) return; busy = true;
@@ -4567,7 +4569,7 @@ function soloWheel() {
       <p class="wheel-res" id="res">La roue tourne…</p>
     </div>
   `, () => {
-    $("#back").onclick = home;
+    $("#back").onclick = home; fitWheel();
     const pick = Math.floor(Math.random() * 2), g = games[pick];
     const rot = 360 * 5 + (360 - (pick * 180 + 90)) + (Math.random() - .5) * 90;
     buzz(20, false);

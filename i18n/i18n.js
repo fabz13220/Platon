@@ -32,11 +32,15 @@
     return t;
   }
   // garde les espaces autour du texte (« Je n'ai jamais <b>…</b> »)
+  // un texte déjà traduit n'est pas retraduit (en danois, « Rapportér et problem » tombait sur le motif « {} et {} »)
+  const done = new Set();
   function tr(s) {
     if (typeof s !== "string" || !/[A-Za-zÀ-ÿ]/.test(s)) return s;
     const a = s.match(/^\s*/)[0].length, b = s.match(/\s*$/)[0].length;
     const core = s.slice(a, s.length - b).replace(/\s+/g, " ");
+    if (done.has(core)) return s;
     const t = trText(core);
+    if (t !== core) done.add(t);
     return t === core ? s : s.slice(0, a) + t + s.slice(s.length - b);
   }
 
@@ -54,6 +58,8 @@
         if (c.fr) { out.push(c); continue; }
         const key = c.slice(1).join("|"), f = m[key];
         if (!f) { if (custom.has(k + ":" + key)) out.push(c); continue; } // carte pas traduite (ou réécrite dans l'admin) : retirée
+        // les cartes traduites ne repassent pas dans les motifs (une carte danoise « … et … » n'est pas un « {} et {} » français)
+        for (const x of f) for (const p of String(x).split("{q}")) { const q = p.trim().replace(/\s+/g, " "); if (q) done.add(q); }
         const t = [c[0], ...f]; // L'Imposteur : un 4e champ traduit = le mot du faux sosie
         t.fr = c;
         if (opt.isHot && opt.isHot(k, c)) hot.add(f.join(" "));
