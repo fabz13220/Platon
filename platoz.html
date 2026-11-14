@@ -602,6 +602,15 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 /* Débat : les deux réponses côte à côte, même remplissage caché que Tu préfères */
 .vs.ovs { flex-direction: row; gap: 12px; margin-top: 4px; }
 .vs.ovs .opt-a, .vs.ovs .opt-b { flex: 1; padding: 16px 10px; text-align: center; font-size: 22px; }
+/* Débat : le chrono 3, 2, 1 puis 30 s */
+.dbt-go { align-self: center; margin: 2px 22px 0; padding: 10px 18px; border: 0; border-radius: 999px; background: var(--chipbg); box-shadow: inset 0 0 0 1.5px var(--chipbd); color: var(--tx); font: 900 17px/1.2 var(--body); cursor: pointer; }
+.dbt-go:active { transform: scale(.97); }
+.dbt-ov { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 22px 48px; text-align: center; color: #fff; background: rgba(20,6,45,.84); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: pop .2s ease-out; cursor: pointer; }
+.dbt-ov b { font-family: var(--display); font-weight: 900; font-size: min(120px, 16vh); line-height: 1; font-variant-numeric: tabular-nums; }
+.dbt-ov b.th { font-size: min(76px, 11vh); }
+.dbt-ov p { margin: 0; font-weight: 900; font-size: 22px; line-height: 1.3; text-wrap: balance; }
+.dbt-ov p:empty { display: none; }
+.dbt-ov small { position: absolute; bottom: 18px; left: 0; right: 0; font-weight: 800; font-size: 14px; opacity: .72; }
 .vs .or {
   align-self: center; margin: -14px 0; z-index: 1; width: 58px; height: 58px; border-radius: 50%;
   display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 16px; text-transform: uppercase;
@@ -2861,110 +2870,115 @@ const C = {
   ],
   ouinon: [
     [1,"Tu pourrais vivre un mois sans téléphone ?"],[1,"Tu mangerais un insecte pour 50 € ?"],[1,"Tu crois aux fantômes ?"],
-    [1,"Tu partirais vivre sur Mars, sans retour ?"],[1,"Tu tiendrais un an sans fast-food ?"],[1,"Tu te raserais la tête pour 1 000 € ?"],
-    [1,"Tu ferais un saut à l'élastique ?"],[1,"Tu rendrais un portefeuille plein de billets ?"],[1,"Tu pourrais devenir végétarien ?"],
-    [1,"Tu ferais une téléréalité pour 100 000 € ?"],[1,"Tu crois au coup de foudre ?"],[1,"Tu pourrais lâcher les réseaux sociaux pour de bon ?"],
-    [1,"Tu voudrais connaître la date de ta mort ?"],[1,"Tu pardonnerais à un pote qui t'a volé 100 balles ?"],[1,"Tu prendrais une pilule pour ne plus jamais dormir ?"],
-    [1,"Tu lâcherais internet à vie pour 1 million ?"],[1,"Tu pourrais vivre en coloc avec quelqu'un ici ?"],[1,"Tu confierais ton chien à {q} pendant une semaine ?"],
-    [1,"Tu prêterais ta voiture à {q} ?"],[1,"Tu chanterais au karaoké ce soir ?"],[1,"Tu ferais le tour du monde tout seul ?"],
-    [1,"Tu retournerais au collège pour un an si on te payait ?"],[1,"Tu goûterais à la nourriture pour chat ?"],[1,"Tu partirais en vacances avec {q} pendant un mois ?"],
-    [1,"Tu remets un jean une semaine entière sans le laver ?"],[1,"Tu ferais une semaine de silence total pour 5 000 € ?"],
-    [2,"Tu retournerais avec un ex ?"],[2,"Tu pourrais sortir avec quelqu'un de 15 ans de plus que toi ?"],
-    [2,"Tu regarderais le téléphone de ton mec ou de ta meuf s'il était déverrouillé ?"],[2,"Tu pardonnerais une tromperie ?"],
-    [2,"Tu sortirais avec l'ex d'un pote ?"],[2,"Tu pourrais tenir une relation à distance ?"],[2,"Tu ferais un date à l'aveugle ?"],
-    [2,"Tu te marierais sans avoir vécu ensemble avant ?"],[2,"Tu dirais « je t'aime » en premier ?"],[2,"Tu plaquerais tout pour suivre quelqu'un à l'autre bout du monde ?"],
-    [2,"Tu dirais à ton pote que sa meuf le trompe ?"],[2,"Tu pourrais rester ami avec un ex ?"],[2,"Tu sortirais avec quelqu'un qui gagne 10 fois moins que toi ?"],
-    [3,"Tu ferais un plan à trois ?"],[3,"Tu coucherais le premier soir ?"],[3,"Tu accepterais un couple libre, où chacun peut coucher ailleurs ?"],
-    [3,"Tu enverrais des nudes à quelqu'un que t'as jamais vu ?"],[3,"Tu ferais l'amour dans les toilettes d'un avion ?"],
-    [3,"T'as un fantasme que t'as jamais dit à personne ?"],[3,"Tu pourrais avoir un plan cul avec quelqu'un ici ?"],
-    [1, "Tu mangerais une araignée pour 500 € ?"],[1, "Tu te ferais tatouer le prénom de {q} pour 10 000 € ?"],[1, "Tu passerais une nuit seul dans un cimetière ?"],[1, "Tu sauterais en parachute demain ?"],[1, "Tu échangerais ta vie avec {q} pendant une semaine ?"],[1, "Tu pourrais vivre un an sans fromage ?"],[1, "Tu nagerais avec des requins ?"],[1, "Tu tiendrais un an sans sucre pour 10 000 € ?"],[1, "Tu crois à l'astrologie ?"],[1, "Tu mangerais le même plat tous les jours pendant un an pour 20 000 € ?"],[1, "Tu te teindrais les cheveux en vert pour 200 € ?"],[1, "Tu ferais un concours de piments ?"],[1, "Tu irais en cours ou au taf en pyjama toute une semaine ?"],[1, "Tu dirais à {q} qu'il a un truc entre les dents ?"],[2, "Tu ferais le tour du quartier en slip pour 1 000 € ?"],
-    [1, "Tu crois aux extraterrestres ?"],[1, "Tu crois à la vie après la mort ?"],[1, "Tu crois au destin ?"],[1, "Tu mangerais un ver de terre pour 100 € ?"],
-    [1, "Tu te ferais tatouer un logo de marque pour 5 000 € ?"],[1, "Tu passerais une semaine sans te laver pour 1 000 € ?"],
-    [1, "Tu dormirais une nuit dans un hôpital abandonné ?"],[1, "Tu traverserais l'Atlantique en voilier ?"],[1, "Tu voudrais vivre pour toujours ?"],
-    [1, "Tu partirais dans l'espace si c'était gratuit ?"],[1, "Tu voudrais savoir ce que tout le monde pense de toi ?"],
-    [1, "Tu donnerais la moitié de ton salaire à vie pour ne plus jamais être malade ?"],[1, "Tu irais vivre un an dans un pays dont tu parles pas la langue ?"],
-    [1, "Tu te ferais cloner ?"],[1, "Tu changerais de prénom pour 50 000 € ?"],[1, "Tu te raserais les sourcils pour 500 € ?"],
-    [1, "Tu pourrais passer 24 h dans le noir complet ?"],[1, "Tu dirais à ton pote que sa copine te drague ?"],[1, "Tu dirais à ton pote que sa coupe est ratée ?"],
-    [1, "Tu balancerais un pote qui triche à un exam ?"],[1, "Tu prêterais 1 000 € à un pote ?"],[1, "Tu ferais un road trip sans téléphone ?"],
-    [1, "Tu lirais ton journal intime à voix haute pour 10 000 € ?"],[1, "Tu manges la pizza à l'ananas ?"],[1, "Tu mets du ketchup sur tes pâtes ?"],
-    [1, "Tu crois qu'on a vraiment marché sur la Lune ?"],[1, "Tu remonterais le temps pour changer une décision ?"],
-    [1, "Tu vivrais dans la maison de tes rêves si elle était hantée ?"],[1, "Tu adopterais un serpent ?"],[1, "Tu tiendrais une semaine seul en forêt ?"],
-    [1, "Tu ferais la queue 10 heures pour un iPhone gratuit ?"],[1, "Tu prendrais un an de pause pour voyager ?"],[1, "Tu ferais Koh-Lanta ?"],
-    [1, "Tu goûterais un plat sans savoir ce qu'il y a dedans ?"],[1, "Tu te ferais une coupe mulet pour 2 000 € ?"],
-    
-    [1, "Tu rendrais un cadeau qui te plaît pas ?"],[1, "Tu ferais un boulot que tu détestes pour le double de ton salaire ?"],
-    [2, "Tu pardonnerais à un pote qui sort avec ton ex ?"],[2, "Tu dirais à un pote que son mec ou sa meuf est nul ?"],[2, "Tu inviterais ton ex à ton mariage ?"],
-    [2, "Tu sortirais avec ton patron ?"],[2, "Tu ferais un tatouage en couple ?"],[2, "Tu ferais ta demande en mariage en public ?"],
-    [2, "Tu partirais en vacances avec ton ex si c'était gratuit ?"],[2, "Tu irais à un date sans te doucher pour 200 € ?"],
-    [2, "Tu ferais une fausse demande en mariage pour faire le buzz ?"],[2, "Tu ressortirais avec ton premier amour ?"],
-    [2, "Tu ferais un bébé avec ton meilleur pote si vous êtes seuls à 40 ans ?"],[3, "Tu coucherais avec quelqu'un pour 1 million ?"],
-    [3, "Tu pourrais coucher avec quelqu'un sans jamais l'embrasser ?"],
-    [1,"Tu mangerais un grillon pour 20 € ?"],[1,"Tu dormirais une nuit dans un cercueil pour 1 000 € ?"],[1,"Tu ferais le tour du monde en bateau pendant un an ?"],
-    [1,"Tu crois aux vies antérieures ?"],[1,"Tu crois que les voyants voient vraiment des trucs ?"],[1,"Tu crois aux porte-bonheur ?"],
-    [1,"Tu crois qu'on est seuls dans l'univers ?"],[1,"Tu crois au karma ?"],[1,"Tu crois aux rêves prémonitoires ?"],
-    [1,"Tu crois que les animaux comprennent ce qu'on leur dit ?"],[1,"Tu crois que l'argent fait le bonheur ?"],[1,"Tu crois à l'amitié entre un mec et une meuf ?"],
-    [1,"Tu crois à l'âme sœur ?"],[1,"Tu crois aux signes du destin ?"],[1,"Tu crois que les robots remplaceront tous les métiers ?"],
-    [1,"Tu te ferais implanter une puce dans la main pour payer ?"],[1,"Tu vivrais 6 mois dans une station en Antarctique ?"],[1,"Tu partirais 5 ans dans l'espace pour 10 millions ?"],
-    [1,"Tu prendrais une pilule qui te fait parler anglais parfaitement ?"],[1,"Tu prendrais un an de ta vie en moins pour 1 million ?"],[1,"Tu tiendrais une semaine sans parler ?"],
-    [1,"Tu te ferais tatouer ton propre visage pour 10 000 € ?"],[1,"Tu passerais un an avec un vieux Nokia pour 3 000 € ?"],[1,"Tu marcherais pieds nus en ville pendant une semaine ?"],
-    [1,"Tu mangerais un plat cuisiné par un robot ?"],[1,"Tu goûterais de la viande faite en labo ?"],[1,"Tu monterais dans une voiture sans conducteur ?"],
-    [1,"Tu vivrais dans une maison minuscule pour voyager plus ?"],[1,"Tu plaquerais ton taf pour ouvrir un bar à la plage ?"],[1,"Tu partirais vivre à la campagne demain ?"],
-    [1,"Tu ferais du camping sauvage tout seul ?"],[1,"Tu ferais du saut en parachute en tandem ?"],[1,"Tu monterais au sommet de la tour Eiffel par les escaliers ?"],
-    [1,"Tu ferais un marathon sans t'entraîner pour 5 000 € ?"],[1,"Tu ferais une plongée avec des requins blancs dans une cage ?"],[1,"Tu ferais une nuit dans un hôtel de glace ?"],
-    [1,"Tu ferais une semaine de colo à ton âge ?"],[1,"Tu irais au cinéma tout seul ?"],[1,"Tu irais à un concert tout seul ?"],
-    [1,"Tu partirais en vacances avec des inconnus ?"],[1,"Tu ferais un échange de maison avec un inconnu ?"],[1,"Tu prêterais ton appart sur Airbnb pendant tes vacances ?"],
-    [1,"Tu donnerais 10 % de ton salaire pour aider ta ville ?"],[1,"Tu rendrais 50 € qu'on t'a rendus en trop au supermarché ?"],[1,"Tu dénoncerais un inconnu que tu vois voler ?"],
-    [1,"Tu préviendrais quelqu'un qu'il a sa braguette ouverte ?"],[1,"Tu dirais à un inconnu qu'il a un truc entre les dents ?"],[1,"Tu te mettrais entre deux inconnus qui se battent ?"],
-    [1,"Tu ferais du stop pour rentrer chez toi ?"],[1,"Tu prendrais un auto-stoppeur ?"],[1,"Tu adopterais un chien de 15 ans ?"],
-    [1,"Tu pourrais vivre sans voiture ?"],[1,"Tu pourrais vivre sans café ?"],[1,"Tu pourrais vivre sans chocolat ?"],
-    [1,"Tu pourrais vivre sans musique pendant un an ?"],[1,"Tu pourrais vivre un an sans sortir de ta ville ?"],[1,"Tu pourrais passer une semaine sans miroir ?"],
-    [1,"Tu pourrais dormir dans le même lit que ton chien toute ta vie ?"],[1,"Tu pourrais devenir vegan pendant un an ?"],[1,"Tu pourrais te lever à 5 h tous les jours ?"],
-    [1,"Tu pourrais être prof ?"],[1,"Tu pourrais être infirmier ?"],[1,"Tu pourrais bosser de nuit toute ta vie ?"],
-    [1,"Tu pourrais bosser avec ton meilleur pote ?"],[1,"Tu pourrais bosser avec tes parents ?"],[1,"Tu pourrais vivre avec tes beaux-parents ?"],
-    [1,"Tu voudrais être célèbre ?"],[1,"Tu voudrais avoir des jumeaux ?"],[1,"Tu voudrais vivre dans un château ?"],
-    [1,"Tu voudrais savoir combien de temps il te reste ?"],[1,"Tu voudrais lire dans les pensées de tes potes ?"],[1,"Tu voudrais rencontrer ton toi du futur ?"],
-    [1,"Tu voudrais revivre ton adolescence ?"],[1,"Tu voudrais avoir un robot à la maison ?"],[1,"Tu voudrais connaître tes vies d'avant, si elles existaient ?"],
-    [1,"Tu rends toujours le caddie à sa place ?"],[1,"Tu dis bonjour au chauffeur de bus ?"],[1,"Tu manges les croûtes de ta pizza ?"],
-    [1,"Tu mets le lait avant les céréales ?"],[1,"Tu manges le fromage avec la croûte ?"],[1,"Tu manges les frites avec de la mayo ?"],
-    [1,"Tu dors avec des chaussettes ?"],[1,"Tu te douches le soir ?"],[1,"Tu fais ton lit tous les matins ?"],
-    [1,"Tu laisses toujours un pourboire ?"],[1,"Tu regardes la fin d'un film même s'il est nul ?"],[1,"Tu lis les conditions avant d'accepter ?"],
-    [1,"Tu dis « bon appétit » à des inconnus ?"],[1,"Tu applaudis quand l'avion atterrit ?"],[1,"Tu manges ton dessert en premier quand t'es seul ?"],
-    [1,"Tu ferais une semaine sans sucre pour 300 € ?"],[1,"Tu boirais un verre de jus de cornichon pour 50 € ?"],[1,"Tu mangerais une cuillère de wasabi pour 100 € ?"],
+    [1,"Tu partirais vivre sur Mars, sans retour ?"],[1,"Tu te raserais la tête pour 1 000 € ?"],[1,"Tu ferais un saut à l'élastique ?"],
+    [1,"Tu rendrais un portefeuille plein de billets ?"],[1,"Tu pourrais devenir végétarien ?"],[1,"Tu ferais une téléréalité pour 100 000 € ?"],
+    [1,"Tu crois au coup de foudre ?"],[1,"Tu pourrais lâcher les réseaux sociaux pour de bon ?"],[1,"Tu voudrais connaître la date de ta mort ?"],
+    [1,"Tu pardonnerais à un pote qui t'a volé 100 balles ?"],[1,"Tu prendrais une pilule pour ne plus jamais dormir ?"],[1,"Tu lâcherais internet à vie pour 1 million ?"],
+    [1,"Tu confierais ton chien à {q} pendant une semaine ?"],[1,"Tu ferais le tour du monde tout seul ?"],[1,"Tu goûterais à la nourriture pour chat ?"],
+    [1,"Tu ferais une semaine de silence total pour 5 000 € ?"],[2,"Tu retournerais avec un ex ?"],[2,"Tu pourrais sortir avec quelqu'un de 15 ans de plus que toi ?"],
+    [2,"Tu dirais « je t'aime » en premier ?"],[2,"Tu dirais à ton pote que sa meuf le trompe ?"],[2,"Tu pourrais rester ami avec un ex ?"],
+    [3,"Tu ferais un plan à trois ?"],[3,"Tu coucherais le premier soir ?"],[1,"Tu mangerais une araignée pour 500 € ?"],
+    [1,"Tu te ferais tatouer le prénom de {q} pour 10 000 € ?"],[1,"Tu passerais une nuit seul dans un cimetière ?"],[1,"Tu sauterais en parachute demain ?"],
+    [1,"Tu échangerais ta vie avec {q} pendant une semaine ?"],[1,"Tu pourrais vivre un an sans fromage ?"],[1,"Tu nagerais avec des requins ?"],
+    [1,"Tu tiendrais un an sans sucre pour 10 000 € ?"],[1,"Tu crois à l'astrologie ?"],[1,"Tu mangerais le même plat tous les jours pendant un an pour 20 000 € ?"],
+    [1,"Tu te teindrais les cheveux en vert pour 200 € ?"],[2,"Tu ferais le tour du quartier en slip pour 1 000 € ?"],[1,"Tu crois aux extraterrestres ?"],
+    [1,"Tu crois à la vie après la mort ?"],[1,"Tu crois au destin ?"],[1,"Tu mangerais un ver de terre pour 100 € ?"],
+    [1,"Tu te ferais tatouer un logo de marque pour 5 000 € ?"],[1,"Tu passerais une semaine sans te laver pour 1 000 € ?"],[1,"Tu voudrais vivre pour toujours ?"],
+    [1,"Tu partirais dans l'espace si c'était gratuit ?"],[1,"Tu voudrais savoir ce que tout le monde pense de toi ?"],[1,"Tu donnerais la moitié de ton salaire à vie pour ne plus jamais être malade ?"],
+    [1,"Tu irais vivre un an dans un pays dont tu parles pas la langue ?"],[1,"Tu te ferais cloner ?"],[1,"Tu changerais de prénom pour 50 000 € ?"],
+    [1,"Tu dirais à ton pote que sa copine te drague ?"],[1,"Tu dirais à ton pote que sa coupe est ratée ?"],[1,"Tu balancerais un pote qui triche à un exam ?"],
+    [1,"Tu prêterais 1 000 € à un pote ?"],[1,"Tu lirais ton journal intime à voix haute pour 10 000 € ?"],[1,"Tu manges la pizza à l'ananas ?"],
+    [1,"Tu mets du ketchup sur tes pâtes ?"],[1,"Tu crois qu'on a vraiment marché sur la Lune ?"],[1,"Tu remonterais le temps pour changer une décision ?"],
+    [1,"Tu vivrais dans la maison de tes rêves si elle était hantée ?"],[1,"Tu ferais la queue 10 heures pour un iPhone gratuit ?"],[1,"Tu ferais Koh-Lanta ?"],
+    [1,"Tu te ferais une coupe mulet pour 2 000 € ?"],[1,"Tu ferais un boulot que tu détestes pour le double de ton salaire ?"],[2,"Tu pardonnerais à un pote qui sort avec ton ex ?"],
+    [2,"Tu inviterais ton ex à ton mariage ?"],[2,"Tu sortirais avec ton patron ?"],[2,"Tu irais à un date sans te doucher pour 200 € ?"],
+    [2,"Tu ferais une fausse demande en mariage pour faire le buzz ?"],[3,"Tu coucherais avec quelqu'un pour 1 million ?"],[3,"Tu pourrais coucher avec quelqu'un sans jamais l'embrasser ?"],
+    [1,"Tu dormirais une nuit dans un cercueil pour 1 000 € ?"],[1,"Tu crois aux vies antérieures ?"],[1,"Tu crois que les voyants voient vraiment des trucs ?"],
+    [1,"Tu crois aux porte-bonheur ?"],[1,"Tu crois qu'on est seuls dans l'univers ?"],[1,"Tu crois au karma ?"],
+    [1,"Tu crois aux rêves prémonitoires ?"],[1,"Tu crois que les animaux comprennent ce qu'on leur dit ?"],[1,"Tu crois que l'argent fait le bonheur ?"],
+    [1,"Tu crois à l'amitié entre un mec et une meuf ?"],[1,"Tu crois à l'âme sœur ?"],[1,"Tu te ferais implanter une puce dans la main pour payer ?"],
+    [1,"Tu vivrais 6 mois dans une station en Antarctique ?"],[1,"Tu partirais 5 ans dans l'espace pour 10 millions ?"],[1,"Tu prendrais une pilule qui te fait parler anglais parfaitement ?"],
+    [1,"Tu prendrais un an de ta vie en moins pour 1 million ?"],[1,"Tu tiendrais une semaine sans parler ?"],[1,"Tu te ferais tatouer ton propre visage pour 10 000 € ?"],
+    [1,"Tu passerais un an avec un vieux Nokia pour 3 000 € ?"],[1,"Tu goûterais de la viande faite en labo ?"],[1,"Tu monterais dans une voiture sans conducteur ?"],
+    [1,"Tu vivrais dans une maison minuscule pour voyager plus ?"],[1,"Tu plaquerais ton taf pour ouvrir un bar à la plage ?"],[1,"Tu irais au cinéma tout seul ?"],
+    [1,"Tu irais à un concert tout seul ?"],[1,"Tu partirais en vacances avec des inconnus ?"],[1,"Tu dénoncerais un inconnu que tu vois voler ?"],
+    [1,"Tu te mettrais entre deux inconnus qui se battent ?"],[1,"Tu pourrais bosser avec ton meilleur pote ?"],[1,"Tu pourrais vivre avec tes beaux-parents ?"],
+    [1,"Tu voudrais être célèbre ?"],[1,"Tu voudrais vivre dans un château ?"],[1,"Tu voudrais lire dans les pensées de tes potes ?"],
+    [1,"Tu voudrais rencontrer ton toi du futur ?"],[1,"Tu voudrais revivre ton adolescence ?"],[1,"Tu mets le lait avant les céréales ?"],
+    [1,"Tu applaudis quand l'avion atterrit ?"],[1,"Tu boirais un verre de jus de cornichon pour 50 € ?"],[1,"Tu mangerais une cuillère de wasabi pour 100 € ?"],
     [1,"Tu porterais un costume de dinosaure toute une journée pour 500 € ?"],[1,"Tu ferais la poule dans la rue pendant une minute pour 100 € ?"],[1,"Tu chanterais dans le métro pour 200 € ?"],
-    [1,"Tu demanderais un autographe à un inconnu dans la rue ?"],[1,"Tu danserais tout seul au milieu d'un supermarché pour 50 € ?"],[1,"Tu mangerais à la cantine tous les jours pendant un an pour 1 000 € ?"],
-    [1,"Tu tiendrais 48 h sans dormir pour 1 000 € ?"],[1,"Tu ferais 100 pompes d'affilée pour 500 € ?"],[1,"Tu prendrais une douche froide tous les matins pendant un mois pour 300 € ?"],
-    [1,"Tu resterais une semaine sans téléphone pour 500 € ?"],[1,"Tu te teindrais les cheveux en rose pour un mariage ?"],[1,"Tu sortirais en pyjama acheter le pain ?"],
-    [1,"Tu dormirais sous une tente dans ton jardin une semaine ?"],[1,"Tu ferais une sieste au bureau ?"],[1,"Tu préviens toujours quand t'es en retard ?"],
-    [1,"Tu ferais une surprise à {q} qui coûte plus de 100 € ?"],[1,"Tu prêterais ton appart à {q} pendant un mois ?"],[1,"Tu confierais un secret à {q} ?"],
-    [1,"Tu partirais faire le tour de l'Europe en van avec {q} ?"],[1,"Tu laisserais {q} choisir ta tenue pour un mariage ?"],[1,"Tu laisserais {q} conduire ta voiture ?"],
-    [1,"Tu te ferais couper les cheveux par {q} ?"],[1,"Tu monterais une entreprise avec {q} ?"],[2,"Tu lâcherais un pote pour un date ?"],
-    [2,"Tu sortirais avec quelqu'un qui déteste tes potes ?"],[2,"Tu sortirais avec quelqu'un qui a 10 ans de moins que toi ?"],[2,"Tu sortirais avec quelqu'un qui veut pas d'enfants si toi t'en veux ?"],
-    [2,"Tu sortirais avec quelqu'un de beaucoup plus riche ?"],[2,"Tu sortirais avec quelqu'un qui habite à l'autre bout du monde ?"],[2,"Tu sortirais avec quelqu'un de célèbre ?"],
-    [2,"Tu sortirais avec un collègue ?"],[2,"Tu sortirais avec quelqu'un qui fume ?"],[2,"Tu pardonnerais à un pote qui a raconté ton secret ?"],
-    [2,"Tu pardonnerais à un pote qui t'a menti pendant un an ?"],[2,"Tu dirais la vérité à un pote sur sa nouvelle coupe ratée ?"],[2,"Tu irais au mariage de ton ex ?"],
-    [2,"Tu accepterais que ton mec ou ta meuf parte en vacances sans toi ?"],[2,"Tu ferais une coloc avec ton mec ou ta meuf et ses potes ?"],[2,"Tu accepterais que ton mec ou ta meuf ait un meilleur ami du sexe opposé ?"],
-    [2,"Tu dirais oui à une demande en mariage au bout de 6 mois ?"],[2,"Tu ferais un date avec quelqu'un choisi par ta mère ?"],[2,"Tu ferais un date avec quelqu'un choisi par tes potes ?"],
-    [2,"Tu pourrais vivre avec quelqu'un qui ronfle très fort ?"],[2,"Tu ferais le premier pas ?"],[2,"Tu ferais une déclaration d'amour par écrit ?"],
-    [2,"Tu dirais à ton meilleur pote qu'il te plaît ?"],[2,"Tu ressortirais avec quelqu'un qui t'a ghosté ?"],[2,"Tu choisirais l'amour plutôt qu'un boulot de rêve à l'étranger ?"],
-    [2,"Tu partirais en vacances avec ta belle-famille ?"],[2,"Tu mentirais à ton patron pour couvrir un collègue ?"],[2,"Tu ferais un boulot de nuit en boîte pendant un an ?"],
+    [1,"Tu tiendrais 48 h sans dormir pour 1 000 € ?"],[1,"Tu resterais une semaine sans téléphone pour 500 € ?"],[1,"Tu prêterais ton appart à {q} pendant un mois ?"],
+    [1,"Tu monterais une entreprise avec {q} ?"],[2,"Tu sortirais avec quelqu'un qui a 10 ans de moins que toi ?"],[2,"Tu sortirais avec quelqu'un de beaucoup plus riche ?"],
+    [2,"Tu sortirais avec quelqu'un de célèbre ?"],[2,"Tu pardonnerais à un pote qui a raconté ton secret ?"],[2,"Tu pardonnerais à un pote qui t'a menti pendant un an ?"],
+    [2,"Tu irais au mariage de ton ex ?"],[2,"Tu dirais oui à une demande en mariage au bout de 6 mois ?"],[2,"Tu ferais le premier pas ?"],
+    [2,"Tu dirais à ton meilleur pote qu'il te plaît ?"],[2,"Tu choisirais l'amour plutôt qu'un boulot de rêve à l'étranger ?"],[2,"Tu ferais un boulot de nuit en boîte pendant un an ?"],
     [2,"Tu quitterais ton taf du jour au lendemain pour 50 000 € ?"],[2,"Tu ferais une téléréalité de couple ?"],[2,"Tu accepterais un job où tu vois jamais tes potes pour le triple du salaire ?"],
-    [2,"Tu ferais une fête pour ton divorce ?"],[2,"Tu demanderais quelqu'un en mariage devant ta famille ?"],[2,"Tu ferais un enterrement de vie de garçon ou de jeune fille à l'étranger ?"],
-    [2,"Tu sortirais avec le frère ou la sœur d'un ex ?"],[3,"Tu ferais un strip-tease pour 1 000 € devant des inconnus ?"],[3,"Tu ferais l'amour dans un endroit où on peut te surprendre ?"],
-    [3,"Tu irais sur une plage nudiste ?"],[3,"Tu ferais un bain de minuit tout nu avec tes potes ?"],[3,"Tu te ferais tatouer un truc coquin à un endroit caché ?"],
-    [1,"Tu ferais un tatouage avec tes potes ?"],[1,"Tu pourrais vivre une semaine dans un musée ?"],[1,"Tu ferais une semaine de jeûne pour 2 000 € ?"],
-    [1,"Tu prendrais l'avion pour aller manger un plat à l'autre bout du monde ?"],[1,"Tu pourrais vivre sur une île sans personne pendant un mois ?"],[1,"Tu ferais du bénévolat tous les week-ends ?"],
-    [1,"Tu monterais dans un avion de voltige ?"],[1,"Tu ferais un road trip de 3 mois en vélo ?"],[1,"Tu goûterais un plat avec des yeux de poisson ?"],
-    [1,"Tu crois qu'on peut tout apprendre à n'importe quel âge ?"],[1,"Tu crois que les gens changent vraiment ?"],[1,"Tu crois aux miracles ?"],
-    [1,"Tu crois que le monstre du Loch Ness existe ?"],[1,"Tu crois que les chats ont 9 vies ?"],[1,"Tu crois que t'aurais survécu au Moyen Âge ?"],
-    [1,"Tu voudrais pouvoir parler avec tes ancêtres ?"],[1,"Tu voudrais avoir un majordome robot ?"],[1,"Tu voudrais vivre dans une série ?"],
+    [2,"Tu ferais une fête pour ton divorce ?"],[2,"Tu ferais un enterrement de vie de garçon ou de jeune fille à l'étranger ?"],[2,"Tu sortirais avec le frère ou la sœur d'un ex ?"],
+    [3,"Tu ferais un strip-tease pour 1 000 € devant des inconnus ?"],[3,"Tu ferais l'amour dans un endroit où on peut te surprendre ?"],[3,"Tu irais sur une plage nudiste ?"],
+    [3,"Tu ferais un bain de minuit tout nu avec tes potes ?"],[3,"Tu te ferais tatouer un truc coquin à un endroit caché ?"],[1,"Tu pourrais vivre une semaine dans un musée ?"],
+    [1,"Tu crois que les gens changent vraiment ?"],[1,"Tu crois aux miracles ?"],[1,"Tu crois que le monstre du Loch Ness existe ?"],
+    [1,"Tu crois que les chats ont 9 vies ?"],[1,"Tu crois que t'aurais survécu au Moyen Âge ?"],[1,"Tu voudrais vivre dans une série ?"],
     [1,"Tu manges les pizzas avec une fourchette et un couteau ?"],[1,"Tu trempes tes frites dans ton milkshake ?"],[1,"Tu manges ton steak bien cuit ?"],
-    [1,"Tu regardes les films en VO ?"],[1,"Tu écoutes de la musique en dormant ?"],[1,"Tu laisses la lumière allumée quand tu dors seul ?"],
-    [1,"Tu te raserais une moitié de barbe ou de sourcil pour 300 € ?"],[1,"Tu ferais une danse de la pluie en plein centre-ville pour 100 € ?"],[1,"Tu ferais une semaine sans miroir ni photo pour 400 € ?"],
-    [1,"Tu laisserais tes parents choisir tes fringues un mois pour 1 000 € ?"],[1,"Tu ferais le trajet maison-taf en roller pendant un mois ?"],[1,"Tu achèterais une maison hantée à moitié prix ?"],
-    [2,"Tu sortirais avec quelqu'un qui ne rit jamais à tes blagues ?"],[2,"Tu ferais un discours au mariage de ton pire ennemi pour 5 000 € ?"],[2,"Tu partirais vivre dans le pays de ton mec ou ta meuf ?"],
-    [2,"Tu ferais une colocation avec ton ex ?"],[2,"Tu irais dîner avec les parents de ton ex ?"],[2,"Tu dirais à un pote que son business est une mauvaise idée ?"],
-    [2,"Tu ferais un date dans un fast-food ?"],[2,"Tu dirais à ton crush qu'il te plaît avant le premier date ?"],[2,"Tu ferais un voyage avec quelqu'un rencontré la veille ?"],
-    [2,"Tu choisirais tes potes plutôt qu'un voyage gratuit au bout du monde ?"]
+    [1,"Tu regardes les films en VO ?"],[1,"Tu te raserais une moitié de barbe ou de sourcil pour 300 € ?"],[1,"Tu ferais une danse de la pluie en plein centre-ville pour 100 € ?"],
+    [1,"Tu laisserais tes parents choisir tes fringues un mois pour 1 000 € ?"],[1,"Tu achèterais une maison hantée à moitié prix ?"],[2,"Tu sortirais avec quelqu'un qui ne rit jamais à tes blagues ?"],
+    [2,"Tu ferais un discours au mariage de ton pire ennemi pour 5 000 € ?"],[2,"Tu partirais vivre dans le pays de ton mec ou ta meuf ?"],[2,"Tu ferais une colocation avec ton ex ?"],
+    [2,"Tu irais dîner avec les parents de ton ex ?"],[2,"Tu dirais à un pote que son business est une mauvaise idée ?"],[2,"Tu ferais un date dans un fast-food ?"],
+    [2,"Tu ferais un voyage avec quelqu'un rencontré la veille ?"],[2,"Tu choisirais tes potes plutôt qu'un voyage gratuit au bout du monde ?"],[1,"Un hot-dog, c'est un sandwich ?"],
+    [1,"On dit chocolatine ?"],[1,"Les céréales, c'est une soupe ?"],[1,"La pizza froide le lendemain, c'est meilleur que chaude ?"],
+    [1,"Mettre de la crème dans les pâtes carbonara, c'est un crime ?"],[1,"Le ketchup sur une pizza, c'est acceptable ?"],[1,"Les sushis, c'est surcoté ?"],
+    [1,"Le cassoulet en boîte, c'est bon ?"],[1,"La raclette en été, ça se fait ?"],[1,"Le fromage, c'est un dessert ?"],
+    [1,"Les frites, c'est un légume ?"],[1,"Tremper son croissant dans son café, c'est normal ?"],[1,"Les gens qui mangent du Nutella à la cuillère ont raison ?"],
+    [1,"McDo, c'est meilleur que Burger King ?"],[1,"L'eau pétillante, c'est de l'eau ?"],[1,"Un kebab à 4 h du matin, c'est le meilleur repas qui existe ?"],
+    [1,"Les chiens, c'est mieux que les chats ?"],[1,"Le Père Noël, il faut dire la vérité aux enfants le plus tôt possible ?"],[1,"Les jeux vidéo, c'est du sport ?"],
+    [1,"Les échecs, c'est un sport ?"],[1,"Le foot, c'est le plus beau sport du monde ?"],[1,"Les films d'avant étaient meilleurs ?"],
+    [1,"Un film doublé en français, c'est gâché ?"],[1,"Spoiler une série au bout d'une semaine, c'est autorisé ?"],[1,"Regarder un épisode d'une série sans l'autre, c'est trahir ?"],
+    [1,"Lire le livre avant de voir le film, c'est obligatoire ?"],[1,"Harry Potter, c'est surcoté ?"],[1,"Noël, c'est mieux que le Nouvel An ?"],
+    [1,"L'été, c'est mieux que l'hiver ?"],[1,"La plage, c'est mieux que la montagne ?"],[1,"Vivre à Paris, ça vaut le coup ?"],
+    [1,"La campagne, c'est mieux que la ville ?"],[1,"Les vacances, c'est mieux sans programme ?"],[1,"Le camping, c'est des vraies vacances ?"],
+    [1,"Partir en vacances avec ses parents à 25 ans, c'est la honte ?"],[1,"Habiter chez ses parents à 30 ans, c'est la honte ?"],[1,"Arriver 15 minutes en retard, c'est être à l'heure ?"],
+    [1,"Envoyer un vocal de 3 minutes, c'est abusé ?"],[1,"Laisser quelqu'un en vu, c'est grave ?"],[1,"Répondre « ok » tout court, c'est mal poli ?"],
+    [1,"Mettre un point à la fin d'un message, c'est agressif ?"],[1,"Appeler sans prévenir par message avant, c'est relou ?"],[1,"Les stories de vacances, c'est de la frime ?"],
+    [1,"Poster son repas sur les réseaux, c'est ringard ?"],[1,"Mettre ses chaussures sur le canapé, c'est non ?"],[1,"Enlever ses chaussures chez les gens, c'est obligatoire ?"],
+    [1,"Se doucher le matin, c'est mieux que le soir ?"],[1,"Le papier toilette, on le met dans le sens où ça pend devant ?"],[1,"Garder ses chaussettes au lit, c'est dégueu ?"],
+    [1,"Faire la bise au boulot, c'est fini ?"],[1,"On peut tutoyer son patron ?"],[1,"Dire « bon appétit », c'est ringard ?"],
+    [1,"Faire la queue 2 heures pour un resto à la mode, ça vaut le coup ?"],[1,"Payer 8 € un cocktail, c'est normal ?"],[1,"Laisser un pourboire en France, c'est obligatoire ?"],
+    [1,"Au resto, on partage l'addition en parts égales même si t'as pris qu'une salade ?"],[1,"Un pote qui te doit 20 €, tu lui redemandes ?"],[1,"Ramener une bouteille quand on est invité, c'est obligatoire ?"],
+    [1,"Partir d'une soirée sans dire au revoir, c'est mal poli ?"],[1,"Annuler une soirée le jour même, c'est impardonnable ?"],[1,"Regarder son téléphone à table, c'est mal poli ?"],
+    [1,"Offrir de l'argent pour un anniversaire, c'est paresseux ?"],[1,"Réoffrir un cadeau qu'on t'a fait, ça passe ?"],[1,"Les cadeaux faits main, c'est mieux que les cadeaux achetés ?"],
+    [1,"Un anniversaire oublié, ça se pardonne ?"],[1,"Le meilleur pote doit forcément être le témoin ?"],[1,"On peut avoir deux meilleurs potes ?"],
+    [1,"Les amis d'enfance, c'est pour la vie ?"],[1,"Un pote qui dit tout le temps non aux soirées, c'est encore un pote ?"],[1,"Le groupe WhatsApp de la famille, c'est utile ?"],
+    [1,"Être toujours le premier arrivé en soirée, c'est la honte ?"],[1,"Danser seul en soirée, c'est la classe ?"],[1,"Le karaoké, c'est le meilleur moyen de finir une soirée ?"],
+    [1,"Les jeux de société, c'est mieux qu'une soirée en boîte ?"],[1,"Tricher au Monopoly, c'est de bonne guerre ?"],[1,"Les mauvais perdants ont le droit de bouder ?"],
+    [1,"Gagner au Loto, ça gâche une vie ?"],[1,"Un milliardaire peut être quelqu'un de bien ?"],[1,"Il vaut mieux un boulot que t'adores mal payé qu'un boulot chiant bien payé ?"],
+    [1,"Le télétravail, c'est mieux que le bureau ?"],[1,"La semaine de 4 jours, ça devrait être obligatoire ?"],[1,"Les études, ça sert vraiment pour réussir ?"],
+    [1,"Le permis de conduire, c'est encore utile ?"],[1,"Les influenceurs, c'est un vrai métier ?"],[1,"TikTok, ça rend bête ?"],
+    [1,"On devrait interdire le téléphone aux moins de 15 ans ?"],[1,"Les robots finiront par nous remplacer ?"],[1,"L'IA va rendre les gens plus fainéants ?"],
+    [1,"Le monde était mieux avant internet ?"],[1,"On sera tous végétariens dans 50 ans ?"],[1,"Les extraterrestres sont déjà venus sur Terre ?"],
+    [1,"On vit peut-être dans une simulation ?"],[1,"Le premier jugement sur quelqu'un est souvent le bon ?"],[1,"Mentir pour faire plaisir, c'est bien ?"],
+    [1,"Une petite vengeance, ça fait du bien ?"],[1,"Dire tout ce qu'on pense, c'est une qualité ?"],[1,"Il faut toujours pardonner ?"],
+    [1,"On peut être heureux tout seul toute sa vie ?"],[1,"Être riche et seul, c'est mieux qu'être pauvre et entouré ?"],[1,"Les jumeaux ont un lien spécial ?"],
+    [1,"Les gens du matin sont plus heureux que ceux du soir ?"],[1,"Faire la sieste, c'est une perte de temps ?"],[1,"Dormir 6 heures, c'est suffisant ?"],
+    [1,"Les gens qui font leur lit le matin ont leur vie en ordre ?"],[1,"Le sport le matin, c'est pour les fous ?"],[1,"La salle de sport, c'est de la frime ?"],
+    [1,"Courir un marathon, c'est donné à tout le monde ?"],[1,"Tu rendrais la monnaie si le caissier t'en donne trop ?"],[1,"Tu dirais à {q} que son plat est raté ?"],
+    [1,"Tu laisserais {q} organiser tes vacances sans rien savoir ?"],[1,"Tu donnerais le code de ton téléphone à {q} ?"],[1,"Tu ferais un road trip d'un mois avec {q} ?"],
+    [1,"{q} survivrait une semaine seul en forêt ?"],[1,"{q} serait un bon président ?"],[1,"{q} gagnerait Koh-Lanta ?"],
+    [1,"{q} serait un bon prof ?"],[1,"{q} pourrait devenir célèbre ?"],[1,"{q} serait le premier à mourir dans un film d'horreur ?"],
+    [1,"{q} pourrait garder un secret pendant un an ?"],[1,"{q} sait cuisiner autre chose que des pâtes ?"],[1,"Tu donnerais ta place en finale de la Coupe du monde pour 5 000 € ?"],
+    [1,"Tu passerais un an sans réseaux sociaux pour 10 000 € ?"],[1,"Tu tiendrais un mois sans Netflix ni YouTube pour 1 000 € ?"],[1,"Tu vendrais tes cheveux pour 3 000 € ?"],
+    [1,"Tu effacerais tous tes souvenirs d'un an pour 1 million ?"],[1,"Tu mangerais que des pâtes pendant un mois pour 2 000 € ?"],[1,"Tu dormirais une nuit dans un manoir hanté pour 5 000 € ?"],
+    [1,"Tu lirais tes vieux messages de 2015 à voix haute pour 500 € ?"],[1,"Tu postulerais pour aller vivre sur Mars ?"],[1,"Tu voudrais savoir le jour où la Terre va s'arrêter ?"],
+    [1,"Tu voudrais pouvoir arrêter le temps ?"],[1,"Tu voudrais savoir exactement ce que pense ton chien ?"],[2,"Au premier date, c'est celui qui a proposé qui paie ?"],
+    [2,"Liker la photo d'un ex, c'est louche ?"],[2,"Stalker quelqu'un avant un date, c'est normal ?"],[2,"Draguer sur une appli, c'est moins bien qu'en vrai ?"],
+    [2,"Le coup de foudre, ça dure ?"],[2,"Le premier date au cinéma, c'est une mauvaise idée ?"],[2,"Dire « je t'aime » au bout d'un mois, c'est trop tôt ?"],
+    [2,"Se marier avant 25 ans, c'est trop tôt ?"],[2,"Le mariage, c'est encore utile ?"],[2,"En couple, il faut tout se dire ?"],
+    [2,"En couple, chacun doit garder ses comptes à part ?"],[2,"Partager ses mots de passe en couple, c'est normal ?"],[2,"En couple, on doit avoir les mêmes potes ?"],
+    [2,"Vivre ensemble avant de se marier, c'est obligatoire ?"],[2,"Une grande différence d'âge en couple, ça peut marcher ?"],[2,"Les relations à distance, ça finit toujours mal ?"],
+    [2,"Ghoster quelqu'un après un date, ça se fait ?"],[2,"Rompre par message, c'est lâche ?"],[2,"Les ex, il faut tous les bloquer ?"],
+    [2,"Sortir avec l'ex d'un pote, c'est la trahison ultime ?"],[2,"Ton meilleur pote a le droit de sortir avec ta sœur ou ton frère ?"],[2,"La jalousie, c'est une preuve d'amour ?"],
+    [2,"Faire le premier pas, c'est aux mecs ?"],[2,"Les potes passent avant le couple ?"],[2,"On peut tomber amoureux de quelqu'un sans l'avoir jamais vu ?"],
+    [2,"Fouiller le téléphone de quelqu'un, ça se pardonne ?"],[2,"Dire à un pote que son mec ou sa meuf ne t'aime pas, c'est rendre service ?"],[2,"Mentir sur son âge sur une appli de rencontre, ça passe ?"],
+    [2,"Les demandes en mariage en public, c'est gênant ?"],[3,"Coucher le premier soir, ça change quelque chose pour la suite ?"],[3,"Le sexe, c'est le plus important dans un couple ?"],
+    [3,"Regarder du porno en couple, c'est normal ?"],[3,"Les sex-friends, ça finit toujours mal ?"],[3,"Le body count, ça compte ?"]
   ],
   radar: [
     [1,"Pas grave","Impardonnable"],[1,"Nul","Génial"],[1,"Sous-coté","Surcoté"],[1,"Pas cher","Hors de prix"],[1,"Facile","Impossible"],
@@ -5450,7 +5464,7 @@ function cOuiSwipe(c) {
   const face = (x, i) => cardShell("ouinon", null, `
     <p class="text">${esc(txt(x))}</p>
     <div class="vs ovs"><div class="opt-a" data-o="a"><span>👍 Oui</span></div><div class="opt-b" data-o="b"><span>👎 Non</span></div></div>
-    <p class="sub">${i < 1 ? "Chacun répond à voix haute, et on swipe." : "&nbsp;"}</p>
+    <button class="dbt-go" type="button">⏱ 3, 2, 1… pouces !</button>
   `, i % 2 === 1);
   view(`${header()}
     <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
@@ -5461,7 +5475,32 @@ function cOuiSwipe(c) {
     $("#stop").onclick = ranking;
     if (nx) choixGet(nx);
     choixTap(c, $(".jstack .top"));
+    $(".jstack .top .dbt-go").onclick = () => debatChrono($(".jstack .top"));
   });
+}
+// Débat : 3, 2, 1, tout le monde lève le pouce en même temps, puis 30 s pour ceux qui sont tout seuls
+function debatChrono(card) {
+  if (!card || card.querySelector(".dbt-ov")) return;
+  const ov = document.createElement("div"); ov.className = "dbt-ov";
+  ov.innerHTML = `<b>3</b><p></p><small>Touche pour arrêter</small>`;
+  card.appendChild(ov);
+  const big = ov.querySelector("b"), line = ov.querySelector("p");
+  let t = 3, phase = 0, timer = 0;
+  const close = () => { clearInterval(timer); clearTimeout(ov._t); ov.remove(); };
+  buzz(20, "tick");
+  timer = setInterval(() => {
+    if (!ov.isConnected) return close();
+    if (phase === 0) {
+      if (--t > 0) { big.textContent = t; buzz(20, "tick"); }
+      else { phase = 1; big.textContent = "👍 👎"; big.className = "th"; line.textContent = "Pouces !"; buzz([40, 30, 60]); }
+    } else if (phase === 1) {
+      phase = 2; t = 30; big.className = ""; big.textContent = t;
+      line.textContent = "Ceux qui sont tout seuls ont 30 secondes pour convaincre les autres.";
+    } else if (--t > 0) { big.textContent = t; if (t <= 5) buzz(15, "tick"); }
+    else { clearInterval(timer); big.textContent = "⏱"; line.textContent = "Temps écoulé"; buzz([200, 80, 200]); ov._t = setTimeout(close, 1600); }
+  }, 1000);
+  ov.addEventListener("pointerdown", e => e.stopPropagation());
+  ov.onclick = close;
 }
 
 /* -------- OUTILS : dé et chooser, ouverts par-dessus la partie -------- */
@@ -6724,7 +6763,7 @@ const TUTO = {
   jamais: "Quelqu'un lit la carte. Ceux qui l'ont déjà fait l'avouent, et on swipe.",
   av: "La carte dit à qui c'est le tour. Swipe à droite pour une action, à gauche pour une vérité. Tu réponds ou tu le fais, et on swipe. Si tu veux pas, on swipe quand même.",
   pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
-  ouinon: "Lis la question à voix haute, chacun répond oui ou non, et ceux qui sont tout seuls s'expliquent. Swipe pour la suivante.",
+  ouinon: "Lis la question à voix haute. Touche 3, 2, 1 et tout le monde lève le pouce en même temps. Ceux qui sont tout seuls ont 30 secondes pour convaincre les autres. Swipe pour la suivante.",
   classement: "Celui qui a le tel voit une question en secret et classe tout le monde, lui compris. Les autres regardent le classement et se mettent d'accord pour retrouver la question.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe. Sur une carte duel, on choisit seulement entre les deux prénoms.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
