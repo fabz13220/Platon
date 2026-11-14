@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="2f973fda66af">
+<meta name="build" content="1503898e0616">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -48,7 +48,7 @@ applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
 // langue : français de base. Une autre langue (Réglages > Langue, ou ?lang=en dans le lien) charge i18n/<langue>.js et i18n/i18n.js,
 // qui traduisent les cartes et l'écran. Si les fichiers manquent (hors ligne la 1re fois, lecteur Claude), tout reste en français.
-const LANGS = { fr: "Français", en: "English", es: "Español", it: "Italiano", de: "Deutsch", pt: "Português", nl: "Nederlands", pl: "Polski", tr: "Türkçe", ro: "Română", sv: "Svenska", da: "Dansk", nb: "Norsk", fi: "Suomi", cs: "Čeština" };
+const LANGS = { fr: "Français", en: "English", es: "Español", it: "Italiano", de: "Deutsch", pt: "Português", nl: "Nederlands", pl: "Polski", tr: "Türkçe", ro: "Română", sv: "Svenska", da: "Dansk", nb: "Norsk", fi: "Suomi", cs: "Čeština", ja: "日本語" };
 window.LANG = (function () {
   let l = "fr";
   try {
