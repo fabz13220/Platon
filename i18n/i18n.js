@@ -7,6 +7,8 @@
 (function () {
   const L = window.BLIZ_LANG;
   if (!L) return;
+  // langues écrites de droite à gauche (arabe) : toute la page passe en dir="rtl" dès le chargement
+  if (L.rtl) document.documentElement.dir = "rtl";
   const ui = L.ui || {};
   // motifs : "Manche {} / {}" → /^Manche (.*?) \/ (.*?)$/ ; dans la traduction, {1} = le 1er trou (traduit s'il est connu),
   // {2?cartes:carte} = « cartes » si le 2e trou n'est pas vide (pluriels)
