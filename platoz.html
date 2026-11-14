@@ -20,7 +20,7 @@ applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
 // langue : français de base. Une autre langue (Réglages > Langue, ou ?lang=en dans le lien) charge i18n/<langue>.js et i18n/i18n.js,
 // qui traduisent les cartes et l'écran. Si les fichiers manquent (hors ligne la 1re fois, lecteur Claude), tout reste en français.
-const LANGS = { fr: "Français", en: "English", es: "Español", it: "Italiano", de: "Deutsch", pt: "Português", nl: "Nederlands", pl: "Polski", tr: "Türkçe", ro: "Română", sv: "Svenska", da: "Dansk" };
+const LANGS = { fr: "Français", en: "English", es: "Español", it: "Italiano", de: "Deutsch", pt: "Português", nl: "Nederlands", pl: "Polski", tr: "Türkçe", ro: "Română", sv: "Svenska", da: "Dansk", nb: "Norsk" };
 window.LANG = (function () {
   let l = "fr";
   try {
