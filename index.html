@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="16e60198c39d">
+<meta name="build" content="604ca5aa9ca2">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -645,17 +645,12 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 .pot-who b { display: block; font-family: var(--display); font-weight: 900; font-size: clamp(30px, 9vw, 42px); line-height: 1.1; color: var(--text); overflow-wrap: normal; }
 .pot-streak { display: inline-block; margin-top: 6px; min-height: 22px; font-weight: 900; font-size: 16px; color: var(--text); }
 .pot-mid { display: flex; align-items: center; justify-content: center; gap: clamp(16px, 6vw, 34px); }
-.pot-jarbox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.pot-jar { position: relative; width: clamp(104px, 32vw, 150px); height: clamp(132px, 25vh, 210px); border: 3px solid rgba(255,255,255,.6); border-top-width: 0; border-radius: 10px 10px 30px 30px; background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.14) 30%, rgba(255,255,255,.04) 60%); overflow: hidden; }
-.pot-jar::before { content: ""; position: absolute; top: 0; left: -3px; right: -3px; height: 9px; border-radius: 6px; background: rgba(255,255,255,.6); z-index: 2; }
-.pot-jar.full { box-shadow: 0 0 0 4px rgba(255,190,40,.35), 0 0 34px rgba(255,170,30,.7); animation: potShake .5s ease-in-out infinite alternate; }
-@keyframes potShake { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
-.pot-coin { position: absolute; left: 50%; width: 74%; height: 9.5%; margin-left: -37%; border-radius: 50%; background: radial-gradient(ellipse at 35% 30%, #FFF3B0 0%, #FFD23F 35%, #E8A00C 75%, #B87300 100%); box-shadow: inset 0 -3px 0 rgba(140,80,0,.55), 0 2px 3px rgba(0,0,0,.3); opacity: 0; transform: translateY(-260%); transition: opacity .2s, transform .45s cubic-bezier(.3,1.4,.5,1); }
-.pot-coin.on { opacity: 1; transform: none; }
-.pot-n { font-family: var(--display); font-weight: 900; font-size: 26px; line-height: 1; color: var(--text); }
-.pot-n small { font-size: .55em; opacity: .7; }
-:where(html[data-theme="light"]) .pot-jar { border-color: rgba(26,15,46,.4); background: linear-gradient(90deg, rgba(255,255,255,.25), rgba(255,255,255,.6) 30%, rgba(255,255,255,.25) 60%); }
-:where(html[data-theme="light"]) .pot-jar::before { background: rgba(26,15,46,.4); }
+.pot-count { display: flex; flex-direction: column; align-items: center; min-width: 110px; }
+.pot-count b { font-family: var(--display); font-weight: 900; font-size: clamp(76px, 24vw, 120px); line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+.pot-count b.bump { animation: potBump .35s cubic-bezier(.3,1.6,.5,1); }
+@keyframes potBump { from { transform: scale(1.35); } to { transform: none; } }
+.pot-count small { font-weight: 800; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pot-count.hot b { color: #FFB020; }
 .pot-card { position: relative; width: clamp(86px, 26vw, 124px); aspect-ratio: 5 / 7; perspective: 600px; }
 .pot-card > div { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .45s ease; box-shadow: 0 12px 26px -12px rgba(0,0,0,.6); }
 .pot-card .pc-back { background: repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 6px, transparent 6px 12px), var(--g-signature); border: 4px solid #fff; }
@@ -667,6 +662,8 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 .pot-card.up .pc-face { transform: rotateY(0); }
 .pot-left { margin: 0; font-weight: 800; font-size: 14px; color: var(--muted); }
 .pot-bets { display: flex; gap: 12px; width: 100%; max-width: 420px; }
+.pot-bets.hl .pot-bet { min-height: 64px; font-size: 21px; background: var(--glass-2); color: var(--text); box-shadow: inset 0 0 0 2px var(--hair); }
+.pot-bet-row { display: flex; flex-direction: column; gap: 10px; width: 100%; align-items: center; }
 .pot-bet { flex: 1; min-height: 84px; border: 0; border-radius: var(--r-l); font-family: var(--display); font-weight: 900; font-size: 24px; color: #fff; cursor: pointer; box-shadow: 0 12px 26px -12px rgba(0,0,0,.7), inset 0 -4px 0 rgba(0,0,0,.25); }
 .pot-bet.red { background: linear-gradient(165deg, #FF5A6E, #D7193A); }
 .pot-bet.black { background: linear-gradient(165deg, #3A3550, #15121F); box-shadow: 0 12px 26px -12px rgba(0,0,0,.7), inset 0 0 0 2px rgba(255,255,255,.25); }
@@ -4122,7 +4119,7 @@ function newBadges() {
 
 // C'est une 10 mais : seulement en français tant que ses cartes ne sont pas traduites
 const DIX_OK = !window.BLIZ_LANG || !!((window.BLIZ_LANG.cards || {}).dix);
-// Le Pot : jeu à boire. Pas encore traduit, et pas dans l'appli App Store tant qu'elle est classée 16+
+// Rouge ou noir (clé pot) : jeu à boire. Pas encore traduit, et pas dans l'appli App Store tant qu'elle est classée 16+
 const POT_OK = !window.BLIZ_LANG && !NATIVE;
 /* -------- ACCUEIL -------- */
 function home() {
@@ -4132,7 +4129,7 @@ function home() {
   // le nombre de joueurs choisi décide des jeux affichés
   const n = store.get("count", 4), minOf = t => ({ dix: 2, pot: 2, taboo: 4, p4: multi ? 2 : 1, uno: multi ? 2 : 1, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
-  const LBL = { pot: ["Le Pot", "Rouge ou noir."], p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Règles classiques."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
+  const LBL = { pot: ["Rouge ou noir", "Plus ou moins."], p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Règles classiques."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   // un jeu qui ne va pas avec le nombre de joueurs reste visible, grisé, avec le nombre qu'il faut
   const need = t => on => on ? "" : n < minOf(t) ? `dès ${minOf(t)}` : n > maxOf(t) ? `${maxOf(t)} max` : "";
   const tile = (t, on) => { const k = need(t)(on); return `<button class="tile rt${k ? " lock" : ""}" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span>${k ? `<span class="need">${k}</span>` : ""}<span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`; };
@@ -4204,7 +4201,7 @@ const ICONS = {
   gear: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>`
 };
 // une illustration par jeu, sur les tuiles de l'accueil
-const ILL = { pot: "🫙", dix: "🔟", jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
+const ILL = { pot: "♦️", dix: "🔟", jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
 function toolsSheet() {
   const t = (k, ill, name, sub, col) => `<button class="tile rt" data-tool="${k}" style="--rc:${col}"><span class="ill" aria-hidden="true">${ill}</span><span class="mast">${name}</span><span class="sub">${sub}</span></button>`;
   sheet(`<span class="mast" style="font-size:28px">Outils</span>
@@ -4630,7 +4627,7 @@ function ambiance() {
   if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
   if (S.mode === "test") return testStart(); // Test de pureté : les thèmes remplacent l'intensité
   if (S.mode === "p4") return p4Start(); // Aligne 4 : rien à régler
-  if (S.mode === "pot") return potStart(); // Le Pot : rien à régler
+  if (S.mode === "pot") return potStart(); // Rouge ou noir : rien à régler
   if (S.mode === "reflexe") return reflexStart(); // Duel réflexe : rien à régler à part les pièges, déjà sur l'écran des joueurs
   if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ; le réglage ex et sexe est sur l'écran des équipes
   const draw = () => {
@@ -6971,7 +6968,7 @@ const TUTO = {
   uno: "Règles classiques. On se passe le tel, chacun cache sa main. Tu poses la même couleur ou le même chiffre, sinon tu pioches. Le premier qui n'a plus de cartes gagne. Avec le cumul, un +2 ou un +4 se renvoie au suivant, et celui qui peut pas renvoyer prend tout.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
-  pot: "On se passe le tel. Tu dis rouge ou noir, et la carte se retourne. Bonne réponse : une pièce de plus dans le pot. Raté : tu bois le pot, il repart à zéro et tu recommences. Après 2 bonnes réponses de suite, tu peux passer le pot au suivant. Pot plein à 10 : celui qui rate fait cul sec. Pas envie de boire ? Une gorgée, c'est un gage ou de l'eau.",
+  pot: "On se passe le tel. Dis rouge ou noir, ou plus ou moins que la carte d'avant, et la carte se retourne. Bonne réponse : +1 au compteur. Raté : tu bois le compteur plus 1, il repart à zéro et tu recommences. Après 2 bonnes réponses de suite, tu peux passer au suivant, qui garde le compteur. À 10, celui qui rate fait cul sec. Pas envie de boire ? Une gorgée, c'est un gage ou de l'eau.",
   mix: "La roue choisit le jeu pour vous. Pas envie ? Relance-la. Sinon, lance le jeu."
 };
 const tutoSession = new Set();
@@ -6981,7 +6978,7 @@ function showTuto(key, then, force) {
   const done = () => { try { then && then(); } catch (e) { console.error(e); } };
   if (!steps || (!force && (seen.includes(key) || tutoSession.has(key)))) return done();
   tutoSession.add(key); clearTimers(); $$(".tuto-wrap").forEach(t => t.remove());
-  const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Aligne 4", pot: "Le Pot", mix: "Mode Mix" })[key] || key;
+  const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Aligne 4", pot: "Rouge ou noir", mix: "Mode Mix" })[key] || key;
   const w = document.createElement("div"); w.className = "tuto-wrap";
   w.innerHTML = `<div class="tuto" role="dialog" aria-modal="true" aria-label="Règles : ${esc(name)}">
     <div class="tuto-head"><span>Règles · <b>${esc(name)}</b></span><span id="tuto-n"></span></div>
@@ -7482,10 +7479,10 @@ function bindQuit() {
   $("#quit").onclick = ask;
 }
 
-/* ---------- LE POT ---------- */
-// un téléphone qu'on se passe, un paquet de 52 cartes. Rouge ou noir : bonne réponse = une pièce de plus (10 au plus),
-// raté = tu bois le pot plus la carte ratée (10 = cul sec), le pot repart à zéro et tu recommences.
-// Après 2 bonnes réponses de suite, tu peux passer le pot au suivant, qui reprend là où il en est.
+/* ---------- ROUGE OU NOIR (clé pot) ---------- */
+// un téléphone qu'on se passe, un paquet de 52 cartes. Rouge ou noir, ou plus ou moins que la carte d'avant (même valeur = raté).
+// Bonne réponse = +1 au compteur (10 au plus). Raté = on boit le compteur plus la carte ratée (10 = cul sec), il repart à zéro.
+// Après 2 bonnes réponses de suite, on peut passer au suivant, qui garde le compteur. Simple, sans bocal ni paris risqués (Fabio, 15/11).
 const POT_MAX = 10;
 const potSuit = { h: ["♥", 1], d: ["♦", 1], c: ["♣", 0], s: ["♠", 0] };
 const potRank = r => ({ 1: "A", 11: "V", 12: "D", 13: "R" })[r] || String(r);
@@ -7495,7 +7492,7 @@ function potStart() {
   const P = shuffle(S.names).map(n => ({ name: n, drank: 0, cs: 0, best: 0 }));
   S.players = P.map(p => ({ name: p.name, pts: 0 })); S.inGame = true; keepAwake();
   const deck = shuffle(Object.keys(potSuit).flatMap(k => Array.from({ length: 13 }, (_, i) => ({ s: k, r: i + 1 }))));
-  let pot = 0, cur = 0, streak = 0, busy = false, last = null, bigPot = null;
+  let pot = 0, cur = 0, streak = 0, busy = false, last = null, big = null;
   const next = () => (cur + 1) % P.length;
   const reds = () => deck.filter(k => potSuit[k.s][1]).length;
   view(`
@@ -7503,25 +7500,30 @@ function potStart() {
     <div class="pot-game">
       <div class="pot-who"><small>Au tour de</small><b id="pot-name"></b><span class="pot-streak" id="pot-streak"></span></div>
       <div class="pot-mid">
-        <div class="pot-jarbox"><div class="pot-jar" id="pot-jar">${Array.from({ length: POT_MAX }, (_, i) => `<i class="pot-coin" style="bottom:${2 + i * 9.6}%;margin-left:calc(-37% + ${i % 2 ? 4 : -4}px)"></i>`).join("")}</div><div class="pot-n"><b id="pot-n">0</b><small> / ${POT_MAX}</small></div></div>
+        <div class="pot-count" id="pot-count"><b id="pot-n">0</b><small>au compteur</small></div>
         <div class="pot-card" id="pot-card"><div class="pc-back"></div><div class="pc-face"></div></div>
       </div>
       <p class="pot-left" id="pot-rb"></p>
-      <div class="pot-bets"><button class="pot-bet red" data-c="1">Rouge</button><button class="pot-bet black" data-c="0">Noir</button></div>
+      <div class="pot-bet-row">
+        <div class="pot-bets"><button class="pot-bet red" data-b="r">Rouge</button><button class="pot-bet black" data-b="n">Noir</button></div>
+        <div class="pot-bets hl"><button class="pot-bet" data-b="p">▲ Plus</button><button class="pot-bet" data-b="m">▼ Moins</button></div>
+      </div>
       <button class="btn white" id="pot-pass" disabled></button>
     </div>`, () => {
     bindQuit();
+    const lock = on => $$(".pot-bet").forEach(x => x.disabled = on || (!last && (x.dataset.b === "p" || x.dataset.b === "m")));
     const paint = () => {
       $("#pot-name").textContent = P[cur].name;
       $("#pot-streak").textContent = streak ? "✓".repeat(Math.min(streak, 10)) + (streak > 1 ? ` ${streak} de suite` : "") : "";
-      $$(".pot-coin").forEach((c, i) => c.classList.toggle("on", i < pot));
-      $("#pot-n").textContent = pot;
-      $("#pot-jar").classList.toggle("full", pot >= POT_MAX);
+      const n = $("#pot-n"); if (n.textContent !== String(pot)) { n.textContent = pot; n.classList.remove("bump"); void n.offsetWidth; n.classList.add("bump"); }
+      $("#pot-count").classList.toggle("hot", pot >= POT_MAX);
+      $("#pot-count small").textContent = pot >= POT_MAX ? "cul sec en jeu" : "au compteur";
       $("#pot-left").textContent = `${deck.length} carte${deck.length > 1 ? "s" : ""}`;
       const r = reds(); $("#pot-rb").textContent = `Il reste ${r} rouge${r > 1 ? "s" : ""} et ${deck.length - r} noire${deck.length - r > 1 ? "s" : ""}`;
       const pass = $("#pot-pass"), need = 2 - streak;
       pass.disabled = need > 0;
-      pass.innerHTML = `Passer le pot à ${esc(P[next()].name)}<small>${need > 0 ? `Encore ${need} bonne${need > 1 ? "s" : ""} réponse${need > 1 ? "s" : ""}` : `${pot} pièce${pot > 1 ? "s" : ""} dans le pot`}</small>`;
+      pass.innerHTML = `Passer à ${esc(P[next()].name)}<small>${need > 0 ? `Encore ${need} bonne${need > 1 ? "s" : ""} réponse${need > 1 ? "s" : ""}` : `Le compteur reste à ${pot}`}</small>`;
+      lock(false);
     };
     const show = k => {
       const f = $("#pot-card .pc-face"), [sym, red] = potSuit[k.s];
@@ -7529,50 +7531,51 @@ function potStart() {
       f.innerHTML = `<i>${potRank(k.r)}<br>${sym}</i><b>${sym}</b>`;
       const card = $("#pot-card"); card.classList.remove("up"); void card.offsetWidth; card.classList.add("up");
     };
-    const finish = () => { if (!deck.length) later(() => potEnd(P, bigPot), 700); };
+    const finish = () => { if (!deck.length) later(() => potEnd(P, big), 700); };
     const ov = (cls, html, then) => {
       const o = document.createElement("div"); o.className = "pot-ov " + cls; o.innerHTML = html; document.body.appendChild(o);
       $(".btn", o).onclick = () => { o.remove(); then(); };
     };
     $$(".pot-bet").forEach(b => b.onclick = () => {
-      if (busy || !deck.length) return;
-      busy = true; $$(".pot-bet").forEach(x => x.disabled = true);
-      const k = deck.pop(); last = k; show(k);
-      const good = potSuit[k.s][1] === +b.dataset.c, p = P[cur];
+      const t = b.dataset.b;
+      if (busy || !deck.length || ((t === "p" || t === "m") && !last)) return;
+      busy = true; lock(true);
+      const prev = last, k = deck.pop(); last = k; show(k);
+      const good = t === "r" ? potSuit[k.s][1] === 1 : t === "n" ? potSuit[k.s][1] === 0 : t === "p" ? k.r > prev.r : k.r < prev.r, p = P[cur];
       later(() => {
-        busy = false; $$(".pot-bet").forEach(x => x.disabled = false);
+        busy = false;
         if (good) {
           streak++; p.best = Math.max(p.best, streak); pot = Math.min(POT_MAX, pot + 1);
           buzz(pot >= POT_MAX ? [40, 30, 80] : 15); paint();
-          if (!deck.length) return finish();
-          return;
+          return finish();
         }
-        const gulp = Math.min(POT_MAX, pot + 1), cs = gulp >= POT_MAX;
+        const gulp = Math.min(POT_MAX, pot + 1), cs = gulp >= POT_MAX, same = (t === "p" || t === "m") && k.r === prev.r;
         p.drank += gulp; if (cs) p.cs++;
-        if (!bigPot || gulp > bigPot.n) bigPot = { name: p.name, n: gulp };
+        if (!big || gulp > big.n) big = { name: p.name, n: gulp };
         buzz([200, 80, 200]);
         pot = 0; streak = 0;
         const after = () => { paint(); finish(); };
-        if (cs) ov("cs", `<div class="big">🫙</div><span class="mast">Cul sec !</span><p>Le pot était plein. ${esc(p.name)} vide son verre, et on repart avec un pot vide.</p><button class="btn red">C'est fait</button>`, after);
-        else ov("", `<div class="big">${potSuit[k.s][1] ? "🔴" : "⚫"}</div><span class="mast">Raté !</span><p>${esc(p.name)} boit ${gulp} gorgée${gulp > 1 ? "s" : ""}, puis recommence avec un pot vide.</p><button class="btn red">C'est bu</button>`, after);
+        const why = same ? "Même valeur, c'est raté. " : "";
+        if (cs) ov("cs", `<span class="mast">Cul sec !</span><p>${why}Le compteur était à 10. ${esc(p.name)} fait cul sec, et on repart de zéro.</p><button class="btn red">C'est fait</button>`, after);
+        else ov("", `<span class="mast">Raté !</span><p>${why}${esc(p.name)} boit ${gulp} gorgée${gulp > 1 ? "s" : ""}, puis recommence à zéro.</p><button class="btn red">C'est bu</button>`, after);
       }, 480);
     });
     $("#pot-pass").onclick = () => {
       if (streak < 2 || busy) return;
       cur = next(); streak = 0; buzz(20);
-      toast(`Le pot passe à ${P[cur].name}`); paint();
+      toast(`Au tour de ${P[cur].name}`); paint();
     };
     paint();
   });
 }
-function potEnd(P, bigPot) {
+function potEnd(P, big) {
   stat("end", "pot", P.length, "un"); S.inGame = false;
   try { wakeLock && wakeLock.release(); } catch (e) {}
   const most = P.slice().sort((a, b) => b.drank - a.drank)[0], best = P.slice().sort((a, b) => b.best - a.best)[0];
   const lines = [
-    bigPot ? `🫙 Plus gros pot : ${esc(bigPot.name)} (${bigPot.n >= POT_MAX ? "cul sec" : bigPot.n + " gorgée" + (bigPot.n > 1 ? "s" : "")})` : "",
+    big ? `💥 Plus gros raté : ${esc(big.name)} (${big.n >= POT_MAX ? "cul sec" : big.n + " gorgée" + (big.n > 1 ? "s" : "")})` : "",
     best && best.best > 1 ? `🔥 Plus longue série : ${esc(best.name)} (${best.best} de suite)` : "",
-    most && most.drank ? `🪙 A bu le plus : ${esc(most.name)} (${most.drank} gorgée${most.drank > 1 ? "s" : ""})` : ""
+    most && most.drank ? `🍹 A bu le plus : ${esc(most.name)} (${most.drank} gorgée${most.drank > 1 ? "s" : ""})` : ""
   ].filter(Boolean);
   view(`
     <div class="rank anim fin-jamais" style="flex:1">
