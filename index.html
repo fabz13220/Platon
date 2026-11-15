@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="f09135cf677b">
+<meta name="build" content="c3afc748b427">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -100,6 +100,7 @@ if (LANG !== "fr") {
   --rank: #FF8A1F;
   --taboo: #E0245E;
   --yesno: #14B8A6;
+  --dix: #FF4F8B;
   --white: #FFFFFF;
   --display: "Unbounded", "Arial Rounded MT Bold", "Arial Black", sans-serif;
   --body: "Nunito", "Arial Rounded MT Bold", "Helvetica Neue", Arial, sans-serif;
@@ -294,6 +295,7 @@ p { margin: 0; }
 .tile[data-mode="radar"] { --tglyph: "%"; --tg: linear-gradient(165deg, #22D3EE 0%, #6366F1 55%, #7C3AED 100%); --tgl: rgba(80,120,255,.5); grid-column: 1 / -1; }
 .tile[data-mode="classement"] { --tglyph: "1."; --tg: linear-gradient(165deg, #FFB03A 0%, #FF7A1A 55%, #E2480E 100%); --tgl: rgba(255,130,30,.5); }
 .tile[data-mode="ouinon"] { --tglyph: "O"; --tg: linear-gradient(165deg, #2DD4BF 0%, #14A89A 55%, #0E7C86 100%); --tgl: rgba(30,200,180,.45); }
+.tile[data-mode="dix"] { --tglyph: "10"; --tg: linear-gradient(165deg, #FF9A5B 0%, #FF4F8B 50%, #D4237F 100%); --tgl: rgba(255,80,140,.5); }
 .tile[data-mode="menteur"] { --tglyph: "≠"; --tg: linear-gradient(165deg, #2D6BFF 0%, #3550F0 50%, #3A36D8 100%); --tgl: rgba(60,110,255,.55); }
 .tile[data-mode="jamais"]::after { right: 18px; }
 .tile[data-mode="pref"]::after { font-size: 48px; bottom: -6px; right: 0; }
@@ -554,6 +556,8 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 .stage > .card:has(.chips)::after { flex-basis: 12px; }
 .card[style*="--radar"] { --glyph: "%"; --g: linear-gradient(165deg, #22D3EE 0%, #6366F1 55%, #7C3AED 100%); --glow: rgba(70,140,255,.65); --pill-ink: #4F46E5; }
 .card[style*="--rank"] { --glyph: "1."; --g: linear-gradient(165deg, #FFB03A 0%, #FF7A1A 55%, #E2480E 100%); --glow: rgba(255,120,30,.6); --pill-ink: #C2410C; }
+.card[style*="--dix"] { --glyph: "10"; --g: linear-gradient(165deg, #FF9A5B 0%, #FF4F8B 50%, #D4237F 100%); --glow: rgba(255,80,140,.6); --pill-ink: #C2185B; }
+.card[style*="--dix"]::before { font-size: 150px; bottom: 26px; }
 .card[style*="--yesno"] { --glyph: "O"; --g: linear-gradient(165deg, #2DD4BF 0%, #14A89A 55%, #0E7C86 100%); --glow: rgba(30,200,180,.55); --pill-ink: #0F766E; }
 .card[style*="--violet"] { --glyph: "!"; --g: var(--g-uv); --glow: rgba(130,60,255,.7); --pill-ink: #5A22E0; }
 .card[style*="--violet"]::before { right: 34px; font-size: 205px; }
@@ -609,7 +613,7 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 .card .chip.pick { background: var(--chipbg); border-color: var(--chipbd); color: var(--tx); }
 .card .chip.pick[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
 .card[style*="--violet"] .chip.pick[aria-pressed="true"], .card[style*="--rank"] .chip.pick[aria-pressed="true"], .card[style*="--yesno"] .chip.pick[aria-pressed="true"], .card[style*="--red"] .chip.pick[aria-pressed="true"],
-.card[style*="--blue"] .chip.pick[aria-pressed="true"], .card[style*="--ink"] .chip.pick[aria-pressed="true"], .card:not([style]) .chip.pick[aria-pressed="true"] { background: #fff; color: #1A0F2E; border-color: #fff; }
+.card[style*="--blue"] .chip.pick[aria-pressed="true"], .card[style*="--ink"] .chip.pick[aria-pressed="true"], .card[style*="--dix"] .chip.pick[aria-pressed="true"], .card:not([style]) .chip.pick[aria-pressed="true"] { background: #fff; color: #1A0F2E; border-color: #fff; }
 .card .chip.pick[aria-pressed="true"]::before { content: "✓"; font-weight: 900; }
 .card .row { padding: 0 22px !important; }
 .card .btn.white { --bg: rgba(255,255,255,.22); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6); }
@@ -630,6 +634,10 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 /* Débat : les deux réponses côte à côte, même remplissage caché que Tu préfères */
 .vs.ovs { flex-direction: row; gap: 12px; margin-top: 4px; }
 .vs.ovs .opt-a, .vs.ovs .opt-b { flex: 1; padding: 16px 10px; text-align: center; font-size: 22px; }
+/* C'est une 10 mais : la note de départ, en petit badge, au-dessus du défaut */
+.dix-ten { align-self: flex-start; margin: 0 22px -6px; padding: 4px 14px 5px; border-radius: 999px; background: #fff; color: var(--pill-ink); font-family: var(--display); font-weight: 900; font-size: 22px; line-height: 1.1; box-shadow: 0 8px 20px -10px rgba(60,0,40,.6); }
+.dix-ten small { font-size: .6em; opacity: .75; }
+.card[style*="--dix"] .vs.ovs .opt-a, .card[style*="--dix"] .vs.ovs .opt-b { font-size: clamp(17px, 5.4vw, 22px); white-space: nowrap; }
 /* Débat : le chrono 3, 2, 1 puis 30 s */
 .dbt-go { align-self: center; margin: 2px 22px 0; padding: 10px 18px; border: 0; border-radius: 999px; background: var(--chipbg); box-shadow: inset 0 0 0 1.5px var(--chipbd); color: var(--tx); font: 900 17px/1.2 var(--body); cursor: pointer; }
 .dbt-go:active { transform: scale(.97); }
@@ -1448,6 +1456,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .tile.rt[data-mode="pref"] { --rc: #C51FB6; }
 .tile.rt[data-mode="ouinon"] { --rc: #14B8A6; --rf: #062A26; }
 .tile.rt[data-mode="classement"] { --rc: #FF8A1F; --rf: #1A0F2E; }
+.tile.rt[data-mode="dix"] { --rc: #FF4F8B; }
 .tile.rt[data-mode="qui"] { --rc: #EE1F66; }
 .tile.rt[data-mode="radar"] { --rc: #5B5CF0; }
 .tile.rt[data-mode="taboo"] { --rc: #E0245E; }
@@ -3011,6 +3020,72 @@ const C = {
     [2,"Les demandes en mariage en public, c'est gênant ?"],[3,"Coucher le premier soir, ça change quelque chose pour la suite ?"],[3,"Le sexe, c'est le plus important dans un couple ?"],
     [3,"Regarder du porno en couple, c'est normal ?"],[3,"Les sex-friends, ça finit toujours mal ?"],[3,"Le body count, ça compte ?"]
   ],
+  // C'est une 10 mais : le défaut qui suit « C'est une 10 mais… », sans sujet (la carte dit « un 10 » ou « une 10 » au hasard)
+  dix: [
+    [1,"mâche la bouche ouverte"],[1,"ronfle comme un tracteur"],[1,"répond « ok » à tous tes longs messages"],
+    [1,"applaudit quand l'avion atterrit"],[1,"met des chaussettes avec des sandales"],[1,"regarde toutes les séries en vitesse x2"],
+    [1,"déteste les chiens"],[1,"se brosse les dents sous la douche"],[1,"ne met jamais son clignotant"],
+    [1,"marche super lentement sur le trottoir"],[1,"a 12 000 mails non lus"],[1,"envoie des vocaux de 6 minutes"],
+    [1,"lit la dernière page du livre en premier"],[1,"te spoile tous les films"],[1,"met de l'ananas sur la pizza"],
+    [1,"met de la crème dans la carbonara"],[1,"a peur des papillons"],[1,"chante faux, et très fort, dans la voiture"],
+    [1,"se coupe les ongles dans le salon"],[1,"garde ses chaussures dans le lit"],[1,"met deux heures à se préparer"],
+    [1,"arrive toujours avec 45 minutes de retard"],[1,"arrive toujours une heure en avance"],[1,"a sa propre photo en fond d'écran"],
+    [1,"parle de son signe astro à chaque repas"],[1,"fait des jeux de mots à chaque phrase"],[1,"dit « je te rappelle » et ne rappelle jamais"],
+    [1,"laisse une gorgée au fond de chaque verre"],[1,"pique les frites dans ton assiette"],[1,"ne sait pas nager"],
+    [1,"dit « chocolatine »"],[1,"dit « pain au chocolat »"],[1,"écrit sans majuscules ni ponctuation"],
+    [1,"envoie 🙂 quand ça ne va pas"],[1,"regarde des vidéos sans écouteurs dans le train"],[1,"fait des selfies à la salle de sport"],
+    [1,"prend en photo chaque plat avant de manger"],[1,"n'a jamais vu un seul Disney"],[1,"déteste le fromage"],
+    [1,"met cinq sucres dans son café"],[1,"refuse de partager son dessert"],[1,"a huit réveils le matin et les rate tous"],
+    [1,"ne décroche jamais au téléphone"],[1,"a un rire de dauphin"],[1,"connaît toutes les danses TikTok par cœur"],
+    [1,"chante au karaoké à chaque soirée"],[1,"garde le plastique sur la télécommande"],[1,"a quatre chats et en veut un cinquième"],
+    [1,"se lève à 5 h tous les jours pour aller courir"],[1,"fait une faute dans chaque message"],[1,"te coupe la parole tout le temps"],
+    [1,"te raconte ses rêves en détail chaque matin"],[1,"mange une pomme avec la peau, le trognon et les pépins"],[1,"met du ketchup sur tout, même les sushis"],
+    [1,"dort avec trois couvertures en plein été"],[1,"a la clim à 16 degrés toute l'année"],[1,"parle à ses plantes"],
+    [1,"tape dans ses mains en rigolant"],[1,"met la musique à fond dans les écouteurs, tout le métro entend"],[1,"fait sa vaisselle une fois par semaine"],
+    [1,"n'aime pas le chocolat"],[1,"boit son jus d'orange avec du lait"],[1,"regarde la météo dix fois par jour"],
+    [1,"pleure devant toutes les pubs"],[1,"se réveille à midi tous les jours"],[1,"n'a jamais pris l'avion et ne veut pas"],
+    [1,"a encore un téléphone à clapet"],[1,"imite des accents tout le temps"],[1,"appelle tout le monde « mon pote », même sa grand-mère"],
+    [1,"met sa serviette mouillée sur le lit"],[1,"range ses livres par couleur"],[1,"fait les courses avec une liste de trois pages"],
+    [1,"pose dix questions au serveur avant de commander"],[1,"dit « j'arrive » depuis la douche"],[2,"vit encore chez ses parents à 35 ans"],
+    [2,"se fait encore choisir ses vêtements par sa mère"],[2,"ne laisse jamais de pourboire"],[2,"fait les comptes au centime près à chaque resto"],
+    [2,"te laisse payer tout le premier rendez-vous"],[2,"parle de sa salle de sport toutes les deux phrases"],[2,"appelle sa mère pendant le rendez-vous"],
+    [2,"poste une citation de motivation tous les matins"],[2,"ne lit que des livres de développement personnel"],[2,"dit « moi je suis pas comme les autres »"],
+    [2,"arrive au premier rendez-vous en trottinette électrique"],[2,"fait la tête trois jours sans dire pourquoi"],[2,"veut lire tous tes messages"],
+    [2,"a déjà oublié ton prénom"],[2,"poste votre couple en story toutes les heures"],[2,"ne s'excuse jamais"],
+    [2,"triche au Monopoly"],[2,"jette la manette quand la partie est perdue"],[2,"a une collection de 200 peluches dans sa chambre"],
+    [2,"veut sept enfants"],[2,"ne veut jamais d'enfants"],[2,"répond à tes messages trois jours après"],
+    [2,"emmène sa mère en vacances avec vous"],[2,"a un tableau Excel avec tous ses rendez-vous"],[2,"ne sait pas faire cuire un œuf"],
+    [2,"ne mange que du poulet, du riz et du brocoli"],[2,"a un serpent qui dort dans sa chambre"],[2,"dort avec la lumière allumée"],
+    [2,"fait ses courses en pyjama"],[2,"annonce son salaire à tout le monde"],[2,"t'a ajouté sur LinkedIn avant Insta"],
+    [2,"t'envoie « t'es où ? » toutes les dix minutes"],[2,"a un meilleur ami qui l'appelle « bébé »"],[2,"veut te présenter ses parents au deuxième rendez-vous"],
+    [2,"dit « je t'aime » au troisième message"],[2,"se prend en photo devant chaque miroir"],[2,"parle mal aux serveurs"],
+    [2,"garde les boîtes de pizza vides sous le lit"],[2,"croit que la Terre est plate"],[2,"pense que les pigeons sont des drones du gouvernement"],
+    [2,"parle en anglais pour faire classe"],[2,"emprunte de l'argent et oublie toujours de rendre"],[2,"a fait un an en Australie et en parle tous les jours"],
+    [2,"connaît l'anniversaire de son chien mais pas le tien"],[2,"conduit comme dans un jeu vidéo"],[2,"parle de crypto à chaque soirée"],
+    [2,"appelle ses parents quatre fois par jour"],[2,"fait des lives Insta en pleine soirée"],[2,"note chaque resto sur Google, même le kebab"],
+    [2,"a son prénom tatoué sur son propre bras"],[2,"joue à la console jusqu'à 4 h du matin, tous les soirs"],[2,"a 47 000 photos dans son téléphone, toutes de son chat"],
+    [2,"passe ses vacances au même camping depuis 20 ans"],[2,"compte les calories de ce que tu manges"],[2,"ne t'a jamais montré son appart"],
+    [2,"annule un rendez-vous sur deux à la dernière minute"],[2,"regarde son téléphone pendant que tu parles"],[2,"a un compte TikTok sur votre couple"],
+    [2,"se vexe quand tu gagnes à un jeu"],[2,"parle de soi à la troisième personne"],[2,"a supprimé tous ses réseaux pour « se retrouver »"],
+    [2,"ne prête jamais rien, même pas un stylo"],[2,"commande toujours la même chose au resto"],[2,"dit savoir cuisiner, mais c'est des pâtes au beurre"],
+    [2,"a un nom de profil Insta du genre « le_roi_de_la_nuit »"],[2,"est fan de sa propre voix"],[2,"met ta playlist en pause pour mettre la sienne"],
+    [2,"dit « on verra » à toutes les propositions"],[3,"est encore ami avec tous ses ex"],[3,"like toutes les photos de son ex"],
+    [3,"t'appelle par le prénom de son ex"],[3,"a le prénom de son ex tatoué sur le bras"],[3,"te compare à son ex tout le temps"],
+    [3,"parle de son ex pendant tout le premier rendez-vous"],[3,"garde une photo de son ex sur sa table de nuit"],[3,"envoie encore « bonne nuit » à son ex tous les soirs"],
+    [3,"a son ex qui vit encore dans l'appart"],[3,"est ton ex"],[3,"est l'ex de ton meilleur pote"],
+    [3,"est de la famille de ton ex"],[3,"a déjà embrassé ton meilleur pote"],[3,"drague tes potes devant toi"],
+    [3,"a trompé tous ses ex"],[3,"veut absolument un couple libre"],[3,"a un compte OnlyFans"],
+    [3,"a un body count à trois chiffres"],[3,"crie le mauvais prénom au lit"],[3,"garde la même capote dans son portefeuille depuis 2015"],
+    [3,"simule à chaque fois"],[3,"a une liste de 50 fantasmes à tester cette semaine"],[3,"fait des bruits d'animaux au lit"],
+    [3,"regarde ta localisation toutes les heures"],[3,"demande ton mot de passe Insta au premier rendez-vous"],[3,"porte encore son alliance, mais « c'est fini »"],
+    [3,"a trois enfants avec trois personnes différentes"],[3,"a fait de la prison pour vol de vélos"],[3,"était en garde à vue la semaine dernière"],
+    [3,"ne prend qu'une douche par semaine"],[3,"garde ses ongles de pieds dans une boîte"],[3,"fait des bisous sur la bouche à son chien"],
+    [3,"vend des photos de ses pieds sur internet"],[3,"a une sextape qui tourne sur internet"],[3,"a déjà couché avec ton frère ou ta sœur"],
+    [3,"veut faire un plan à trois avec sa coloc"],[3,"a encore son ex en favori dans ses contacts"],[3,"disparaît sans donner de nouvelles une semaine sur deux"],
+    [3,"a déjà vomi en plein bisou"],[3,"a des dettes partout et une Rolex au poignet"],[3,"a encore Tinder sur son téléphone « juste pour voir »"],
+    [3,"t'a rencontré sur une appli en étant déjà en couple"],[3,"s'est fait virer de trois boulots pour retards"],[3,"a mis son ex en fond d'écran"],
+    [3,"tient la liste de tous ses bisous depuis le collège"],[3,"garde un sac de vêtements de chacun de ses ex"]
+  ],
   radar: [
     [1,"Pas grave","Impardonnable"],[1,"Nul","Génial"],[1,"Sous-coté","Surcoté"],[1,"Pas cher","Hors de prix"],[1,"Facile","Impossible"],
     [1,"Ringard","Stylé"],[1,"Inutile","Indispensable"],[1,"Gênant","Classe"],[1,"Sain","Pas sain du tout"],[1,"Inconnu","Mondialement connu"],
@@ -3648,6 +3723,7 @@ const TYPES = {
   pref:      { label: "Tu préfères", color: "var(--ink)", dark: true, desc: "Faut choisir." },
   imposteur: { label: "L'Imposteur", color: "var(--green)", dark: true, desc: "Un mytho parmi vous." },
   classement: { label: "Le Classement", color: "var(--rank)", dark: true, desc: "Il vous classe, vous devinez pourquoi." },
+  dix:       { label: "C'est une 10 mais", color: "var(--dix)", dark: true, desc: "Une personne parfaite, avec un défaut. Tu lui mets combien ?" },
   ouinon:    { label: "Débat", color: "var(--yesno)", dark: true, desc: "Une question, chacun répond oui ou non." },
   radar:     { label: "Le Radar", color: "var(--radar)", dark: true, desc: "Un indice, vise juste." },
   taboo:     { label: "Sans le dire", color: "var(--taboo)", dark: true, desc: "Fais deviner sans les mots interdits." },
@@ -3970,7 +4046,7 @@ if (document.fonts) document.fonts.ready.then(() => fitPage(true));
 function today() { return new Date().toLocaleDateString((window.I18N && I18N.locale) || "fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); }
 
 /* -------- NOUVELLES CARTES : badge sur le jeu quand des cartes sont arrivées depuis la dernière partie à ce jeu -------- */
-const NEW_SRC = { jamais: ["jamais"], av: ["verite", "action"], pref: ["pref"], qui: ["qui"], ouinon: ["ouinon"], menteur: ["menteur"], classement: ["classement"], radar: ["radar"], taboo: ["taboo"], imposteur: ["imposteur"] };
+const NEW_SRC = { dix: ["dix"], jamais: ["jamais"], av: ["verite", "action"], pref: ["pref"], qui: ["qui"], ouinon: ["ouinon"], menteur: ["menteur"], classement: ["classement"], radar: ["radar"], taboo: ["taboo"], imposteur: ["imposteur"] };
 const hid = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return (h >>> 0).toString(36); };
 // toutes les cartes du jeu, même celles cachées par le réglage ex et sexe : les activer plus tard ne les fait pas passer pour nouvelles
 const cardsOf = m => NEW_SRC[m].flatMap(k => C[k].map(c => ({ h: hid(cardId(k, c)), c })));
@@ -3989,13 +4065,15 @@ function newBadges() {
   });
 }
 
+// C'est une 10 mais : seulement en français tant que ses cartes ne sont pas traduites
+const DIX_OK = !window.BLIZ_LANG || !!((window.BLIZ_LANG.cards || {}).dix);
 /* -------- ACCUEIL -------- */
 function home() {
   S.bot = false;
   S.inGame = false; onStop(); ON.ctx = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
-  const n = store.get("count", 4), minOf = t => ({ taboo: 4, p4: multi ? 2 : 1, uno: multi ? 2 : 1, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
+  const n = store.get("count", 4), minOf = t => ({ dix: 2, taboo: 4, p4: multi ? 2 : 1, uno: multi ? 2 : 1, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
   const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Règles classiques."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   // un jeu qui ne va pas avec le nombre de joueurs reste visible, grisé, avec le nombre qu'il faut
@@ -4019,7 +4097,7 @@ function home() {
       ${n === 1 ? rail("En solo", ["p4", "uno", "reflexe", "test"]) : ""}
       ${rail("Votes et devinettes", ["classement", "qui", "radar"])}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"]).replace('class="rail-box"', 'class="rail-box short"')}
-      ${rail("Questions", ["jamais", "av", "pref", "ouinon"])}
+      ${rail("Questions", ["jamais", "av", "pref", "ouinon"].concat(DIX_OK ? ["dix"] : []))}
       ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe", "test"], "row-societe") : ""}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
     <div class="tabbar-space"></div>
@@ -4069,7 +4147,7 @@ const ICONS = {
   gear: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>`
 };
 // une illustration par jeu, sur les tuiles de l'accueil
-const ILL = { jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
+const ILL = { dix: "🔟", jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
 function toolsSheet() {
   const t = (k, ill, name, sub, col) => `<button class="tile rt" data-tool="${k}" style="--rc:${col}"><span class="ill" aria-hidden="true">${ill}</span><span class="mast">${name}</span><span class="sub">${sub}</span></button>`;
   sheet(`<span class="mast" style="font-size:28px">Outils</span>
@@ -4616,7 +4694,7 @@ function soloWheel() {
 
 /* -------- CARTE -------- */
 // jeux sans points où l'on passe les cartes à volonté : « ⟳ Changer » (une fois par tour) n'a pas de sens
-const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar"];
+const FREE_SKIP = ["jamais", "pref", "qui", "av", "imposteur", "menteur", "ouinon", "radar", "dix"];
 function header() {
   const label = (S.mode === "imposteur" ? "Manche " : "Carte ") + (S.idx + 1);
   return `
@@ -4683,7 +4761,7 @@ function next() {
   card();
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
-const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar", "classement"];
+const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar", "classement", "dix"];
 const ONE_PHONE = [...SWIPE, "taboo", "deux"]; // jeux absents du mode plusieurs téléphones
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
 const NOPTS = ["imposteur", "menteur", "mix"];
@@ -4702,7 +4780,7 @@ function jamaisRefill() {
 function card() {
   const c = S.deck[S.idx];
   if (!c) return endDeck();
-  ({ jamais: cJamais, av: cAvSwipe, qui: cQui, pref: cPref, imposteur: cImpSolo, menteur: cMentSolo, radar: cRadarSolo, classement: cClassSolo, ouinon: cOuiSwipe })[c.type](c);
+  ({ jamais: cJamais, av: cAvSwipe, qui: cQui, pref: cPref, imposteur: cImpSolo, menteur: cMentSolo, radar: cRadarSolo, classement: cClassSolo, ouinon: cOuiSwipe, dix: cDix })[c.type](c);
 }
 const alt = () => S.idx % 2 === 1;
 const chipsHtml = () => `<div class="chips" style="padding:0 18px">${S.players.map((p, i) => `<button class="chip pick" data-i="${i}" aria-pressed="false">${esc(p.name)}</button>`).join("")}</div>`;
@@ -5509,6 +5587,51 @@ function cOuiSwipe(c) {
     $(".jstack .top .dbt-go").onclick = () => debatChrono($(".jstack .top"));
   });
 }
+// C'est une 10 mais : un téléphone, sans points. La carte donne le défaut, à 3 chacun montre sa nouvelle note avec ses doigts.
+// Ensuite le groupe dit si ça passe ou pas, et voit ce qu'ont dit les autres groupes (compteurs a / b de choix, comme Tu préfères).
+function cDix(c) {
+  if (S.idx + 1 >= S.deck.length) jamaisRefill();
+  const nx = S.deck[S.idx + 1], slid = S.jSlid; S.jSlid = false;
+  const txt = x => x.txt || (x.txt = fill(x.data[1]));
+  const une = x => x.une == null ? (x.une = Math.random() < .5) : x.une; // reste le même quand la carte passe dessus
+  const face = (x, i) => cardShell("dix", null, `
+    <div class="dix-ten">10<small>/10</small></div>
+    <p class="text">${une(x) ? "C'est une 10" : "C'est un 10"} mais <b>${esc(txt(x))}</b>.</p>
+    <div class="vs ovs"><div class="opt-a" data-o="a"><span>💚 Ça passe</span></div><div class="opt-b" data-o="b"><span>🚩 Je fuis</span></div></div>
+    <button class="dbt-go" type="button">✋ 3, 2, 1… vos notes&nbsp;!</button>
+  `, i % 2 === 1);
+  view(`${header()}
+    <div class="stage jstack">${nx ? face(nx, S.idx + 1).replace('class="card ', 'class="card under ') : ""}${face(c, S.idx).replace('class="card ', `class="card top ${slid ? "still " : ""}`)}</div>
+    <div class="actions"><div class="row"><button class="btn white" id="stop">Terminer</button><button class="btn red" id="ok">Suivante</button></div></div>`, () => {
+    bindHeader();
+    const fly = swipeNext($(".jstack .top"), $(".jstack .under"), () => { S.jSlid = true; next(); });
+    $("#ok").onclick = () => fly(Math.random() < .5 ? -1 : 1);
+    $("#stop").onclick = ranking;
+    if (nx) choixGet(nx);
+    choixTap(c, $(".jstack .top"));
+    $(".jstack .top .dbt-go").onclick = () => dixChrono($(".jstack .top"));
+  });
+}
+// 3, 2, 1, tout le monde montre sa note avec ses doigts (poings fermés = 0), puis la plus basse et la plus haute s'expliquent
+function dixChrono(card) {
+  if (!card || card.querySelector(".dbt-ov")) return;
+  const ov = document.createElement("div"); ov.className = "dbt-ov";
+  ov.innerHTML = `<b>3</b><p></p><small>Touche pour fermer</small>`;
+  card.appendChild(ov);
+  const big = ov.querySelector("b"), line = ov.querySelector("p");
+  let t = 3;
+  const close = () => { clearInterval(timer); clearTimeout(ov._t); ov.remove(); };
+  buzz(20, "tick");
+  const timer = setInterval(() => {
+    if (!ov.isConnected) return close();
+    if (--t > 0) { big.textContent = t; buzz(20, "tick"); return; }
+    clearInterval(timer);
+    big.textContent = "🖐️"; big.className = "th"; line.textContent = "Vos notes, avec les doigts\u00a0! Poings fermés, c'est 0."; buzz([40, 30, 60]);
+    ov._t = setTimeout(() => { if (ov.isConnected) line.textContent = "La note la plus basse et la plus haute s'expliquent."; }, 2600);
+  }, 1000);
+  ov.addEventListener("pointerdown", e => e.stopPropagation());
+  ov.onclick = close;
+}
 // Débat : 3, 2, 1, tout le monde lève le pouce en même temps, puis 30 s pour ceux qui sont tout seuls
 function debatChrono(card) {
   if (!card || card.querySelector(".dbt-ov")) return;
@@ -5878,7 +6001,7 @@ function bindRate(r = document, getCard = curCard, after) {
 
 /* -------- TESTER LES CARTES : on les passe une par une et on vote -------- */
 const TEST_TYPES = [["jamais", "Je n'ai jamais"], ["verite", "Vérité"], ["action", "Action"], ["qui", "Qui pourrait"], ["pref", "Tu préfères"],
-  ["menteur", "Le Menteur"], ["classement", "Le Classement"], ["ouinon", "Débat"], ["radar", "Le Radar"], ["imposteur", "L'Imposteur"], ["taboo", "Sans le dire"]];
+  ["menteur", "Le Menteur"], ["classement", "Le Classement"], ["ouinon", "Débat"], ["radar", "Le Radar"], ["imposteur", "L'Imposteur"], ["taboo", "Sans le dire"]].concat(DIX_OK ? [["dix", "C'est une 10 mais"]] : []);
 let testerBack = home;
 function testerMenu(back) {
   if (typeof back === "function") testerBack = back; // les pages de cartes reviennent ici par un clic, sans changer ce retour
@@ -5960,7 +6083,7 @@ async function testerResults() {
 /* -------- PROPOSER UNE CARTE : ajoutée au jeu sur ce téléphone et envoyée pour être relue -------- */
 const PROPOSE = {
   jamais: ["Je n'ai jamais…"], verite: ["La question"], action: ["Le défi"], qui: ["Qui pourrait…"], pref: ["Premier choix", "Deuxième choix"],
-  menteur: ["T'as déjà… ?"], classement: ["Classe tout le monde : le plus…"], ouinon: ["La question"], radar: ["D'un côté", "De l'autre"], imposteur: ["Thème", "Mot secret"],
+  menteur: ["T'as déjà… ?"], classement: ["Classe tout le monde : le plus…"], ouinon: ["La question"], dix: ["C'est une 10 mais…"], radar: ["D'un côté", "De l'autre"], imposteur: ["Thème", "Mot secret"],
   taboo: ["Le mot à faire deviner", "Interdit 1", "Interdit 2", "Interdit 3", "Interdit 4", "Interdit 5"]
 };
 function proposeTool() {
@@ -5995,7 +6118,7 @@ function proposeTool() {
       $("#panon", w).onclick = () => { anon = !anon; store.set("propAnon", anon); const v = $$(".duo-in[data-i]", w).map(i => i.value); draw(); $$(".duo-in[data-i]", w).forEach((i, k) => i.value = v[k] || ""); };
       $("#send", w).onclick = send;
     };
-    const clean = () => $$(".duo-in[data-i]", w).map(i => i.value.trim().replace(/\s+/g, " ").replace(/^je n'ai jamais\s+/i, "").replace(/^qui pourrait\s+/i, "").replace(/[.?]$/, t === "verite" || t === "menteur" || t === "ouinon" ? "$&" : ""));
+    const clean = () => $$(".duo-in[data-i]", w).map(i => i.value.trim().replace(/\s+/g, " ").replace(/^je n'ai jamais\s+/i, "").replace(/^qui pourrait\s+/i, "").replace(/^c'est une? 10,? mais\s+/i, "").replace(/[.?]$/, t === "verite" || t === "menteur" || t === "ouinon" ? "$&" : ""));
     // la carte telle qu'elle sortira dans le jeu, pendant qu'on écrit
     const preview = () => {
       const box = $("#pprev", w); if (!box) return;
@@ -6795,6 +6918,7 @@ const TUTO = {
   av: "La carte dit à qui c'est le tour. Swipe à droite pour une action, à gauche pour une vérité. Tu réponds ou tu le fais, et on swipe. Si tu veux pas, on swipe quand même.",
   pref: "Quelqu'un lit les deux choix. Chacun dit ce qu'il prendrait, on débat, et on swipe.",
   ouinon: "Lis la question à voix haute. Touche 3, 2, 1 et tout le monde lève le pouce en même temps. Ceux qui sont tout seuls ont 30 secondes pour convaincre les autres. Swipe pour la suivante.",
+  dix: "Lis la carte : la personne est parfaite, mais elle a ce défaut. À 3, chacun montre sa nouvelle note sur 10 avec ses doigts. La note la plus basse et la plus haute s'expliquent. Ensuite le groupe dit si ça passe, et on swipe.",
   classement: "Celui qui a le tel voit une question en secret et classe tout le monde, lui compris. Les autres regardent le classement et se mettent d'accord pour retrouver la question.",
   qui: "Quelqu'un lit la carte. À trois, tout le monde pointe quelqu'un du doigt, et on swipe. Sur une carte duel, on choisit seulement entre les deux prénoms.",
   radar: "Celui qui a le tel voit la cible en secret et donne un indice. Les autres se mettent d'accord et placent la flèche. Ensuite on voit si c'est dans le mille.",
