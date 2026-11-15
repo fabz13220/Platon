@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="c3afc748b427">
+<meta name="build" content="d53d3d72d5b6">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -4294,8 +4294,14 @@ function ideaSheet(back) {
 
 /* -------- JOUEURS -------- */
 function minPlayers() { if (S.mode === "p4" || S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe" || S.mode === "test") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
+// celui qui tient le téléphone : son pseudo, sinon le premier prénom qu'il a tapé dans une liste vide
+const selfName = () => { const me = store.get("me", null); return (me && me.name) || store.get("self", ""); };
 function playersScreen() {
   const min = minPlayers();
+  // il est dans la partie d'office, une fois par ouverture de l'appli (s'il se retire, on ne le remet pas)
+  const self = selfName();
+  if (!S.selfIn && self && S.names.length < 16 && !S.names.some(n => n.toLowerCase() === self.toLowerCase())) { S.names.unshift(self); store.set("players", S.names); }
+  S.selfIn = true;
   const draw = () => {
     $("#chips").innerHTML = S.names.map((n, i) => `<span class="chip">${esc(n)}<button class="x" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span>`).join("")
       || `<p class="hint muted">Ajoute au moins ${min} prénoms, ou touche un groupe.</p>`;
@@ -4324,6 +4330,7 @@ function playersScreen() {
       if (!v) return;
       if (S.names.some(n => n.toLowerCase() === v.toLowerCase())) { toast("Ce prénom est déjà dans la partie."); return; }
       if (S.names.length >= 16) { toast("16 joueurs maximum."); return; }
+      if (!S.names.length && !selfName()) store.set("self", v);
       S.names.push(v); store.set("players", S.names); $("#name-input").value = ""; $("#name-input").focus(); draw();
     };
     $("#add").onclick = add;
