@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="ff7fd93c9815">
+<meta name="build" content="16e60198c39d">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -638,6 +638,51 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 .dix-big { margin: 0; padding: 0 22px; font-family: var(--display); font-weight: 900; font-size: clamp(38px, 12.5vw, 58px); line-height: 1.05; letter-spacing: -.03em; color: var(--tx); }
 .dix-big span { display: inline-block; padding: 0 .16em; border-radius: .18em; background: #fff; color: var(--pill-ink); box-shadow: 0 8px 20px -10px rgba(60,0,40,.6); }
 .card .text.dix-but { margin-top: -4px; font-size: clamp(22px, 6.8vw, 28px); }
+/* ---------- LE POT : rouge ou noir, un pot de pièces qui monte jusqu'à 10 ---------- */
+.tile.rt[data-mode="pot"] { --rc: #F5A524; --rf: #1A0F2E; }
+.pot-game { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; gap: 10px; padding: 4px 16px 14px; min-height: 0; text-align: center; }
+.pot-who small { display: block; font-weight: 800; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.pot-who b { display: block; font-family: var(--display); font-weight: 900; font-size: clamp(30px, 9vw, 42px); line-height: 1.1; color: var(--text); overflow-wrap: normal; }
+.pot-streak { display: inline-block; margin-top: 6px; min-height: 22px; font-weight: 900; font-size: 16px; color: var(--text); }
+.pot-mid { display: flex; align-items: center; justify-content: center; gap: clamp(16px, 6vw, 34px); }
+.pot-jarbox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pot-jar { position: relative; width: clamp(104px, 32vw, 150px); height: clamp(132px, 25vh, 210px); border: 3px solid rgba(255,255,255,.6); border-top-width: 0; border-radius: 10px 10px 30px 30px; background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.14) 30%, rgba(255,255,255,.04) 60%); overflow: hidden; }
+.pot-jar::before { content: ""; position: absolute; top: 0; left: -3px; right: -3px; height: 9px; border-radius: 6px; background: rgba(255,255,255,.6); z-index: 2; }
+.pot-jar.full { box-shadow: 0 0 0 4px rgba(255,190,40,.35), 0 0 34px rgba(255,170,30,.7); animation: potShake .5s ease-in-out infinite alternate; }
+@keyframes potShake { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+.pot-coin { position: absolute; left: 50%; width: 74%; height: 9.5%; margin-left: -37%; border-radius: 50%; background: radial-gradient(ellipse at 35% 30%, #FFF3B0 0%, #FFD23F 35%, #E8A00C 75%, #B87300 100%); box-shadow: inset 0 -3px 0 rgba(140,80,0,.55), 0 2px 3px rgba(0,0,0,.3); opacity: 0; transform: translateY(-260%); transition: opacity .2s, transform .45s cubic-bezier(.3,1.4,.5,1); }
+.pot-coin.on { opacity: 1; transform: none; }
+.pot-n { font-family: var(--display); font-weight: 900; font-size: 26px; line-height: 1; color: var(--text); }
+.pot-n small { font-size: .55em; opacity: .7; }
+:where(html[data-theme="light"]) .pot-jar { border-color: rgba(26,15,46,.4); background: linear-gradient(90deg, rgba(255,255,255,.25), rgba(255,255,255,.6) 30%, rgba(255,255,255,.25) 60%); }
+:where(html[data-theme="light"]) .pot-jar::before { background: rgba(26,15,46,.4); }
+.pot-card { position: relative; width: clamp(86px, 26vw, 124px); aspect-ratio: 5 / 7; perspective: 600px; }
+.pot-card > div { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .45s ease; box-shadow: 0 12px 26px -12px rgba(0,0,0,.6); }
+.pot-card .pc-back { background: repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 6px, transparent 6px 12px), var(--g-signature); border: 4px solid #fff; }
+.pot-card .pc-face { background: #fff; transform: rotateY(180deg); display: flex; align-items: center; justify-content: center; color: #1A0F2E; }
+.pot-card .pc-face.r { color: #E5243B; }
+.pot-card .pc-face i { position: absolute; top: 6px; left: 9px; font-style: normal; font-family: var(--display); font-weight: 900; font-size: 20px; line-height: 1.05; text-align: center; }
+.pot-card .pc-face b { font-size: clamp(44px, 13vw, 62px); line-height: 1; }
+.pot-card.up .pc-back { transform: rotateY(-180deg); }
+.pot-card.up .pc-face { transform: rotateY(0); }
+.pot-left { margin: 0; font-weight: 800; font-size: 14px; color: var(--muted); }
+.pot-bets { display: flex; gap: 12px; width: 100%; max-width: 420px; }
+.pot-bet { flex: 1; min-height: 84px; border: 0; border-radius: var(--r-l); font-family: var(--display); font-weight: 900; font-size: 24px; color: #fff; cursor: pointer; box-shadow: 0 12px 26px -12px rgba(0,0,0,.7), inset 0 -4px 0 rgba(0,0,0,.25); }
+.pot-bet.red { background: linear-gradient(165deg, #FF5A6E, #D7193A); }
+.pot-bet.black { background: linear-gradient(165deg, #3A3550, #15121F); box-shadow: 0 12px 26px -12px rgba(0,0,0,.7), inset 0 0 0 2px rgba(255,255,255,.25); }
+.pot-bet:active { transform: scale(.96); }
+.pot-bet:disabled { opacity: .55; }
+#pot-pass { width: 100%; max-width: 420px; }
+.pot-ov { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; color: #fff; background: rgba(20,6,45,.9); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: potIn .2s ease-out; }
+@keyframes potIn { from { opacity: 0; } to { opacity: 1; } }
+.pot-ov > * { animation: potUp .3s cubic-bezier(.3,1.4,.5,1); }
+@keyframes potUp { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+.pot-ov .big { font-size: 74px; line-height: 1; }
+.pot-ov .mast { font-size: clamp(36px, 11vw, 54px); line-height: 1.05; }
+.pot-ov p { margin: 0; max-width: 100%; font-weight: 900; font-size: clamp(18px, 5.6vw, 22px); line-height: 1.3; text-wrap: balance; }
+.pot-ov .btn { width: 100%; max-width: 360px; margin-top: 10px; }
+.pot-ov.cs .mast { color: #FFD23F; }
+.pot-best { margin: 0 0 4px; font-weight: 800; font-size: 16px; line-height: 1.4; color: rgba(255,255,255,.92); }
 /* Débat : le chrono 3, 2, 1 puis 30 s */
 .dbt-go { align-self: center; margin: 2px 22px 0; padding: 10px 18px; border: 0; border-radius: 999px; background: var(--chipbg); box-shadow: inset 0 0 0 1.5px var(--chipbd); color: var(--tx); font: 900 17px/1.2 var(--body); cursor: pointer; }
 .dbt-go:active { transform: scale(.97); }
@@ -4077,15 +4122,17 @@ function newBadges() {
 
 // C'est une 10 mais : seulement en français tant que ses cartes ne sont pas traduites
 const DIX_OK = !window.BLIZ_LANG || !!((window.BLIZ_LANG.cards || {}).dix);
+// Le Pot : jeu à boire. Pas encore traduit, et pas dans l'appli App Store tant qu'elle est classée 16+
+const POT_OK = !window.BLIZ_LANG && !NATIVE;
 /* -------- ACCUEIL -------- */
 function home() {
   S.bot = false;
   S.inGame = false; onStop(); ON.ctx = null;
   const multi = store.get("multi", false);
   // le nombre de joueurs choisi décide des jeux affichés
-  const n = store.get("count", 4), minOf = t => ({ dix: 2, taboo: 4, p4: multi ? 2 : 1, uno: multi ? 2 : 1, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
+  const n = store.get("count", 4), minOf = t => ({ dix: 2, pot: 2, taboo: 4, p4: multi ? 2 : 1, uno: multi ? 2 : 1, deux: 2, reflexe: 1, test: 1 })[t] || (WHEEL.find(g => g.t === t) || { min: 3 }).min;
   const maxOf = t => ({ deux: 16, uno: 10 })[t] || 16;
-  const LBL = { p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Règles classiques."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
+  const LBL = { pot: ["Le Pot", "Rouge ou noir."], p4: ["Aligne 4", "Aligne 4 jetons avant l'autre"], uno: ["Vide ta main", "Règles classiques."], deux: ["Qui de nous deux", "À deux. Qui est le pire ?"], reflexe: ["Duel réflexe", "Le plus rapide gagne."], test: ["Test de pureté", "T'es pur à combien ?"] };
   // un jeu qui ne va pas avec le nombre de joueurs reste visible, grisé, avec le nombre qu'il faut
   const need = t => on => on ? "" : n < minOf(t) ? `dès ${minOf(t)}` : n > maxOf(t) ? `${maxOf(t)} max` : "";
   const tile = (t, on) => { const k = need(t)(on); return `<button class="tile rt${k ? " lock" : ""}" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span>${k ? `<span class="need">${k}</span>` : ""}<span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`; };
@@ -4108,7 +4155,7 @@ function home() {
       ${rail("Votes et devinettes", ["classement", "qui", "radar"])}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"]).replace('class="rail-box"', 'class="rail-box short"')}
       ${rail("Questions", ["jamais", "av", "pref", "ouinon"].concat(DIX_OK ? ["dix"] : []))}
-      ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe", "test"], "row-societe") : ""}`}
+      ${n > 1 ? rail("Jeux de société", ["p4", "uno", "reflexe", "test"].concat(POT_OK ? ["pot"] : []), "row-societe") : ""}`}
     <p class="hint muted" style="text-align:center;margin:0">${multi ? "Chacun sur son téléphone, connecté à internet." : "Un seul téléphone, qu'on se passe."} Jouez avec modération et consentement.</p>
     <div class="tabbar-space"></div>
     <nav class="tabbar" aria-label="Menu">
@@ -4157,7 +4204,7 @@ const ICONS = {
   gear: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>`
 };
 // une illustration par jeu, sur les tuiles de l'accueil
-const ILL = { dix: "🔟", jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
+const ILL = { pot: "🫙", dix: "🔟", jamais: "🙈", av: "😈", pref: "🤔", ouinon: "👍", classement: "🏆", qui: "👉", radar: "🎯", taboo: "🤐", imposteur: "🕵️", menteur: "🤥", p4: "🔴", uno: "🃏", deux: "💞", reflexe: "⚡", test: "😇" };
 function toolsSheet() {
   const t = (k, ill, name, sub, col) => `<button class="tile rt" data-tool="${k}" style="--rc:${col}"><span class="ill" aria-hidden="true">${ill}</span><span class="mast">${name}</span><span class="sub">${sub}</span></button>`;
   sheet(`<span class="mast" style="font-size:28px">Outils</span>
@@ -4303,7 +4350,7 @@ function ideaSheet(back) {
 }
 
 /* -------- JOUEURS -------- */
-function minPlayers() { if (S.mode === "p4" || S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe" || S.mode === "test") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
+function minPlayers() { if (S.mode === "pot" || S.mode === "p4" || S.mode === "uno" || S.mode === "mix" || S.mode === "reflexe" || S.mode === "test") return 2; if (S.mode === "taboo") return 4; const w = WHEEL.find(g => g.t === S.mode); return w ? w.min : 3; }
 // celui qui tient le téléphone : son pseudo, sinon le premier prénom qu'il a tapé dans une liste vide
 const selfName = () => { const me = store.get("me", null); return (me && me.name) || store.get("self", ""); };
 function playersScreen() {
@@ -4583,6 +4630,7 @@ function ambiance() {
   if (S.mode === "imposteur") return impSetup(); // pas d'intensité ici : des réglages de rôles à la place
   if (S.mode === "test") return testStart(); // Test de pureté : les thèmes remplacent l'intensité
   if (S.mode === "p4") return p4Start(); // Aligne 4 : rien à régler
+  if (S.mode === "pot") return potStart(); // Le Pot : rien à régler
   if (S.mode === "reflexe") return reflexStart(); // Duel réflexe : rien à régler à part les pièges, déjà sur l'écran des joueurs
   if (S.mode === "taboo") return startGame(); // Sans le dire : pas d'intensité ; le réglage ex et sexe est sur l'écran des équipes
   const draw = () => {
@@ -6923,6 +6971,7 @@ const TUTO = {
   uno: "Règles classiques. On se passe le tel, chacun cache sa main. Tu poses la même couleur ou le même chiffre, sinon tu pioches. Le premier qui n'a plus de cartes gagne. Avec le cumul, un +2 ou un +4 se renvoie au suivant, et celui qui peut pas renvoyer prend tout.",
   reflexe: "Dès que l'écran devient vert, touche-le. Trop tôt, c'est raté. Avec les pièges, il change parfois d'abord de couleur : touche pas ! À deux, chacun sa moitié d'écran. À plus, on se passe le tel. Avec l'élimination, le plus lent de chaque manche sort, et un faux départ aussi.",
   test: "Décoche les thèmes que tu veux pas. Swipe à droite pour oui, à gauche pour non, personne voit tes réponses. À la fin t'as ton score, thème par thème : 100 %, t'as tout fait, 0 %, t'as rien fait. À plusieurs, chacun son tour et on compare.",
+  pot: "On se passe le tel. Tu dis rouge ou noir, et la carte se retourne. Bonne réponse : une pièce de plus dans le pot. Raté : tu bois le pot, il repart à zéro et tu recommences. Après 2 bonnes réponses de suite, tu peux passer le pot au suivant. Pot plein à 10 : celui qui rate fait cul sec. Pas envie de boire ? Une gorgée, c'est un gage ou de l'eau.",
   mix: "La roue choisit le jeu pour vous. Pas envie ? Relance-la. Sinon, lance le jeu."
 };
 const tutoSession = new Set();
@@ -6932,7 +6981,7 @@ function showTuto(key, then, force) {
   const done = () => { try { then && then(); } catch (e) { console.error(e); } };
   if (!steps || (!force && (seen.includes(key) || tutoSession.has(key)))) return done();
   tutoSession.add(key); clearTimers(); $$(".tuto-wrap").forEach(t => t.remove());
-  const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Aligne 4", mix: "Mode Mix" })[key] || key;
+  const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Aligne 4", pot: "Le Pot", mix: "Mode Mix" })[key] || key;
   const w = document.createElement("div"); w.className = "tuto-wrap";
   w.innerHTML = `<div class="tuto" role="dialog" aria-modal="true" aria-label="Règles : ${esc(name)}">
     <div class="tuto-head"><span>Règles · <b>${esc(name)}</b></span><span id="tuto-n"></span></div>
@@ -7431,6 +7480,115 @@ function bindQuit() {
     <button class="linkbtn" id="report">Signaler un problème</button>`,
     w => { bindSv(w); $("#stay", w).onclick = () => w.remove(); $("#leave", w).onclick = () => { w.remove(); home(); }; $("#report", w).onclick = () => reportSheet(true, ask); });
   $("#quit").onclick = ask;
+}
+
+/* ---------- LE POT ---------- */
+// un téléphone qu'on se passe, un paquet de 52 cartes. Rouge ou noir : bonne réponse = une pièce de plus (10 au plus),
+// raté = tu bois le pot plus la carte ratée (10 = cul sec), le pot repart à zéro et tu recommences.
+// Après 2 bonnes réponses de suite, tu peux passer le pot au suivant, qui reprend là où il en est.
+const POT_MAX = 10;
+const potSuit = { h: ["♥", 1], d: ["♦", 1], c: ["♣", 0], s: ["♠", 0] };
+const potRank = r => ({ 1: "A", 11: "V", 12: "D", 13: "R" })[r] || String(r);
+function potStart() {
+  if (tutoGate("pot", potStart)) return;
+  stat("start", "pot", S.names.length, "un");
+  const P = shuffle(S.names).map(n => ({ name: n, drank: 0, cs: 0, best: 0 }));
+  S.players = P.map(p => ({ name: p.name, pts: 0 })); S.inGame = true; keepAwake();
+  const deck = shuffle(Object.keys(potSuit).flatMap(k => Array.from({ length: 13 }, (_, i) => ({ s: k, r: i + 1 }))));
+  let pot = 0, cur = 0, streak = 0, busy = false, last = null, bigPot = null;
+  const next = () => (cur + 1) % P.length;
+  const reds = () => deck.filter(k => potSuit[k.s][1]).length;
+  view(`
+    <div class="topbar">${quitBtn()}<span class="progress" id="pot-left">52 cartes</span><span style="width:44px"></span></div>
+    <div class="pot-game">
+      <div class="pot-who"><small>Au tour de</small><b id="pot-name"></b><span class="pot-streak" id="pot-streak"></span></div>
+      <div class="pot-mid">
+        <div class="pot-jarbox"><div class="pot-jar" id="pot-jar">${Array.from({ length: POT_MAX }, (_, i) => `<i class="pot-coin" style="bottom:${2 + i * 9.6}%;margin-left:calc(-37% + ${i % 2 ? 4 : -4}px)"></i>`).join("")}</div><div class="pot-n"><b id="pot-n">0</b><small> / ${POT_MAX}</small></div></div>
+        <div class="pot-card" id="pot-card"><div class="pc-back"></div><div class="pc-face"></div></div>
+      </div>
+      <p class="pot-left" id="pot-rb"></p>
+      <div class="pot-bets"><button class="pot-bet red" data-c="1">Rouge</button><button class="pot-bet black" data-c="0">Noir</button></div>
+      <button class="btn white" id="pot-pass" disabled></button>
+    </div>`, () => {
+    bindQuit();
+    const paint = () => {
+      $("#pot-name").textContent = P[cur].name;
+      $("#pot-streak").textContent = streak ? "✓".repeat(Math.min(streak, 10)) + (streak > 1 ? ` ${streak} de suite` : "") : "";
+      $$(".pot-coin").forEach((c, i) => c.classList.toggle("on", i < pot));
+      $("#pot-n").textContent = pot;
+      $("#pot-jar").classList.toggle("full", pot >= POT_MAX);
+      $("#pot-left").textContent = `${deck.length} carte${deck.length > 1 ? "s" : ""}`;
+      const r = reds(); $("#pot-rb").textContent = `Il reste ${r} rouge${r > 1 ? "s" : ""} et ${deck.length - r} noire${deck.length - r > 1 ? "s" : ""}`;
+      const pass = $("#pot-pass"), need = 2 - streak;
+      pass.disabled = need > 0;
+      pass.innerHTML = `Passer le pot à ${esc(P[next()].name)}<small>${need > 0 ? `Encore ${need} bonne${need > 1 ? "s" : ""} réponse${need > 1 ? "s" : ""}` : `${pot} pièce${pot > 1 ? "s" : ""} dans le pot`}</small>`;
+    };
+    const show = k => {
+      const f = $("#pot-card .pc-face"), [sym, red] = potSuit[k.s];
+      f.className = "pc-face" + (red ? " r" : "");
+      f.innerHTML = `<i>${potRank(k.r)}<br>${sym}</i><b>${sym}</b>`;
+      const card = $("#pot-card"); card.classList.remove("up"); void card.offsetWidth; card.classList.add("up");
+    };
+    const finish = () => { if (!deck.length) later(() => potEnd(P, bigPot), 700); };
+    const ov = (cls, html, then) => {
+      const o = document.createElement("div"); o.className = "pot-ov " + cls; o.innerHTML = html; document.body.appendChild(o);
+      $(".btn", o).onclick = () => { o.remove(); then(); };
+    };
+    $$(".pot-bet").forEach(b => b.onclick = () => {
+      if (busy || !deck.length) return;
+      busy = true; $$(".pot-bet").forEach(x => x.disabled = true);
+      const k = deck.pop(); last = k; show(k);
+      const good = potSuit[k.s][1] === +b.dataset.c, p = P[cur];
+      later(() => {
+        busy = false; $$(".pot-bet").forEach(x => x.disabled = false);
+        if (good) {
+          streak++; p.best = Math.max(p.best, streak); pot = Math.min(POT_MAX, pot + 1);
+          buzz(pot >= POT_MAX ? [40, 30, 80] : 15); paint();
+          if (!deck.length) return finish();
+          return;
+        }
+        const gulp = Math.min(POT_MAX, pot + 1), cs = gulp >= POT_MAX;
+        p.drank += gulp; if (cs) p.cs++;
+        if (!bigPot || gulp > bigPot.n) bigPot = { name: p.name, n: gulp };
+        buzz([200, 80, 200]);
+        pot = 0; streak = 0;
+        const after = () => { paint(); finish(); };
+        if (cs) ov("cs", `<div class="big">🫙</div><span class="mast">Cul sec !</span><p>Le pot était plein. ${esc(p.name)} vide son verre, et on repart avec un pot vide.</p><button class="btn red">C'est fait</button>`, after);
+        else ov("", `<div class="big">${potSuit[k.s][1] ? "🔴" : "⚫"}</div><span class="mast">Raté !</span><p>${esc(p.name)} boit ${gulp} gorgée${gulp > 1 ? "s" : ""}, puis recommence avec un pot vide.</p><button class="btn red">C'est bu</button>`, after);
+      }, 480);
+    });
+    $("#pot-pass").onclick = () => {
+      if (streak < 2 || busy) return;
+      cur = next(); streak = 0; buzz(20);
+      toast(`Le pot passe à ${P[cur].name}`); paint();
+    };
+    paint();
+  });
+}
+function potEnd(P, bigPot) {
+  stat("end", "pot", P.length, "un"); S.inGame = false;
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  const most = P.slice().sort((a, b) => b.drank - a.drank)[0], best = P.slice().sort((a, b) => b.best - a.best)[0];
+  const lines = [
+    bigPot ? `🫙 Plus gros pot : ${esc(bigPot.name)} (${bigPot.n >= POT_MAX ? "cul sec" : bigPot.n + " gorgée" + (bigPot.n > 1 ? "s" : "")})` : "",
+    best && best.best > 1 ? `🔥 Plus longue série : ${esc(best.name)} (${best.best} de suite)` : "",
+    most && most.drank ? `🪙 A bu le plus : ${esc(most.name)} (${most.drank} gorgée${most.drank > 1 ? "s" : ""})` : ""
+  ].filter(Boolean);
+  view(`
+    <div class="rank anim fin-jamais" style="flex:1">
+      <div class="rank-head"><span class="mast">Paquet fini</span><span class="rank-date">${esc(today())}</span></div>
+      ${lines.map(l => `<p class="pot-best">${l}</p>`).join("")}
+      ${endBubbles(P.map(p => p.name), false, P.map(p => `${p.drank} gorgée${p.drank > 1 ? "s" : ""}${p.cs ? " · " + p.cs + " cul sec" : ""}`))}
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <div class="actions">
+      <div class="row"><button class="btn red" id="again">Rejouer</button><button class="btn white" id="home">Accueil</button></div>
+    </div>
+  `, () => {
+    $("#again").onclick = () => { S.names = P.map(p => p.name); potStart(); };
+    $("#home").onclick = home;
+    bindBubbles(); party(); buzz([40, 30, 80]);
+  });
 }
 
 /* ---------- DUEL RÉFLEXE ---------- */
