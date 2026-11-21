@@ -4245,7 +4245,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "1.2 · 14 novembre · 21 langues";
+const VERSION = "1.2 · 21 novembre · 21 langues";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -7976,7 +7976,7 @@ async function ensureProfile(name) {
 
 const hasProfile = () => { const me = store.get("me", null); return !!(me && me.name && me.code); };
 const FRIEND_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.4 0 4 1.5 4.5 4"/></svg>`;
-const ONLINE_MS = 150e3, HOST_MS = 120e3;
+const ONLINE_MS = 150e3, HOST_MS = 60e3;
 const isOnline = u => u && u.seen && Date.now() - u.seen < ONLINE_MS;
 function seenTxt(t) {
   if (!t) return "Hors ligne";
@@ -8315,7 +8315,13 @@ async function roomJoin(raw) {
       // revenu après avoir quitté : on retrouve sa place et ses points ; sinon on arrive avec 0 point, même en pleine partie
       const back = r.left && r.left[uid], taken = Object.values(r.players).map(p => p.name.toLowerCase()), base = back ? back.name : me.name;
       let name = base; for (let k = 2; taken.includes(name.toLowerCase()); k++) name = base + " " + k;
-      await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: { name, pts: back ? back.pts : 0, t: back ? back.t : Date.now() } }, back ? { [`left.${uid}`]: F.deleteField() } : {}));
+      try { await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: { name, pts: back ? back.pts : 0, t: back ? back.t : Date.now() } }, back ? { [`left.${uid}`]: F.deleteField() } : {})); }
+      catch (e) {
+        // anciennes règles de la base : on n'entre qu'en salle d'attente, avec 0 point, sans toucher à la place gardée
+        if (!String(e && e.code).includes("permission")) throw e;
+        if (r.status !== "lobby") { toast("La partie a déjà commencé. Rejoins-la quand elle revient en salle d'attente."); return false; }
+        await F.updateDoc(ref, { [`players.${uid}`]: { name, pts: 0, t: Date.now() } });
+      }
       if (r.status === "play") toast(back ? "Te revoilà dans la partie !" : "La partie a commencé : tu joues dès la prochaine manche.");
     }
     roomOpen(code);
@@ -8333,17 +8339,27 @@ async function roomOpen(code) {
     if (!s.exists()) { toast("La partie a été fermée."); store.set("room", null); return home(); }
     const r = s.data();
     if (r.status === "end") store.set("room", null);
+    else if (!store.get("room", null)) store.set("room", { code, at: Date.now() }); // « Rejouer » : la nouvelle partie se retrouve aussi
     if (!r.players[uid]) { toast("Tu n'es plus dans la partie."); return home(); }
     // tant que la partie attend des joueurs, les amis la voient dans Amis avec un bouton « Rejoindre »
     const pub = r.status === "lobby" ? code : "";
     if (ON.ctx.pub !== pub) { ON.ctx.pub = pub; F.setDoc(F.doc(db, "users", uid), { room: pub }, { merge: true }).catch(() => {}); }
     ON.r = r; S.level = r.level; S.hot = r.hot; S.players = ids(r).map(u => ({ name: r.players[u].name, pts: 0 }));
-    if (r.host === uid) hostTick(r);
-    const c = r.card, key = [r.status, r.status === "lobby" ? JSON.stringify([ids(r).map(u => r.players[u].name), r.game, r.rounds, r.host, r.imp, r.und, r.white, r.traps, r.stack]) : "",
+    if (r.host === uid) hostTick(r); else guestTick(r);
+    // un joueur qui arrive, part ou devient hôte : l'écran se redessine (sauf le pavé du Duel réflexe, qui repartirait de zéro)
+    const c = r.card, pad = c && c.type === "reflexe" && r.phase === "vote" && !(r.acts && r.acts[uid] != null);
+    const key = [r.status, r.status === "lobby" ? JSON.stringify([r.game, r.rounds, r.imp, r.und, r.white, r.traps, r.stack]) : "", pad ? "" : JSON.stringify([ids(r).map(u => r.players[u].name), r.host]),
       r.round, r.phase, r.acts && r.acts[uid], r.host === uid, c && c.clue, c && LONG.includes(c.type) ? JSON.stringify(c) : ""].join("|");
     if (key !== ON.ctx.last) { ON.ctx.last = key; roomRender(r); }
     else { const w = $("#wait"); if (w) w.innerHTML = waitTxt(r); }
-  }, () => toast("Connexion perdue, on réessaie…")));
+  }, () => {
+    // l'écoute s'arrête après une erreur : on la relance nous-mêmes
+    toast("Connexion perdue, on réessaie…");
+    later(() => { if (ON.ctx && ON.ctx.ref === ref) roomOpen(code); }, 3000);
+  }));
+  // pendant une partie, signe de vie toutes les 20 s : si l'hôte disparaît, un autre reprend la main en une minute
+  const beatR = setInterval(() => { if (!document.hidden) F.setDoc(F.doc(db, "users", uid), { seen: Date.now() }, { merge: true }).catch(() => {}); }, 20e3);
+  ON.off.push(() => clearInterval(beatR));
   // l'hôte a fermé l'appli ou perdu le réseau : sans signe de vie depuis 2 min, le premier joueur encore là reprend la main
   // (sinon personne ne peut lancer la suite et la partie reste bloquée)
   const hostT = setInterval(async () => {
@@ -8366,10 +8382,13 @@ async function roomLeave() {
   try {
     if (!rest.length) { store.set("room", null); await F.deleteDoc(ref); }
     // sa place et ses points sont gardés de côté : en revenant avec le code, on les retrouve
-    else await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: F.deleteField(), [`left.${uid}`]: r.players[uid] }, r.host === uid ? { host: rest[0] } : {}));
+    // en salle d'attente, rien à garder : revenir avec le code marche comme une première arrivée
+    else await F.updateDoc(ref, Object.assign({ [`players.${uid}`]: F.deleteField() }, r.status === "lobby" ? {} : { [`left.${uid}`]: r.players[uid] }, r.host === uid ? { host: rest[0] } : {}));
   } catch (e) {}
   setUrl(""); home();
 }
+// bouton de la suite : désactivé le temps de l'envoi, et de nouveau utilisable si la connexion a lâché (sinon la partie reste figée)
+const onceBtn = (b, fn) => { if (b.disabled) return; b.disabled = true; Promise.resolve().then(fn).catch(() => {}).finally(() => setTimeout(() => { if (b.isConnected) b.disabled = false; }, 4000)); };
 const upd = o => ON.ctx.N.F.updateDoc(ON.ctx.ref, o).catch(() => toast("Connexion perdue, réessaie."));
 function waitTxt(r) {
   const n = needers(r).length, a = actedN(r);
@@ -8379,6 +8398,25 @@ function hostTick(r) {
   if (r.status !== "play" || !r.card) return;
   const k = r.round + ":" + r.phase + ":" + (r.vn || 0); // vn : L'Imposteur vote plusieurs fois par manche
   if ((r.phase === "vote" || r.phase === "guess") && actedN(r) >= needers(r).length && ON.ctx.busy !== k) { ON.ctx.busy = k; roomResolve(r); }
+}
+// l'hôte a l'écran éteint : tout le monde a joué mais rien ne se passe ; au bout de 5 s, un autre joueur révèle
+// (dans une transaction : si l'hôte l'a fait entre-temps, rien n'est écrit deux fois)
+function guestTick(r) {
+  if (r.status !== "play" || !r.card || !(r.phase === "vote" || r.phase === "guess") || actedN(r) < needers(r).length) return;
+  const k = r.round + ":" + r.phase + ":" + (r.vn || 0);
+  if (ON.ctx.gwait === k) return; ON.ctx.gwait = k;
+  const ref = ON.ctx.ref;
+  setTimeout(async () => {
+    const x = ON.r; if (!ON.ctx || ON.ctx.ref !== ref || !x || x.round + ":" + x.phase + ":" + (x.vn || 0) !== k) return;
+    const { F, db } = ON.ctx.N;
+    try {
+      await F.runTransaction(db, async tx => {
+        const d = await tx.get(ref), y = d.exists() && d.data();
+        if (!y || y.status !== "play" || y.round + ":" + y.phase + ":" + (y.vn || 0) !== k) return;
+        roomResolve(y, o => tx.update(ref, o));
+      });
+    } catch (e) {}
+  }, 5000);
 }
 async function roomNext(r) {
   const all = ids(r), n = all.length;
@@ -8513,7 +8551,7 @@ function roomImp(r, h) {
     const go = () => { const w = impWin(c, ON.r); return w ? upd({ phase: "reveal", "res.win": w }) : upd({ phase: "word", acts: {}, res: null, "card.first": impFirst(c, ON.r) }); };
     if (b("tovote")) b("tovote").onclick = () => upd({ phase: "vote", acts: {}, res: null, vn: (ON.r.vn || 0) + 1 });
     if (b("force")) b("force").onclick = () => roomResolve(ON.r);
-    if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
+    if (b("next")) b("next").onclick = () => onceBtn(b("next"), () => roomNext(ON.r));
     if (b("imp-next")) b("imp-next").onclick = go;
     if (b("imp-miss")) b("imp-miss").onclick = go;
     // l'imposteur éliminé tape son mot : trouvé, les intrus gagnent ; raté, la partie continue (ou les civils gagnent)
@@ -8526,14 +8564,15 @@ function roomImp(r, h) {
     if (r.phase === "reveal" && ON.ctx.stamped !== r.round) { ON.ctx.stamped = r.round; party(); if (res.ok) { stamp("Trouvé !", ""); buzz([60, 40, 60, 40, 160]); } else stamp(res.win === "civ" ? "Civils" : "Intrus", res.win === "civ" ? "green" : ""); }
   });
 }
-function roomResolve(r) {
+function roomResolve(r, w) {
+  const put = w || upd;
   const { F } = ON.ctx.N, c = r.card, acts = r.acts || {}, pts = {};
   if (c.type === "imposteur" && c.roles) { // vote d'élimination : le plus désigné sort, égalité = personne
     const tally = {}, alive = needers(r);
     alive.forEach(u => { const v = acts[u]; if (v && alive.includes(v)) tally[v] = (tally[v] || 0) + 1; });
     const max = Math.max(0, ...Object.values(tally)), top = Object.keys(tally).filter(u => tally[u] === max);
-    if (top.length !== 1) return upd({ phase: "out", res: { tie: true, tally } });
-    return upd({ phase: "out", res: { out: top[0], tally }, "card.out": [...(c.out || []), top[0]] });
+    if (top.length !== 1) return put({ phase: "out", res: { tie: true, tally } });
+    return put({ phase: "out", res: { out: top[0], tally }, "card.out": [...(c.out || []), top[0]] });
   }
   const add = (u, n) => { if (n && r.players[u]) pts[u] = (pts[u] || 0) + n; };
   let res;
@@ -8555,7 +8594,7 @@ function roomResolve(r) {
   } else if (c.type === "menteur") {
     const voters = needers(r).filter(u => acts[u] != null), right = voters.filter(u => (acts[u] === "l") === c.lie);
     const fooled = right.length * 2 < voters.length; res = { right, wrong: voters.filter(u => !right.includes(u)), fooled };
-    if (fooled && r.players[c.target]) return upd({ phase: "reveal", res, [`players.${c.target}.fool`]: F.increment(1) }); // sans points : on compte juste qui a eu le groupe
+    if (fooled && r.players[c.target]) return put({ phase: "reveal", res, [`players.${c.target}.fool`]: F.increment(1) }); // sans points : on compte juste qui a eu le groupe
   } else if (c.type === "classement") {
     const right = needers(r).filter(u => acts[u] != null && c.opts[+acts[u]] === c.q);
     right.forEach(u => add(u, 2)); add(c.ranker, right.length); res = { right, wrong: needers(r).filter(u => acts[u] != null && !right.includes(u)) };
@@ -8579,7 +8618,7 @@ function roomResolve(r) {
   }
   const o = { phase: "reveal", res };
   Object.entries(pts).forEach(([u, n]) => { o[`players.${u}.pts`] = F.increment(n); });
-  return upd(o);
+  return put(o);
 }
 
 function roomRender(r) {
@@ -8715,7 +8754,7 @@ function roomRender(r) {
     if (b("tovote")) b("tovote").onclick = () => upd({ phase: "vote" });
     if (b("toreveal")) b("toreveal").onclick = () => upd({ phase: "reveal", res: { free: true } });
     if (b("force")) b("force").onclick = () => roomResolve(ON.r);
-    if (b("next")) b("next").onclick = () => { b("next").disabled = true; roomNext(ON.r); };
+    if (b("next")) b("next").onclick = () => onceBtn(b("next"), () => roomNext(ON.r));
     $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
     $$(".on-choices [data-v]").forEach(x => x.onclick = () => {
       buzz(15);
@@ -8801,7 +8840,7 @@ function roomRenderX(r, h) {
       if (Date.now() - ON.leaveArmed < 2500) return roomLeave();
       ON.leaveArmed = Date.now(); toast("Touche encore × pour quitter la partie.");
     };
-    const nx = $("#next"); if (nx) nx.onclick = () => { nx.disabled = true; roomNext(ON.r); };
+    const nx = $("#next"); if (nx) nx.onclick = () => onceBtn(nx, () => roomNext(ON.r));
     const fo = $("#force"); if (fo) fo.onclick = () => roomResolve(ON.r);
     $$(".on-choices [data-v]").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.v }); });
   };
@@ -9032,7 +9071,7 @@ function lobbyView(r, host) {
       <p class="hint muted">Le faux sosie a un mot proche du vrai et ne le sait pas. L'aveugle n'a rien, même pas le thème. Il reste toujours au moins 2 civils.</p>` : ""}
       ${r.game === "reflexe" ? `<div class="section-label">Pièges</div><div class="seg" id="trp"><button data-v="1" aria-pressed="${r.traps !== false}">Activés</button><button data-v="0" aria-pressed="${r.traps === false}">Désactivés</button></div>` : ""}
       ${r.game === "uno" ? `<div class="section-label">Cumuler les +2 et +4</div><div class="seg" id="stk"><button data-v="1" aria-pressed="${r.stack !== false}">Activé</button><button data-v="0" aria-pressed="${r.stack === false}">Désactivé</button></div>` : ""}`
-      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.game === "p4" && n > 2 ? "en tournoi" : r.rounds + " manches"}.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} undercover${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} L'aveugle` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}${r.game === "uno" ? (r.stack === false ? " Sans cumul des +2 et +4." : " Avec cumul des +2 et +4.") : ""}</p>`}
+      : `<p class="hint muted" style="text-align:center">${esc(pname(r, r.host))} choisit le jeu : <b>${ON_GAMES[r.game][0]}</b>, ${r.game === "p4" && n > 2 ? "en tournoi" : r.rounds + " manches"}.${r.game === "imposteur" ? ` ${r.imp == null ? 1 : r.imp} imposteur${(r.imp == null ? 1 : r.imp) > 1 ? "s" : ""}, ${r.und || 0} faux sosie${(r.und || 0) > 1 ? "s" : ""}${r.white ? `, ${r.white} aveugle${r.white > 1 ? "s" : ""}` : ""}.` : ""}${r.game === "reflexe" ? (r.traps === false ? " Sans pièges." : " Avec pièges.") : ""}${r.game === "uno" ? (r.stack === false ? " Sans cumul des +2 et +4." : " Avec cumul des +2 et +4.") : ""}</p>`}
     <div class="section-label">Inviter mes amis</div>
     <div class="on-list" id="inv"><p class="hint muted">Chargement…</p></div>
     <div class="actions">${host ? `<button class="btn red" id="start" ${n < min ? "disabled" : ""}>${n < min ? `Encore ${min - n} joueur${min - n > 1 ? "s" : ""}` : "Lancer la partie"}</button>` : `<p class="hint muted on-waiting">En attente du lancement…</p>`}</div>
@@ -9047,7 +9086,7 @@ function lobbyView(r, host) {
     $$("#impn button").forEach(b => b.onclick = () => { const v = +b.dataset.v; upd(v + (ON.r.und || 0) + (ON.r.white || 0) < 1 ? { imp: v, und: 1 } : { imp: v }); });
     $$("#undn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.white || 0) < 1 ? { und: v, imp: 1 } : { und: v }); });
     $$("#whn button").forEach(b => b.onclick = () => { const v = +b.dataset.v, i = ON.r.imp == null ? 1 : ON.r.imp; upd(v + i + (ON.r.und || 0) < 1 ? { white: v, imp: 1 } : { white: v }); });
-    const st = $("#start"); if (st) st.onclick = () => { st.disabled = true; seen.clear(); upd(Object.assign({ round: 0, card: null, tb0: 0, tb1: 0 }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); };
+    const st = $("#start"); if (st) st.onclick = () => onceBtn(st, () => { seen.clear(); return upd(Object.assign({ round: 0, card: null, tb0: 0, tb1: 0 }, ...ids(ON.r).map(u => ({ [`players.${u}.pts`]: 0 })))).then(() => roomNext(Object.assign({}, ON.r, { round: 0, card: null }))); });
     try {
       const fr = (await F.getDocs(F.collection(db, "users", uid, "friends"))).docs.map(d => ({ id: d.id, ...d.data() }));
       const box = $("#inv"); if (!box) return;
