@@ -133,3 +133,10 @@ La com est pilotée depuis le fil « Piloter la communication réseaux de BLIZ �
 - Série numérotée : dans le JSON, "ep" (ex. "Crush P1", affiché en haut) et "next" (ex. "Partie 2 demain 👀", pastille sur l'écran de fin). But : convertir les vues en abonnés (2 abonnés TikTok pour ~900 vues/vidéo au 22-11).
 - Lancer Chromium : export PW_EXE=/opt/pw-browsers/chromium (les scripts le lisent).
 - Plan 23-29/11 : 8 J'ai déjà en série, 3 animations natives, 2 tests (Avoue, Tu préfères crush), 1 pub max (jeudi 26 18h). Seuils : garder si >600 vues TikTok et <60 % de zap Instagram ; abandonner après 2 essais sous les seuils.
+
+## MINI-SCÈNE (22-11 13h40) — FORMAT PRINCIPAL, PRIORITAIRE SUR TOUT
+Fabio a zappé le quiz « J'ai déjà » au bout de 3 s (« je m'ennuie »). Référence envoyée : pub d'un concurrent (ne rien copier : ni texte, ni persos, ni look).
+Principes retenus : mouvement dès la 1re image, 1re phrase = règle ou promesse provocante, texte mot à mot en majuscules avec mot clé surligné, l'image change toutes les ~0,3 s, mini-histoire avec un perdant et un retournement, jeu montré en action, ~22 s, fond sombre.
+Moteur : outils/scene/render_scene.py script.json out.mp4 (+ scene.html). Modèle : scene/s1.json (beats t0/t1, cap avec *mot surligné*, show = mascot|friends|card|end, big = compte à rebours, point/target = votes, moods, emos, flash).
+Une mini-scène montre le jeu et finit sur BLIZ : étiquette commercialContentOwnBrand=true.
+L'ancien quiz (render_voice.py) n'est plus utilisé tel quel.
