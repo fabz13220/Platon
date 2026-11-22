@@ -1,0 +1,38 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:U;src:url(file:///home/claude/fonts/package/files/unbounded-latin-800-normal.woff2)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;overflow:hidden;font-family:-apple-system,"Inter",sans-serif;background:#0f0a1a}
+#hook{position:absolute;top:70px;left:60px;right:60px;text-align:center;color:#fff;font:800 58px U;line-height:1.15;z-index:5}
+#phone{position:absolute;left:110px;top:260px;width:860px;height:1440px;border-radius:70px;background:#000;border:14px solid #2a1840;overflow:hidden}
+#bar{height:170px;background:#1c1c1e;display:flex;align-items:center;gap:22px;padding:40px 36px 0}
+#av{width:84px;height:84px;border-radius:50%;background:linear-gradient(140deg,#ff9a4a,#ff2d8a,#7b2bff);display:flex;align-items:center;justify-content:center;font-size:44px}
+#gname{color:#fff;font-size:40px;font-weight:700}#gsub{color:#8e8e93;font-size:28px}
+#msgs{position:absolute;left:0;right:0;top:170px;bottom:0;overflow:hidden;padding:30px 30px;display:flex;flex-direction:column;justify-content:flex-end;gap:16px}
+.m{max-width:640px;padding:22px 30px;border-radius:40px;font-size:38px;line-height:1.25;color:#fff;transform-origin:left bottom}
+.m .n{font-size:26px;font-weight:700;margin-bottom:4px}
+.l{align-self:flex-start;background:#26252a}.r{align-self:flex-end;background:#0a84ff;transform-origin:right bottom}
+.typing{align-self:flex-start;background:#26252a;padding:26px 34px;border-radius:40px;display:flex;gap:12px}
+.typing i{width:18px;height:18px;border-radius:50%;background:#8e8e93;display:block}
+#end{position:absolute;inset:0;background:linear-gradient(135deg,#ffa63d,#ff2d8a 50%,#6a2bff);opacity:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;z-index:10}
+#end img{width:520px;border-radius:50px;border:12px solid #1a0b2e;box-shadow:0 30px 60px rgba(40,0,40,.4)}
+#end .t{color:#fff;font:800 76px U}#end .c{background:#1a0b2e;color:#ffd23f;font:800 46px U;padding:26px 50px;border-radius:70px}
+</style></head><body>
+<div id="hook"></div>
+<div id="phone"><div id="bar"><div id="av">🎉</div><div><div id="gname"></div><div id="gsub">Inès, Léa, Noah, Yanis</div></div></div><div id="msgs"></div></div>
+<div id="end"><img src="app_home.png"><div class="t">BLIZ</div><div class="c">Gratuit · tape BLIZ sur l'App Store</div></div>
+<script>
+let S=null;
+function setup(s){S=s;if(s.native){const E=document.getElementById('end');E.querySelector('img').style.display='none';E.querySelector('.t').textContent=s.end_t||'';E.querySelector('.c').textContent=s.end_c||'';}document.getElementById('hook').textContent=s.hook;document.getElementById('gname').textContent=s.group}
+const clamp=(x)=>Math.max(0,Math.min(1,x));
+function render(t){
+  const M=document.getElementById('msgs');let h='';
+  S.msgs.forEach(m=>{
+    if(t>=m.at-0.7&&t<m.at&&!m.me) h+='<div class="typing"><i></i><i></i><i></i></div>';
+    if(t>=m.at){const p=clamp((t-m.at)/0.18);h+=`<div class="m ${m.me?'r':'l'}" style="transform:scale(${0.85+0.15*p});opacity:${p}">${m.me?'':'<div class="n" style="color:'+m.c+'">'+m.who+'</div>'}${m.txt}</div>`}
+  });
+  M.innerHTML=h;
+  M.querySelectorAll('.typing i').forEach((d,k)=>d.style.transform=`translateY(${Math.sin(t*10-k)*6}px)`);
+  const e=clamp((t-S.endAt)/0.4);const E=document.getElementById('end');E.style.opacity=e;
+  E.querySelector('img').style.transform=`scale(${0.9+0.1*e}) rotate(${(1-e)*-6}deg)`;
+}
+</script></body></html>

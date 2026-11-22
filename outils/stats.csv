@@ -1,0 +1,20 @@
+date,heure,concept,duree_s,vues,likes,commentaires,temps_moyen_s,vu_jusquau_bout_pct,releve_le
+15-11,19:50,pub jeux (vidéo de Fabio),22,571,1,0,,,17-11 21h
+16-11,13:18,j'ai déjà v1 10 phrases (voix lente),52,605,5,0,,,17-11 21h
+17-11,13:05,j'ai déjà cours/taf 10 phrases,39,598,8,0,3.2,0.48,17-11 21h
+17-11,19:11,j'ai déjà bouffe 10 phrases,41,883,20,3,,,17-11 21h
+17-11,21:04,[J'ai déjà] famille (7 phrases + accroche),29,932,8,2,,,19-11 12h50
+18-11,13:06,[J'ai déjà] pote relou,27,860,13,0,,,19-11 12h50
+18-11,18:05,[Red flag] dates/couple,29,235,8,0,,,19-11 12h50
+19-11,12:07,[Qui dans ton groupe] potes,29,75,1,0,,,19-11 12h50 (moins d'1h)
+# INSTAGRAM (Metricool, relevé 22-11 13h) : date,format,vues,likes,temps_moyen_s,skip_3s_%
+IG,17-11 18h,[J'ai déjà] bouffe,154,8,8.9,49.6
+IG,18-11 18h,[Red flag],131,6,6.4,62.7
+IG,18-11 12h,[J'ai déjà] pote relou,128,4,4.7,67.3
+IG,17-11 12h,[J'ai déjà] cours/taf,118,3,6.5,60.4
+IG,20-11 18h,[J'ai déjà sans voix] red flag soirée (promo),111,2,4.7,55.8
+IG,20-11 12h,[Animation] Noah (promo),98,1,4.7,63.9
+IG,19-11 12h,[Qui dans ton groupe],43,3,3.6,62.5
+IG,21-11 18h,[J'ai déjà natif],35,1,2.5,70.6 (moins d'1 jour)
+IG,21-11 12h,[Pub gameplay] Tu préfères,19,2,2.6,83.3
+IG,19-11 18h,[Pub gameplay] Qui pourrait,9,3,2.3,88.9
