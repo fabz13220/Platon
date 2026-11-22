@@ -71,7 +71,7 @@ function buildScene(i){
   s.words.forEach((w,k)=>{const e=document.createElement('span');e.className='w';e.textContent=w;e.dataset.k=k;T.appendChild(e)});
   if(s.box){T.appendChild(document.createElement('br'));const b=document.createElement('span');b.className='w box';b.textContent=s.box;b.dataset.k='box';T.appendChild(b)}
   const o=document.getElementById('outro');o.innerHTML='';
-  if(s.type==='outro'){o.innerHTML=`<div style="height:330px"></div><div class="name">BLIZ</div><div class="q">${s.q}</div><div class="cta">${s.cta}</div>${window.NOSTORE?"":`<div class="store2">📲 Télécharge BLIZ sur l'App Store</div>`}<div class="tag">${s.tag}</div>`}
+  if(s.type==='outro'){o.innerHTML=`<div style="height:330px"></div><div class="name">BLIZ</div><div class="q">${s.q}</div><div class="cta">${s.cta}</div>${window.NOSTORE?"":`<div class="store2">📲 Télécharge BLIZ sur l'App Store</div>`}${TL.next?`<div class="store2">${TL.next}</div>`:""}<div class="tag">${s.tag}</div>`}
   built=i;
 }
 
@@ -120,7 +120,7 @@ function render(t){
   const s=TL.scenes[i], lt=t-s.start, D=s.end-s.start;
   const out=clamp((D-lt)/0.18);           // fade at scene end
   const cnt=document.getElementById('count');
-  cnt.style.display=s.n?'block':'none'; if(s.n)cnt.textContent=`${s.n} / ${TL.total}`;
+  cnt.style.display=s.n?'block':'none'; if(s.n)cnt.textContent=(TL.ep?`${TL.ep} · `:'')+`${s.n} / ${TL.total}`;
   document.getElementById('top').style.opacity=s.type==='outro'?0:1;
   document.querySelectorAll('#text .w').forEach(e=>{
     const at=e.dataset.k==='box'?s.boxAt:s.wordAt[+e.dataset.k];

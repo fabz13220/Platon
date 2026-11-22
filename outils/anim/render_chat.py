@@ -23,7 +23,7 @@ with wave.open('/tmp/chat.wav','w') as w:
     w.setnchannels(1);w.setsampwidth(2);w.setframerate(44100);w.writeframes((a*32000).astype(np.int16).tobytes())
 ff=subprocess.Popen(["ffmpeg","-v","error","-y","-f","image2pipe","-framerate",str(FPS),"-i","-","-i","/tmp/chat.wav","-c:v","libx264","-preset","medium","-crf","21","-pix_fmt","yuv420p","-c:a","aac","-b:a","160k","-shortest","-movflags","+faststart",out],stdin=subprocess.PIPE)
 with sync_playwright() as p:
-    b=p.chromium.launch(); pg=b.new_page(viewport={'width':1080,'height':1920})
+    b=p.chromium.launch(executable_path=__import__('os').environ.get('PW_EXE') or None); pg=b.new_page(viewport={'width':1080,'height':1920})
     pg.goto('file:///home/claude/bliz/anim/chat.html'); pg.evaluate('document.fonts.ready'); pg.evaluate('s=>setup(s)',st)
     for f in range(int(total*FPS)):
         pg.evaluate('t=>render(t)',f/FPS); ff.stdin.write(pg.screenshot(type='jpeg',quality=92))

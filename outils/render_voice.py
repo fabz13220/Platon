@@ -126,11 +126,11 @@ ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "image2pipe", "-fram
                        "-i", wav, "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p",
                        "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", out], stdin=subprocess.PIPE)
 with sync_playwright() as p:
-    b = p.chromium.launch()
+    b = p.chromium.launch(executable_path=os.environ.get('PW_EXE') or None)
     pg = b.new_page(viewport={"width": 1080, "height": 1920})
     pg.goto("file:///home/claude/bliz/template.html")
     pg.evaluate("document.fonts.ready")
-    pg.evaluate("tl => setup(tl)", {"scenes": scenes, "total": len(items), "hook": content.get("hook", "Plus de 4/7 = t'es grillé 💀"), "btnA": content.get("btnA"), "btnB": content.get("btnB"), "nostore": content.get("nostore", False)})
+    pg.evaluate("tl => setup(tl)", {"scenes": scenes, "total": len(items), "hook": content.get("hook", "Plus de 4/7 = t'es grillé 💀"), "btnA": content.get("btnA"), "btnB": content.get("btnB"), "nostore": content.get("nostore", False), "ep": content.get("ep"), "next": content.get("next")})
     nframes = int(total * FPS)
     for f in range(nframes):
         pg.evaluate("t => render(t)", f / FPS)

@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 import sys, glob, os
 with sync_playwright() as p:
-    b=p.chromium.launch()
+    b=p.chromium.launch(executable_path=__import__('os').environ.get('PW_EXE') or None)
     ctx=b.new_context(viewport={'width':430,'height':932},device_scale_factor=1,is_mobile=True,has_touch=True,
                       record_video_dir='app_rec',record_video_size={'width':430,'height':932})
     pg=ctx.new_page()

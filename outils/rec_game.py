@@ -4,7 +4,7 @@ import sys, time
 from playwright.sync_api import sync_playwright
 game, n, per, out = sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), sys.argv[4]
 with sync_playwright() as p:
-    b=p.chromium.launch()
+    b=p.chromium.launch(executable_path=__import__('os').environ.get('PW_EXE') or None)
     ctx=b.new_context(viewport={'width':430,'height':932},is_mobile=True,has_touch=True,record_video_dir=out,record_video_size={'width':430,'height':932})
     pg=ctx.new_page(); T0=time.time()
     pg.goto('http://localhost:8765/index.html'); pg.wait_for_timeout(1200)
