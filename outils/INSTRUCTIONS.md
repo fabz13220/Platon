@@ -127,3 +127,9 @@ ENSEIGNEMENTS 22-11 : pubs gameplay = 83-89 % de zap, 9-19 vues sur Instagram �
 => Pubs : 1 vidéo sur 6 maximum (pas 1 sur 4). Priorité : J'ai déjà quotidien + animations. Soigner la 1re phrase (la plus reconnaissable de la liste) pour baisser le zap des 3 premières secondes.
 - ÉTAPE 0 OBLIGATOIRE À CHAQUE CRÉNEAU (Fabio, 22-11 : « c'est le plus important ») : relever les stats (Instagram via Metricool + TikTok via Metricool ou navigateur), les noter dans stats.csv et la feuille, et écrire dans le mail/message ce qu'on change et pourquoi, chiffres à l'appui. Pas de vidéo produite sans cette étape.
 - Annulé : la pub prévue le 23-11 12h. Prochaine pub au plus tôt après 5 vidéos natives.
+
+## FIL DÉDIÉ (22-11) — PRIORITAIRE
+La com est pilotée depuis le fil « Piloter la communication réseaux de BLIZ » (tâche planifiée quotidienne 10h41 Paris). L'ancienne chaîne de rappels (12h50/17h50) est désactivée : ne pas la relancer.
+- Série numérotée : dans le JSON, "ep" (ex. "Crush P1", affiché en haut) et "next" (ex. "Partie 2 demain 👀", pastille sur l'écran de fin). But : convertir les vues en abonnés (2 abonnés TikTok pour ~900 vues/vidéo au 22-11).
+- Lancer Chromium : export PW_EXE=/opt/pw-browsers/chromium (les scripts le lisent).
+- Plan 23-29/11 : 8 J'ai déjà en série, 3 animations natives, 2 tests (Avoue, Tu préfères crush), 1 pub max (jeudi 26 18h). Seuils : garder si >600 vues TikTok et <60 % de zap Instagram ; abandonner après 2 essais sous les seuils.
