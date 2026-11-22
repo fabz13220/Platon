@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:U;src:url(file:///home/claude/fonts/package/files/unbounded-latin-900-normal.woff2);font-weight:900}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#07050f;font-family:U,sans-serif;font-weight:900;color:#fff}
+#glow{position:absolute;left:50%;top:60%;width:1600px;height:1600px;margin:-800px 0 0 -800px;border-radius:50%}
+#ph{position:absolute;left:50%;top:470px;width:800px;height:1422px;margin-left:-400px;border-radius:64px;overflow:hidden;box-shadow:0 0 0 4px rgba(255,255,255,.10),0 50px 140px rgba(0,0,0,.7)}
+#ph img{position:absolute;left:0;top:0;width:800px;height:1422px;transform-origin:50% 50%}
+#cap{position:absolute;top:110px;left:40px;right:40px;height:330px;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;text-align:center;font-size:74px;line-height:1.2;text-transform:uppercase;letter-spacing:-1px}
+#cap .w{display:inline-block;margin:0 11px}
+#cap .hl{padding:0 16px;border-radius:12px}
+#flash{position:absolute;inset:0;background:#fff;opacity:0}
+#end{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:44px;background:#07050f}
+#end .logo{width:300px;height:300px;border-radius:80px;background:linear-gradient(140deg,#ff9a4a,#ff2d8a 55%,#7b2bff);display:flex;align-items:center;justify-content:center;font-size:190px}
+#end .name{font-size:150px;letter-spacing:6px}
+#end .tag{font-size:46px;text-align:center;line-height:1.35;padding:0 80px}
+</style></head><body>
+<div id="glow"></div><div id="ph"><img id="im"></div><div id="cap"></div><div id="end"><div class="logo">B</div><div class="name">BLIZ</div><div class="tag"></div></div><div id="flash"></div>
+<script>
+const C=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),eo=x=>1-Math.pow(1-x,3);
+let S,built=-1;
+function setup(s){S=s;document.querySelector('#end .tag').innerHTML=s.tag||''}
+function build(i){const b=S.beats[i],el=document.getElementById('cap');el.innerHTML='';built=i;if(!b.cap)return;
+ (b.cap.match(/\*[^*]+\*|[^ ]+/g)).forEach(w=>{const s=document.createElement('span');s.className='w';if(w[0]==='*'){s.classList.add('hl');s.style.background=b.hl||'#ff2d8a';w=w.slice(1,-1)}s.textContent=w;el.appendChild(s)})}
+function render(t,src){
+ let i=S.beats.findIndex(b=>t>=b.t0&&t<b.t1);if(i<0)i=S.beats.length-1;const b=S.beats[i],lt=t-b.t0,D=b.t1-b.t0;
+ if(i!==built)build(i);
+ const ws=[...document.querySelectorAll('#cap .w')],gap=b.gap||0.17;
+ ws.forEach((w,k)=>{const p=C((lt-k*gap)/0.12);w.style.opacity=p;w.style.transform=`translateY(${(1-eo(p))*24}px)`});
+ const im=document.getElementById('im');if(src&&im.getAttribute('src')!==src)im.src=src;
+ const z=b.zoom||[1,1.06],f=b.focus||[50,50];const s=z[0]+(z[1]-z[0])*eo(C(lt/D));
+ im.style.transformOrigin=f[0]+'% '+f[1]+'%';im.style.transform=`scale(${s})`;
+ const ph=document.getElementById('ph');const pin=C(lt/0.18);ph.style.transform=i===0?`scale(${0.9+0.1*eo(pin)})`:`scale(${1+0.025*(1-eo(pin))})`;
+ document.getElementById('glow').style.background=`radial-gradient(circle,${b.glow||'#7b2bff'}50 0%,${b.glow||'#7b2bff'}18 32%,transparent 62%)`;
+ const E=document.getElementById('end');if(b.end){E.style.display='flex';[...E.children].forEach((e,k)=>{const p=C((lt-k*0.15)/0.3);e.style.opacity=p;e.style.transform=`scale(${0.85+0.15*eo(p)})`})}else E.style.display='none';
+ document.getElementById('flash').style.opacity=b.flash&&lt<0.22?0.8*(1-lt/0.22):0;
+}
+</script></body></html>
