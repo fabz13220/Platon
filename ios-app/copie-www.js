@@ -8,4 +8,6 @@ for (const f of ["index.html", "contenu-defaut.json", "manifest.webmanifest", "i
   fs.copyFileSync(path.join(src, f), path.join(www, f));
 // traductions (i18n/*.js), chargées quand la langue n'est pas le français
 fs.cpSync(path.join(src, "i18n"), path.join(www, "i18n"), { recursive: true });
+// vidéos des règles (appui long sur un jeu), petites et lues seulement quand on les ouvre
+fs.cpSync(path.join(src, "regles"), path.join(www, "regles"), { recursive: true });
 console.log("www prêt");
