@@ -8,13 +8,15 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#07050f;font-fam
 #cap{position:absolute;top:110px;left:40px;right:40px;height:330px;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;text-align:center;font-size:74px;line-height:1.2;text-transform:uppercase;letter-spacing:-1px}
 #cap .w{display:inline-block;margin:0 11px}
 #cap .hl{padding:0 16px;border-radius:12px}
+#num{position:absolute;left:0;right:0;top:300px;text-align:center;font-size:520px;line-height:1;color:transparent;-webkit-text-stroke:6px rgba(255,255,255,.22);z-index:0}
+#cap.big{top:560px;height:800px;font-size:94px;line-height:1.18}
 #flash{position:absolute;inset:0;background:#fff;opacity:0}
 #end{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:44px;background:#07050f}
 #end .logo{width:300px;height:300px;border-radius:80px;background:linear-gradient(140deg,#ff9a4a,#ff2d8a 55%,#7b2bff);display:flex;align-items:center;justify-content:center;font-size:190px}
 #end .name{font-size:150px;letter-spacing:6px}
 #end .tag{font-size:46px;text-align:center;line-height:1.35;padding:0 80px}
 </style></head><body>
-<div id="glow"></div><div id="ph"><img id="im"></div><div id="cap"></div><div id="end"><div class="logo">B</div><div class="name">BLIZ</div><div class="tag"></div></div><div id="flash"></div>
+<div id="glow"></div><div id="ph"><img id="im"></div><div id="cap"></div><div id="end"><div class="logo">B</div><div class="name">BLIZ</div><div class="tag"></div></div><div id="num"></div><div id="flash"></div>
 <script>
 const C=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),eo=x=>1-Math.pow(1-x,3);
 let S,built=-1;
@@ -26,6 +28,7 @@ function render(t,src){
  if(i!==built)build(i);
  const ws=[...document.querySelectorAll('#cap .w')],gap=b.gap||0.17;
  ws.forEach((w,k)=>{const p=C((lt-k*gap)/0.12);w.style.opacity=p;w.style.transform=`translateY(${(1-eo(p))*24}px)`});
+ document.getElementById('cap').classList.toggle('big',!b.clip&&!b.end);document.getElementById('ph').style.display=b.clip?'block':'none';const N=document.getElementById('num');N.textContent=b.num||'';N.style.opacity=b.num?C(lt/0.2)*0.9:0;N.style.transform=`scale(${1.15-0.15*eo(C(lt/0.3))})`;
  const im=document.getElementById('im');if(src&&im.getAttribute('src')!==src)im.src=src;
  const z=b.zoom||[1,1.06],f=b.focus||[50,50];const s=z[0]+(z[1]-z[0])*eo(C(lt/D));
  im.style.transformOrigin=f[0]+'% '+f[1]+'%';im.style.transform=`scale(${s})`;

@@ -1,0 +1,9 @@
+{"speed":1.08,"beats":[
+{"say":"Ce que tout le monde fait en rentrant de soirée. Le quatre, c'est trop vrai.","cap":"CE QUE TOUT LE MONDE FAIT EN *RENTRANT* DE SOIRÉE","glow":"#7b2bff","hl":"#7b2bff","pause":0.25},
+{"say":"Relire toute la conv de groupe, pour vérifier que t'as rien dit de bizarre.","cap":"RELIRE TOUTE LA CONV DE GROUPE POUR VÉRIFIER QUE T'AS *RIEN DIT*","num":"1","glow":"#22c3e6","hl":"#13a37a"},
+{"say":"Regarder qui a vu ta story... trois fois d'affilée.","cap":"REGARDER QUI A VU TA STORY… *3 FOIS* D'AFFILÉE","num":"2","glow":"#ff2d8a"},
+{"say":"Manger un truc froid, debout, dans la cuisine, dans le noir.","cap":"MANGER UN TRUC FROID, DEBOUT, DANS LE *NOIR*","num":"3","glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"Repenser à une phrase que t'as dite... et avoir honte pendant vingt minutes.","cap":"REPENSER À UNE PHRASE QUE T'AS DITE… *20 MINUTES* DE HONTE","num":"4","glow":"#7b2bff","hl":"#7b2bff"},
+{"say":"Et te jurer que la prochaine fois, tu rentres tôt. Spoiler : non.","cap":"TE JURER QUE LA PROCHAINE FOIS, TU RENTRES TÔT. *SPOILER : NON*","num":"5","glow":"#ff2d8a","pause":0.3},
+{"say":"T'en coches combien ? Dis-le en commentaire.","cap":"T'EN COCHES COMBIEN ? *DIS-LE* 👇","glow":"#22c3e6","hl":"#ff2d8a"}
+]}

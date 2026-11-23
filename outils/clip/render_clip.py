@@ -5,10 +5,10 @@ from playwright.sync_api import sync_playwright
 FPS=30;SR=44100
 S=json.load(open(sys.argv[1],encoding='utf-8'));out=sys.argv[2];total=S['beats'][-1]['t1']
 TMP=tempfile.mkdtemp()
-subprocess.run(['ffmpeg','-v','error','-i',S['src'],'-vf','fps=30,scale=800:-1','-q:v','3',TMP+'/f%05d.jpg'],check=True)
+S.get('src') and subprocess.run(['ffmpeg','-v','error','-i',S['src'],'-vf','fps=30,scale=800:-1','-q:v','3',TMP+'/f%05d.jpg'],check=True)
 def frame_for(t):
     b=next((b for b in S['beats'] if b['t0']<=t<b['t1']),S['beats'][-1])
-    if 'clip' not in b:return None
+    if 'clip' not in b or not S.get('src'):return None
     a,z=b['clip'];D=b['t1']-b['t0'];st=a+(t-b['t0'])*min(1.0,(z-a)/D)
     return f"file://{TMP}/f{int(st*FPS)+1:05d}.jpg"
 buf=np.zeros(int((total+0.5)*SR),dtype=np.float32);rng=np.random.default_rng(5)
