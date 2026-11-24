@@ -1,0 +1,9 @@
+{"speed":1.08,"beats":[
+{"say":"Cinq phrases qui veulent dire tout l'inverse.","cap":"5 PHRASES QUI VEULENT DIRE *TOUT L'INVERSE*","glow":"#ff2d8a","pause":0.25},
+{"say":"Je suis en route... t'es encore sous la douche.","cap":"« JE SUIS EN ROUTE. » T'ES ENCORE *SOUS LA DOUCHE*","num":"1","glow":"#22c3e6","hl":"#13a37a"},
+{"say":"Je regarde et je te dis... tu regarderas jamais.","cap":"« JE REGARDE ET JE TE DIS. » *JAMAIS*","num":"2","glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"On s'appelle demain... personne n'appelle.","cap":"« ON S'APPELLE DEMAIN. » *PERSONNE* N'APPELLE","num":"3","glow":"#7b2bff","hl":"#7b2bff"},
+{"say":"J'avais pas vu ton message... tu l'as lu en aperçu.","cap":"« J'AVAIS PAS VU. » LU *EN APERÇU*","num":"4","glow":"#ff2d8a"},
+{"say":"Et pas de souci... il y a un énorme souci.","cap":"« PAS DE SOUCI. » *ÉNORME* SOUCI","num":"5","glow":"#22c3e6","hl":"#13a37a","pause":0.3},
+{"say":"Tu dis laquelle le plus ? Dis-le en commentaire.","cap":"TU DIS LAQUELLE LE PLUS ? *DIS-LE* 👇","glow":"#ff9a4a","hl":"#ff2d8a"}
+]}

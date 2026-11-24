@@ -1,0 +1,9 @@
+{"speed":1.08,"src":"/mnt/project-files/matiere-premiere/9x16/par-jeu/16-c-est-une-10-mais.mp4","tag":"C'est une 10 mais…<br>un des jeux de BLIZ","beats":[
+{"say":"Elle est parfaite. Sauf un détail. Tu la prends quand même ?","cap":"ELLE EST PARFAITE. SAUF *UN DÉTAIL*","clip":[15.2,17.5],"zoom":[1.2,1.35],"focus":[50,40],"glow":"#ff2d8a","pause":0.2},
+{"say":"C'est une dix... mais elle met la clim à seize degrés toute l'année.","cap":"C'EST UNE 10… MAIS CLIM À *16 DEGRÉS*","clip":[15.0,17.6],"zoom":[1.0,1.12],"focus":[50,40],"glow":"#22c3e6","hl":"#13a37a"},
+{"say":"C'est une dix... mais cinq sucres dans son café.","cap":"C'EST UNE 10… MAIS *5 SUCRES* DANS SON CAFÉ","clip":[18.2,20.6],"zoom":[1.0,1.12],"focus":[50,40],"glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"C'est une dix... mais une faute dans chaque message.","cap":"C'EST UNE 10… MAIS *UNE FAUTE* DANS CHAQUE MESSAGE","clip":[22.2,24.6],"zoom":[1.0,1.12],"focus":[50,42],"glow":"#7b2bff","hl":"#7b2bff"},
+{"say":"C'est une dix... mais elle dit pain au chocolat.","cap":"C'EST UNE 10… MAIS ELLE DIT *PAIN AU CHOCOLAT*","clip":[26.0,27.9],"zoom":[1.2,1.4],"focus":[50,42],"glow":"#ff2d8a","flash":true},
+{"say":"Et c'est une trois... mais elle a une villa à Bali, et t'invite tous les étés.","cap":"ET C'EST UNE 3… MAIS *VILLA À BALI* TOUS LES ÉTÉS","clip":[11.0,13.8],"zoom":[1.0,1.12],"focus":[50,40],"glow":"#ffd23f","hl":"#e0a800","pause":0.3},
+{"say":"Tu choisis laquelle ? Dis-le en commentaire.","cap":"","end":true,"glow":"#7b2bff"}
+]}

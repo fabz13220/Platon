@@ -1,0 +1,9 @@
+{"speed":1.08,"beats":[
+{"say":"Les cinq messages qu'on a tous envoyés à deux heures du matin. Le trois, c'est criminel.","cap":"LES 5 MESSAGES QU'ON A TOUS ENVOYÉS À *2H DU MAT*","glow":"#7b2bff","hl":"#7b2bff","pause":0.25},
+{"say":"T'es réveillé ?","cap":"« T'ES *RÉVEILLÉ* ? »","num":"1","glow":"#22c3e6","hl":"#13a37a","pause":0.35},
+{"say":"Un vocal de quatre minutes que personne n'écoutera jamais.","cap":"UN VOCAL DE *4 MINUTES* QUE PERSONNE N'ÉCOUTERA","num":"2","glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"Tu me manques... à ton ex. Supprimé trente secondes après.","cap":"« TU ME MANQUES » À TON EX. *SUPPRIMÉ* 30 SECONDES APRÈS","num":"3","glow":"#ff2d8a"},
+{"say":"Une déclaration d'amour à ton meilleur pote.","cap":"UNE *DÉCLARATION D'AMOUR* À TON MEILLEUR POTE","num":"4","glow":"#7b2bff","hl":"#7b2bff"},
+{"say":"Et je rentre... alors que t'es encore dehors une heure après.","cap":"« JE RENTRE. » ENCORE DEHORS *1H APRÈS*","num":"5","glow":"#22c3e6","hl":"#13a37a","pause":0.3},
+{"say":"Lequel t'as déjà envoyé ? Avoue en commentaire.","cap":"LEQUEL T'AS DÉJÀ ENVOYÉ ? *AVOUE* 👇","glow":"#ff2d8a"}
+]}

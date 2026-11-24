@@ -27,3 +27,11 @@ TK,21-11 12h,[Pub gameplay] Tu préfères,137,2,0
 TK,21-11 18h,[J'ai déjà natif],137,7,0
 TK,22-11 12h,[Qui dans ton groupe natif],98,6,0
 # CONSTAT 23-11 : depuis le 18-11 18h, toutes les vidéos plafonnent à 100-240 vues TikTok, natives comme pubs. Les 4 premières (17-18/11) faisaient 600-940. Chute au niveau du compte, pas du format.
+# INSTAGRAM (relevé 24-11 10h45) : date,format,vues,likes,temps_moyen_s,skip_3s_%
+IG,23-11 21h,[Liste + voix natif] 5 potes,136,1,7.9,42.6  <- meilleur zap jamais mesuré
+IG,23-11 18h,[Vraie appli + voix promo] Imposteur,110,1,5.4,53.0
+IG,23-11 12h,[Mini-scène promo] Qui pourrait,112,1,4.5,67.7
+IG,22-11 18h,[Animation natif] glissé en scrollant,125,1,6.2,67.6
+TK,23-11 12h,[Mini-scène promo] Qui pourrait,151,5,0
+TK,22-11 18h,[Animation natif] glissé en scrollant,136,1,0
+# DÉCISION 24-11 : les 2 formats avec voix ont le zap le plus bas (43 % et 53 %). Mini-scène abandonnée (68 %, jugée kikou). On décline liste+voix et vraie appli+voix.
