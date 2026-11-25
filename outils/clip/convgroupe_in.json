@@ -1,0 +1,9 @@
+{"speed":1.08,"beats":[
+{"say":"Les cinq personnes de chaque conv de groupe. Le cinq, il y en a toujours un.","cap":"LES 5 PERSONNES DE CHAQUE *CONV DE GROUPE*","glow":"#22c3e6","hl":"#13a37a","pause":0.25},
+{"say":"Celui qui répond à un message d'il y a trois jours.","cap":"CELUI QUI RÉPOND À UN MESSAGE D'IL Y A *3 JOURS*","num":"1","glow":"#7b2bff","hl":"#7b2bff"},
+{"say":"Celle qui envoie quinze messages au lieu d'un seul.","cap":"CELLE QUI ENVOIE *15 MESSAGES* AU LIEU D'UN","num":"2","glow":"#ff2d8a"},
+{"say":"Celui qui parle uniquement pour dire mdr.","cap":"CELUI QUI PARLE JUSTE POUR DIRE *« MDR »*","num":"3","glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"Celle qui propose une soirée... et qui l'annule elle-même.","cap":"CELLE QUI PROPOSE UNE SOIRÉE… ET *L'ANNULE* ELLE-MÊME","num":"4","glow":"#22c3e6","hl":"#13a37a"},
+{"say":"Et celui qui a mis le groupe en sourdine depuis 2022.","cap":"ET CELUI QUI A MIS LE GROUPE *EN SOURDINE* DEPUIS 2022","num":"5","glow":"#7b2bff","hl":"#7b2bff","pause":0.3},
+{"say":"Tague celui qui a mis le groupe en sourdine.","cap":"TAGUE CELUI QUI A MIS LE GROUPE *EN SOURDINE* 👇","glow":"#ff2d8a"}
+]}

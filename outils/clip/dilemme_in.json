@@ -1,0 +1,10 @@
+{"speed":1.1,"beats":[
+{"say":"Trois dilemmes. Tu réponds dans l'ordre en commentaire.","cap":"3 DILEMMES. TU RÉPONDS *DANS L'ORDRE*","glow":"#7b2bff","hl":"#7b2bff","pause":0.2},
+{"say":"Tu préfères relire à voix haute tes messages de 2019...","cap":"*A* RELIRE À VOIX HAUTE TES MESSAGES DE 2019","num":"1","glow":"#22c3e6","hl":"#13a37a","pause":0.1},
+{"say":"ou montrer ta galerie photo au groupe pendant une minute ?","cap":"*B* MONTRER TA GALERIE AU GROUPE PENDANT 1 MIN","num":"1","glow":"#ff2d8a","pause":0.5},
+{"say":"Tu préfères que ton crush voie ta tête au réveil...","cap":"*A* TON CRUSH VOIT TA TÊTE AU RÉVEIL","num":"2","glow":"#22c3e6","hl":"#13a37a","pause":0.1},
+{"say":"ou qu'il écoute ton vocal de fin de soirée ?","cap":"*B* IL ÉCOUTE TON VOCAL DE FIN DE SOIRÉE","num":"2","glow":"#ff2d8a","pause":0.5},
+{"say":"Tu préfères ne plus jamais poster de story...","cap":"*A* PLUS JAMAIS DE STORY","num":"3","glow":"#22c3e6","hl":"#13a37a","pause":0.1},
+{"say":"ou que ton ex soit toujours le premier à les voir ?","cap":"*B* TON EX LES VOIT TOUJOURS EN PREMIER","num":"3","glow":"#ff2d8a","pause":0.4},
+{"say":"Alors ? Genre, A, B, A. À toi.","cap":"GENRE « A, B, A ». *À TOI* 👇","glow":"#ff9a4a","hl":"#ff2d8a"}
+]}

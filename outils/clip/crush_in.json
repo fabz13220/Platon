@@ -1,0 +1,9 @@
+{"speed":1.08,"beats":[
+{"say":"Ce que tu fais quand ton crush est à la même soirée. Le deux, tout le monde l'a fait.","cap":"QUAND TON CRUSH EST À *LA MÊME SOIRÉE*","glow":"#ff2d8a","pause":0.25},
+{"say":"Changer trois fois de place pour être dans son champ de vision.","cap":"CHANGER *3 FOIS* DE PLACE POUR ÊTRE DANS SON CHAMP DE VISION","num":"1","glow":"#7b2bff","hl":"#7b2bff"},
+{"say":"Rire plus fort que d'habitude... à des blagues même pas drôles.","cap":"RIRE *PLUS FORT*… À DES BLAGUES PAS DRÔLES","num":"2","glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"Vérifier ton reflet dans chaque vitre.","cap":"VÉRIFIER TON REFLET DANS *CHAQUE VITRE*","num":"3","glow":"#22c3e6","hl":"#13a37a"},
+{"say":"Envoyer un message à ta pote... assise juste à côté de toi.","cap":"ÉCRIRE À TA POTE… *ASSISE À CÔTÉ* DE TOI","num":"4","glow":"#ff2d8a"},
+{"say":"Et repartir sans lui avoir dit un seul mot.","cap":"ET REPARTIR SANS LUI AVOIR DIT *UN SEUL MOT*","num":"5","glow":"#7b2bff","hl":"#7b2bff","pause":0.3},
+{"say":"T'en coches combien ? Dis-le en commentaire.","cap":"T'EN COCHES COMBIEN ? *DIS-LE* 👇","glow":"#ff9a4a","hl":"#ff2d8a"}
+]}
