@@ -1,0 +1,9 @@
+{"speed":1.08,"beats":[
+{"say":"Les cinq étapes d'un ghosting. Tout le monde est déjà passé par la quatre.","cap":"LES 5 ÉTAPES D'UN *GHOSTING*","glow":"#7b2bff","hl":"#7b2bff","pause":0.25},
+{"say":"Il répond en dix minutes. Puis en une heure. Puis le lendemain.","cap":"10 MINUTES. PUIS 1H. PUIS *LE LENDEMAIN*","num":"1","glow":"#22c3e6","hl":"#13a37a"},
+{"say":"Tes messages reçoivent juste des ahah.","cap":"TOUT DEVIENT DES *« AHAH »*","num":"2","glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"Il like ta story... mais il répond plus à tes messages.","cap":"IL LIKE TA STORY… MAIS *RÉPOND PLUS*","num":"3","glow":"#ff2d8a"},
+{"say":"Vu. Pas de réponse.","cap":"*VU.* PAS DE RÉPONSE","num":"4","glow":"#7b2bff","hl":"#7b2bff","pause":0.5},
+{"say":"Et trois mois plus tard : hey, ça fait longtemps.","cap":"3 MOIS PLUS TARD : *« HEY, ÇA FAIT LONGTEMPS »*","num":"5","glow":"#22c3e6","hl":"#13a37a","pause":0.3},
+{"say":"T'en es à quelle étape ? Dis-le en commentaire.","cap":"T'EN ES À QUELLE ÉTAPE ? *DIS-LE* 👇","glow":"#ff2d8a"}
+]}

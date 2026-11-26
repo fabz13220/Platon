@@ -1,0 +1,9 @@
+{"speed":1.08,"beats":[
+{"say":"Les cinq excuses pour pas sortir ce soir. La trois, on l'a tous utilisée.","cap":"5 EXCUSES POUR *PAS SORTIR* CE SOIR","glow":"#7b2bff","hl":"#7b2bff","pause":0.25},
+{"say":"Je suis crevé. J'ai rien fait de la journée, mais je suis crevé.","cap":"« JE SUIS CREVÉ. » T'AS *RIEN FAIT* DE LA JOURNÉE","num":"1","glow":"#22c3e6","hl":"#13a37a"},
+{"say":"J'ai plus de sous... et tu commandes à manger à vingt-trois heures.","cap":"« J'AI PLUS DE SOUS. » *COMMANDE* À 23H","num":"2","glow":"#ff9a4a","hl":"#ff7a1a"},
+{"say":"Je vais voir... qui veut dire non, on le sait tous.","cap":"« JE VAIS VOIR. » ÇA VEUT DIRE *NON*","num":"3","glow":"#ff2d8a"},
+{"say":"J'ai un truc demain matin. Le truc, c'est dormir.","cap":"« J'AI UN TRUC DEMAIN. » LE TRUC : *DORMIR*","num":"4","glow":"#7b2bff","hl":"#7b2bff"},
+{"say":"Et le classique : mon tel était en silencieux.","cap":"LE CLASSIQUE : « MON TEL ÉTAIT EN *SILENCIEUX* »","num":"5","glow":"#22c3e6","hl":"#13a37a","pause":0.3},
+{"say":"Laquelle tu sors le plus ? Dis-le en commentaire.","cap":"LAQUELLE TU SORS LE PLUS ? *DIS-LE* 👇","glow":"#ff2d8a"}
+]}
