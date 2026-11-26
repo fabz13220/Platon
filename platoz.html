@@ -8188,7 +8188,7 @@ function pseudoView(then, back = home) {
   const me = store.get("me", {});
   view(`${onTop("Ton pseudo")}
     <p class="hint" style="text-align:center">C'est le nom que tes amis verront.</p>
-    <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(me.name || S.names[0] || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Pseudo"><button class="btn red" id="ok">OK</button></div>
+    <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(me.name || store.get("pendingName", "") || S.names[0] || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Pseudo"><button class="btn red" id="ok">OK</button></div>
     ${hasProfile() ? "" : `<p style="text-align:center;margin:0"><button class="linkbtn" id="haskey">J'ai déjà un compte Bliz</button></p>`}
   `, () => {
     $("#back").onclick = () => back();
@@ -8219,11 +8219,11 @@ function welcomeView() {
       const v = $("#pseudo").value.trim().replace(/\s+/g, " ");
       if (!v) { $("#pseudo").focus(); return; }
       $("#ok").disabled = true;
-      store.set("self", v);
-      // pas de réseau : on joue quand même, le compte sera créé à la prochaine ouverture
-      try { await Promise.race([ensureProfile(v), new Promise((_, ko) => setTimeout(() => ko(new Error("lent")), 8000))]); store.set("pendingName", ""); heartbeat(); }
-      catch (e) { store.set("pendingName", v); }
+      // on ouvre l'accueil tout de suite, le compte se crée pendant ce temps (la connexion prend quelques secondes sur iPhone)
+      // pas de réseau : il sera créé à la prochaine ouverture
+      store.set("self", v); store.set("pendingName", v);
       home();
+      ensureProfile(v).then(() => { store.set("pendingName", ""); heartbeat(); }).catch(() => {});
     };
     $("#ok").onclick = go;
     $("#pseudo").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };

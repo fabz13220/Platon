@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="22a99014ff0d">
+<meta name="build" content="bd6d2e9a560e">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -8216,7 +8216,7 @@ function pseudoView(then, back = home) {
   const me = store.get("me", {});
   view(`${onTop("Ton pseudo")}
     <p class="hint" style="text-align:center">C'est le nom que tes amis verront.</p>
-    <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(me.name || S.names[0] || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Pseudo"><button class="btn red" id="ok">OK</button></div>
+    <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(me.name || store.get("pendingName", "") || S.names[0] || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Pseudo"><button class="btn red" id="ok">OK</button></div>
     ${hasProfile() ? "" : `<p style="text-align:center;margin:0"><button class="linkbtn" id="haskey">J'ai déjà un compte Bliz</button></p>`}
   `, () => {
     $("#back").onclick = () => back();
@@ -8247,11 +8247,11 @@ function welcomeView() {
       const v = $("#pseudo").value.trim().replace(/\s+/g, " ");
       if (!v) { $("#pseudo").focus(); return; }
       $("#ok").disabled = true;
-      store.set("self", v);
-      // pas de réseau : on joue quand même, le compte sera créé à la prochaine ouverture
-      try { await Promise.race([ensureProfile(v), new Promise((_, ko) => setTimeout(() => ko(new Error("lent")), 8000))]); store.set("pendingName", ""); heartbeat(); }
-      catch (e) { store.set("pendingName", v); }
+      // on ouvre l'accueil tout de suite, le compte se crée pendant ce temps (la connexion prend quelques secondes sur iPhone)
+      // pas de réseau : il sera créé à la prochaine ouverture
+      store.set("self", v); store.set("pendingName", v);
       home();
+      ensureProfile(v).then(() => { store.set("pendingName", ""); heartbeat(); }).catch(() => {});
     };
     $("#ok").onclick = go;
     $("#pseudo").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
