@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="4ae9c819715a">
+<meta name="build" content="dfed2c104324">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1451,6 +1451,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .on-players .chip { background: rgba(255,255,255,.1); border: 0; }
 /* ---------- accueil : rangées et barre du bas ---------- */
 .home-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; }
+.welcome { min-height: 82vh; min-height: 82dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px 4px; }
+.welcome .logo { font-family: var(--display); font-weight: 900; font-size: 64px; line-height: 1; letter-spacing: -.035em; background: linear-gradient(100deg, #FFB547 0%, #FF3B7A 40%, #B04BFF 75%, #5E8BFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding: 2px 6px 6px 0; margin-bottom: 18px; }
+.welcome .mast { font-size: clamp(26px, 7.4vw, 32px); }
+.welcome .hint { margin: 0; }
+.welcome .field, .welcome .btn { width: 100%; max-width: 420px; }
+.welcome .field input { text-align: center; }
 .home-head .logo { font-family: var(--display); font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: -.035em; background: linear-gradient(100deg, #FFB547 0%, #FF3B7A 40%, #B04BFF 75%, #5E8BFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 16px rgba(255,59,122,.4)); padding: 2px 4px 4px 0; }
 .stepper { display: flex; align-items: center; gap: 4px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid var(--hair); padding: 4px; }
 .stepper button { width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: var(--paper); font-weight: 900; font-size: 22px; line-height: 1; }
@@ -4273,7 +4279,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "1.2 · 21 novembre · 21 langues";
+const VERSION = "1.2 · 26 novembre · 21 langues";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -8180,6 +8186,31 @@ function pseudoView(then, back = home) {
     $("#pseudo").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
   });
 }
+// première ouverture sans compte : on crée le compte tout de suite avec un prénom ou un pseudo (Fabio, 26/11)
+function welcomeView() {
+  view(`<div class="welcome">
+    <div class="logo">Bliz</div>
+    <span class="mast">Ton prénom ou pseudo</span>
+    <p class="hint">C'est le nom que tes amis verront.</p>
+    <div class="field"><input id="pseudo" maxlength="14" placeholder="Pseudo" value="${esc(selfName() || "")}" autocomplete="off" autocapitalize="words" enterkeyhint="go" aria-label="Pseudo"></div>
+    <button class="btn red" id="ok">C'est parti</button>
+    <button class="linkbtn" id="haskey">J'ai déjà un compte Bliz</button>
+  </div>`, () => {
+    $("#haskey").onclick = () => keyLoginView(home, welcomeView);
+    const go = async () => {
+      const v = $("#pseudo").value.trim().replace(/\s+/g, " ");
+      if (!v) { $("#pseudo").focus(); return; }
+      $("#ok").disabled = true;
+      store.set("self", v);
+      // pas de réseau : on joue quand même, le compte sera créé à la prochaine ouverture
+      try { await Promise.race([ensureProfile(v), new Promise((_, ko) => setTimeout(() => ko(new Error("lent")), 8000))]); store.set("pendingName", ""); heartbeat(); }
+      catch (e) { store.set("pendingName", v); }
+      home();
+    };
+    $("#ok").onclick = go;
+    $("#pseudo").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+  });
+}
 // QR code ami : librairie chargée à la demande, une seule fois
 let qrLib = null;
 function loadQr() {
@@ -9186,7 +9217,11 @@ else if (salle) onlineHome(salle);
 else {
   // à chaque ouverture de l'appli : menu principal sur « Un téléphone » (Fabio, 29/10)
   store.set("multi", false);
-  home();
+  // pas encore de compte : on le crée dès l'ouverture (sauf lien ?ami, qui demande déjà le pseudo)
+  const pend = store.get("pendingName", "");
+  if (!hasProfile() && pend) { home(); ensureProfile(pend).then(() => { store.set("pendingName", ""); heartbeat(); }).catch(() => {}); }
+  else if (!hasProfile() && !ami) welcomeView();
+  else home();
   // lien « ?ami=CODE » : on ajoute l'ami, puis on ouvre l'écran Amis
   if (ami) {
     setUrl("");
