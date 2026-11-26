@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="66a4645173bb">
+<meta name="build" content="73c5eb704373">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -1551,6 +1551,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 /* le badge reCAPTCHA (App Check) cacherait les boutons du bas : la mention obligatoire est dans Réglages */
 .grecaptcha-badge { visibility: hidden; }
 .rail-box.short .rail.grid .tile.rt { height: 100px; }
+.trend-box .rail.grid .tile.rt { height: 96px; }
+.trend-box .tile.rt .ill { font-size: 40px; top: 10px; }
+.trend-box .rail-title::before { content: "🔥 "; }
 .tile.rt .sub { font-family: Nunito, sans-serif; font-weight: 800; font-size: 13px; line-height: 1.2; opacity: .75; }
 .tile.rt .need { position: absolute; top: 12px; left: 12px; padding: 4px 9px; border-radius: 999px; background: rgba(10,8,30,.72); color: #fff; font-family: Nunito, sans-serif; font-weight: 900; font-size: 12.5px; line-height: 1.1; }
 .tile.rt .need.new { z-index: 2; white-space: nowrap; background: linear-gradient(90deg, #FF6A00, #FF2E88 55%, #8A2BFF); box-shadow: 0 4px 12px -4px rgba(255,46,136,.7); }
@@ -4145,6 +4148,8 @@ function home() {
   const tile = (t, on) => { const k = need(t)(on); return `<button class="tile rt${k ? " lock" : ""}" data-mode="${t}"${on && t !== "test" ? ' data-on="1"' : ""}><span class="ill" aria-hidden="true">${ILL[t] || ""}</span>${k ? `<span class="need">${k}</span>` : ""}<span class="mast">${LBL[t] ? LBL[t][0] : TYPES[t].label}</span></button>`; };
   // les jeux jouables d'abord
   const rail = (title, list, id, on) => (list = (on ? list.filter(t => !ONE_PHONE.includes(t)) : list).map((t, i) => [t, i + (need(t)(on) ? 99 : 0)]).sort((a, b) => a[1] - b[1]).map(a => a[0])).length ? `<section class="rail-box"${id ? ` id="${id}"` : ""}><h2 class="rail-title">${title}</h2><div class="rail grid">${list.map(t => tile(t, on)).join("")}</div></section>` : "";
+  // « Tendance du moment » : liste choisie à la main (pas encore de vraies stats), dans cet ordre ; un jeu caché ici (langue, appli App Store) laisse la place au suivant
+  const trend = () => { const l = ["taboo", "dix", "pot", "imposteur", "radar", "classement"].filter(t => (t !== "dix" || DIX_OK) && (t !== "pot" || POT_OK)).slice(0, 4); return `<section class="rail-box trend-box"><h2 class="rail-title">Tendance du moment</h2><div class="rail grid">${l.map(t => tile(t)).join("")}</div></section>`; };
   view(`
     <header class="home-head">
       <div class="logo">Bliz</div>
@@ -4158,6 +4163,7 @@ function home() {
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["reflexe"], "", true)}` : `
       <div id="resume"></div><div id="invites"></div>
+      ${n > 1 ? trend() : ""}
       ${n === 1 ? rail("En solo", ["p4", "uno", "reflexe", "test"]) : ""}
       ${rail("Votes et devinettes", ["classement", "qui", "radar"])}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"]).replace('class="rail-box"', 'class="rail-box short"')}
