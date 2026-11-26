@@ -7014,7 +7014,7 @@ function rulesSheet(key, play) {
   $$(".rules-wrap").forEach(w => w.remove());
   const name = (TYPES[key] && TYPES[key].label) || ({ p4: "Aligne 4", uno: "Vide ta main", pot: "Rouge ou noir", mix: "Mode Mix", reflexe: "Duel réflexe", test: "Test de pureté" })[key] || key;
   return sheet(`<div class="rules-head">Règles · <b>${esc(name)}</b></div>
-    <div class="rules-vid"><video src="${RULES_VID}${key}.mp4?v=1" autoplay muted loop playsinline disablepictureinpicture preload="auto" aria-hidden="true"></video></div>
+    <div class="rules-vid"><video src="${RULES_VID}${key}.mp4?v=2" autoplay muted loop playsinline disablepictureinpicture preload="auto" aria-hidden="true"></video></div>
     <p class="rules-txt">${esc(TUTO[key]).replace(/ ([:;?!])/g, "\u00a0$1")}</p>
     <div class="rules-btns"><button class="btn white" id="rules-close">Fermer</button>${play ? `<button class="btn red" id="rules-play">Jouer</button>` : ""}</div>`, w => {
     w.classList.add("rules-wrap");
