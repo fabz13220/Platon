@@ -10,7 +10,7 @@
 <!-- pas de barre d'état « black-translucent » : avec iOS 26 elle raccourcit la page et laisse une bande noire en bas (bug WebKit 301108) ; la barre de l'heure prend theme-color -->
 <!-- comme dans le lecteur Claude : le contenu commence sous l'heure et la batterie -->
 <style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
-<meta name="build" content="73c5eb704373">
+<meta name="build" content="e922f18f904b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png?v=6">
 <link rel="icon" type="image/png" href="icon-192.png?v=6">
@@ -631,6 +631,11 @@ body.ios-band::after { -webkit-mask-image: linear-gradient(transparent, #000 90p
 .vs [data-o] > span { position: relative; }
 .vs .pct { display: block; margin-top: 4px; font-family: var(--display); font-size: 28px; color: var(--ink); animation: pop .3s ease-out; }
 .vs .opt-b { padding-top: 26px; }
+/* en ligne : on touche son choix, il reste entouré, l'autre s'estompe */
+.on-vs [data-v] { cursor: pointer; transition: opacity .2s, transform .15s, box-shadow .2s; }
+.on-vs [data-v]:active { transform: scale(.98); }
+.on-vs [aria-pressed="true"] { box-shadow: inset 0 0 0 4px var(--red), 0 10px 24px -12px rgba(40,0,60,.6); }
+.on-vs.picked [aria-pressed="false"] { opacity: .5; }
 /* Débat : les deux réponses côte à côte, même remplissage caché que Tu préfères */
 .vs.ovs { flex-direction: row; gap: 12px; margin-top: 4px; }
 .vs.ovs .opt-a, .vs.ovs .opt-b { flex: 1; padding: 16px 10px; text-align: center; font-size: 22px; }
@@ -4158,8 +4163,9 @@ function home() {
     <div class="seg where-seg" id="where"><button data-v="0" aria-pressed="${!multi}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg>Un téléphone</button><button data-v="1" aria-pressed="${multi}"><svg width="18" height="16" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="9" height="17" rx="2.2"/><rect x="16" y="3" width="9" height="17" rx="2.2"/></svg>Chacun le sien</button></div>
     ${multi ? `
       ${multiHome()}
-      ${rail("Votes et devinettes", ["classement", "radar"], "", true)}
+      ${rail("Votes et devinettes", ["classement", "qui", "radar"], "", true)}
       ${rail("En équipes", ["taboo", "imposteur", "menteur"], "", true).replace('class="rail-box"', 'class="rail-box short"')}
+      ${rail("Questions", ["pref", "ouinon"], "", true)}
       ${rail("Jeux de société", ["p4", "uno"], "row-societe", true)}
       ${rail("Duels", ["reflexe"], "", true)}` : `
       <div id="resume"></div><div id="invites"></div>
@@ -4297,7 +4303,7 @@ function adminOpen(back) {
     w.remove(); back && back();
   };
 }
-const VERSION = "1.2 · 26 novembre · 21 langues";
+const VERSION = "1.2 · 27 novembre · 21 langues";
 // un bug ou une carte qui ne va pas, envoyé dans les propositions (type bug) avec le jeu, la carte affichée, la version et le téléphone
 const telName = () => {
   const u = navigator.userAgent, m = u.match(/(iPhone|iPad)[^)]*OS (\d+)_(\d+)/), a = u.match(/Android ([\d.]+)/);
@@ -4792,7 +4798,7 @@ function cardShell(type, who, inner, alt) {
     ${inner}
   </div>`;
 }
-const rulePts = t => `<p class="pts-rule">${t}</p>`;
+const rulePts = t => ON.ctx && noPts() ? "" : `<p class="pts-rule">${t}</p>`; // en ligne sans points : pas de règle de points
 function bindHeader() {
   $("#pause").onclick = pauseMenu;
   const sk = $("#skip"); if (sk) sk.onclick = skipCard;
@@ -4842,9 +4848,11 @@ function next() {
 }
 // jeux à un téléphone, sans points, qu'on swipe de carte en carte jusqu'à « Terminer »
 const SWIPE = ["jamais", "pref", "qui", "av", "ouinon", "radar", "classement", "dix"];
-const ONE_PHONE = [...SWIPE, "taboo", "deux"]; // jeux absents du mode plusieurs téléphones
+// jeux à cartes d'un téléphone qui se jouent aussi en ligne, chacun répond en secret sur son téléphone (27/11)
+const ON_TOO = ["qui", "classement", "ouinon", "pref", "radar"];
+const ONE_PHONE = [...SWIPE.filter(t => !ON_TOO.includes(t)), "taboo", "deux"]; // jeux absents du mode plusieurs téléphones
 // sans points non plus, mais on garde la partie sur plusieurs téléphones
-const NOPTS = ["imposteur", "menteur", "mix"];
+const NOPTS = ["imposteur", "menteur", "mix", "qui", "ouinon", "pref"];
 const noPts = () => ON.ctx ? !!(ON.r && NOPTS.includes(ON.r.game)) : SWIPE.includes(S.mode) || NOPTS.includes(S.mode);
 function endDeck() {
   if (noPts() && jamaisRefill()) return card(); // pas de nombre de cartes : on continue jusqu'à « Terminer »
@@ -7998,7 +8006,7 @@ function testEnd(P, qs) {
 
 /* -------- EN LIGNE : amis et parties où chacun joue sur son propre téléphone -------- */
 const SITE = "https://fabz13220.github.io/Platon/";
-const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Débat", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 2], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Aligne 4", 2], uno: ["Vide ta main", 2] };
+const ON_GAMES = { mix: ["Mix", 2], jamais: ["Je n'ai jamais", 2], av: ["Action ou vérité", 2], pref: ["Tu préfères", 2], ouinon: ["Débat", 2], menteur: ["Le Menteur", 2], radar: ["Le Radar", 2], classement: ["Le Classement", 3], qui: ["Qui pourrait", 3], imposteur: ["L'Imposteur", 4], deux: ["Qui de nous deux", 2], reflexe: ["Duel réflexe", 2], taboo: ["Sans le dire", 4], p4: ["Aligne 4", 2], uno: ["Vide ta main", 2] };
 // jeux longs : une manche = une partie entière, jamais tirés par le Mix
 const LONG = ["p4", "uno", "taboo"], NEWG = ["deux", "reflexe", "p4", "uno", "taboo"];
 const roundOpts = g => ({ p4: [3, 5, 7], uno: [1, 2, 3], taboo: [4, 6, 8] })[g] || [4, 6, 10];
@@ -8546,11 +8554,11 @@ async function roomNext(r) {
     card = { type: t, cat: cc.data[1], word: cc.data[2], uw: underOf(cc) || "", roles, out: [] }; card.first = impFirst(card); phase = "word";
   }
   else if (t === "radar") { card = { type: t, a: c.data[1], b: c.data[2], giver: turnOf, target: 8 + Math.round(Math.random() * 84), clue: "" }; phase = "clue"; }
-  else if (t === "pref") card = { type: t, a: fill(c.data[1]), b: fill(c.data[2]) };
+  else if (t === "pref") { const [a, b] = fill(c.data[1] + "\n" + c.data[2]).split("\n"); card = { type: t, a, b }; } // même prénom des deux côtés
   else if (t === "av") { card = { type: t, target: turnOf, kind: "", text: "" }; phase = "choose"; }
   else if (t === "menteur") card = { type: t, target: turnOf, text: fill(c.data[1], pl(turnOf)), lie: Math.random() < .5 };
   else if (t === "classement") {
-    const decoys = shuffle(pool("classement").filter(x => x.data[1] !== c.data[1])).slice(0, 3).map(x => x.data[1]);
+    const decoys = classDecoys(c.data[1]); // mêmes familles de questions qu'en mode un téléphone
     card = { type: t, ranker: turnOf, q: c.data[1], opts: shuffle([c.data[1], ...decoys]), order: [] }; phase = "rank";
   }
   else if (t === "deux") {
@@ -8755,11 +8763,11 @@ function roomRender(r) {
   if (r.phase === "vote" && ["jamais", "pref", "ouinon", "av", "menteur"].includes(T)) {
     if (T === "jamais") stage = cardShell(T, null, `<p class="text">Je n'ai jamais <b>${esc(c.text)}</b>.</p>
       ${choices([["1", "Je l'ai fait", "green"], ["0", "Jamais"]])}${waitP}${rulePts("+1 point pour chaque personne qui l'a fait")}`);
-    if (T === "pref") stage = cardShell(T, null, `<p class="sub" style="font-weight:700;color:var(--ink)">Tu préfères…</p>
-      ${choices([["a", esc(c.a)], ["b", esc(c.b)]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
+    // mêmes cartes qu'en mode un téléphone : on touche son choix, il reste entouré
+    const vsPick = (cls, a, b) => `<div class="vs on-vs${cls}${mine ? " picked" : ""}"><div class="opt-a" data-v="a" aria-pressed="${mine === "a"}"><span>${a}</span></div>${cls ? "" : `<div class="or">ou</div>`}<div class="opt-b" data-v="b" aria-pressed="${mine === "b"}"><span>${b}</span></div></div>`;
+    if (T === "pref") stage = cardShell(T, null, `${vsPick("", esc(c.a), esc(c.b))}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
     if (T === "ouinon") stage = cardShell(T, null, `<p class="text">${esc(c.text)}</p>
-      <p class="swipe-hint"><span>← Non</span><span>Oui →</span></p>
-      ${choices([["a", "👍 Oui", "green"], ["b", "👎 Non"]])}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
+      ${vsPick(" ovs", "👍 Oui", "👎 Non")}${waitP}${rulePts("+1 point pour chaque personne de la majorité")}`);
     if (T === "av") stage = cardShell(T, { label: c.kind === "v" ? "Vérité pour" : "Action pour", name: pname(r, c.target) }, `<p class="text">${esc(c.text)}</p>
       ${isSolo ? `<p class="sub">Les autres valident sur leur téléphone si tu l'as fait.</p>${waitP}` : `<p class="sub">${soloName} l'a fait ?</p>${choices([["y", "Réussi", "green"], ["n", "Refusé"]])}${waitP}`}
       ${rulePts(`Réussi : +${c.kind === "v" ? 1 : 2} point${c.kind === "v" ? "" : "s"} pour ${soloName}`)}`);
@@ -8782,7 +8790,7 @@ function roomRender(r) {
       : cardShell(T, { label: "Classement secret de", name: pname(r, c.ranker) }, `<p class="text">${soloName} classe tout le monde selon une question secrète…</p><p class="sub">Ensuite, tu devines la question.</p>`);
     if (isSolo) acts = `<button class="btn red" id="rank-ok" disabled>Valider mon classement</button>`;
   } else if (T === "classement" && r.phase === "guess") {
-    const ord = `<div class="rank-order">${(c.order || []).map((u, k) => `<div><b>${k + 1}</b><span>${esc(pname(r, u))}</span></div>`).join("")}</div>`;
+    const ord = `<div class="rank-order${(c.order || []).length > 5 ? " two" : ""}">${(c.order || []).map((u, k) => `<div><b>${k + 1}</b><span>${esc(pname(r, u))}</span></div>`).join("")}</div>`;
     stage = cardShell(T, { label: "Le classement de", name: pname(r, c.ranker) }, isSolo
       ? `${ord}<p class="sub">Les autres devinent ta question : <b>${esc(c.q)}</b>.</p>${waitP}`
       : `${ord}<p class="sub">C'était quoi la question ?</p>${choices(c.opts.map((o, k) => [String(k), esc(cap(o))]))}${waitP}${rulePts(`Bonne question : +2 points pour toi, +1 point pour ${soloName}`)}`);
@@ -8851,7 +8859,7 @@ function roomRender(r) {
       const tp = res.top || [];
       stage = cardShell("qui", tp.length ? { label: "Le plus désigné", name: tp.map(u => pname(r, u)).join(" et ") } : null, `<p class="text">Qui pourrait <b>${esc(c.text)}</b> ?</p>${tallyRows(res.tally || {})}${rulePts("+1 point pour la personne la plus désignée")}`);
     }
-    if (!res.free) stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
+    if (!res.free && !noPts()) stage += `<p class="hint muted on-scores">${ids(r).map(u => r.players[u]).sort((a, b) => b.pts - a.pts).map(p => `${esc(p.name)} ${p.pts}`).join(" · ")}</p>`;
     acts = nextBtn;
   }
   view(`${top}<div class="stage">${stage}</div><div class="actions">${acts}</div>`, () => {
@@ -8867,7 +8875,7 @@ function roomRender(r) {
     if (b("force")) b("force").onclick = () => roomResolve(ON.r);
     if (b("next")) b("next").onclick = () => onceBtn(b("next"), () => roomNext(ON.r));
     $$(".on-picks .chip").forEach(x => x.onclick = () => { buzz(15); upd({ [`acts.${uid}`]: x.dataset.u }); });
-    $$(".on-choices [data-v]").forEach(x => x.onclick = () => {
+    $$(".on-choices [data-v], .on-vs [data-v]").forEach(x => x.onclick = () => {
       buzz(15);
       if (T === "av" && r.phase === "choose") {
         const pick = pool(x.dataset.v === "v" ? "verite" : "action")[0]; useCard(pick.id); store.set("used", [...used]);
