@@ -1,0 +1,126 @@
+{
+"speed": 1.06,
+"head": {
+"name": "Anniv Thomas 🎂",
+"av": "🎂",
+"c": "#ff9a4a",
+"sub": "Thomas, Inès, Karim et 11 autres"
+},
+"beats": [
+{
+"say": "Minuit. Tu veux juste dire à ton pote que la soirée était nulle.",
+"cap": "MINUIT. TU DIS À TON POTE QUE LA SOIRÉE ÉTAIT *NULLE*",
+"glow": "#7b2bff",
+"hl": "#7b2bff",
+"pause": 0.2,
+"ev": [
+{
+"at": -9,
+"in": "joyeux anniv frérot 🎉🎉",
+"who": "Inès"
+},
+{
+"at": -8,
+"in": "🎂🎂🎂",
+"who": "Karim"
+},
+{
+"at": -7,
+"in": "merci à tous d'être passés ce soir ❤️",
+"who": "Thomas"
+},
+{
+"at": 0.9,
+"out": "frère la soirée de ce soir c'était grave nul 💀"
+},
+{
+"at": 2.3,
+"out": "on se casse au bout de 20 min la prochaine fois"
+}
+]
+},
+{
+"say": "Sauf que t'as pas regardé le nom de la conversation.",
+"cap": "SAUF QUE T'AS PAS REGARDÉ *LE NOM* DE LA CONV",
+"glow": "#ff2d8a",
+"pause": 0.2,
+"ev": [
+{
+"at": 1.3,
+"shake": true,
+"hhl": true
+}
+]
+},
+{
+"say": "Le groupe d'anniversaire de Thomas. Quatorze personnes.",
+"cap": "LE GROUPE D'ANNIV DE THOMAS. *14 PERSONNES*",
+"glow": "#ff9a4a",
+"hl": "#ff7a1a",
+"pause": 0.2,
+"ev": [
+{
+"at": 0.8,
+"seen": "Vu par 4"
+},
+{
+"at": 2.0,
+"seen": "Vu par 9"
+}
+]
+},
+{
+"say": "Vu par treize.",
+"cap": "*VU PAR 13.*",
+"glow": "#22c3e6",
+"hl": "#13a37a",
+"flash": true,
+"pause": 0.4,
+"ev": [
+{
+"at": 0.05,
+"seen": "Vu par 13"
+}
+]
+},
+{
+"say": "Et là... Thomas est en train d'écrire.",
+"cap": "ET LÀ… THOMAS EST *EN TRAIN D'ÉCRIRE*",
+"glow": "#7b2bff",
+"hl": "#7b2bff",
+"duck": true,
+"pause": 1.5,
+"ev": [
+{
+"at": 1.4,
+"typing": "Thomas écrit…"
+}
+]
+},
+{
+"say": "Merci d'être venus quand même.",
+"cap": "« MERCI D'ÊTRE VENUS QUAND MÊME 🙂 »",
+"glow": "#ff2d8a",
+"pause": 0.3,
+"ev": [
+{
+"at": 0.0,
+"in": "merci d'être venus quand même 🙂",
+"who": "Thomas"
+}
+]
+},
+{
+"say": "Le petit smiley, c'est le pire.",
+"cap": "LE PETIT 🙂 C'EST *LE PIRE*",
+"glow": "#ff2d8a",
+"pause": 0.3
+},
+{
+"say": "T'as déjà fait pire ? Raconte en commentaire.",
+"cap": "T'AS DÉJÀ FAIT PIRE ? *RACONTE* 👇",
+"glow": "#7b2bff",
+"hl": "#7b2bff"
+}
+]
+}

@@ -140,3 +140,9 @@ Principes retenus : mouvement dès la 1re image, 1re phrase = règle ou promesse
 Moteur : outils/scene/render_scene.py script.json out.mp4 (+ scene.html). Modèle : scene/s1.json (beats t0/t1, cap avec *mot surligné*, show = mascot|friends|card|end, big = compte à rebours, point/target = votes, moods, emos, flash).
 Une mini-scène montre le jeu et finit sur BLIZ : étiquette commercialContentOwnBrand=true.
 L'ancien quiz (render_voice.py) n'est plus utilisé tel quel.
+
+## FORMAT SOIGNÉ « CONVERSATION » (28-11, après la demande de Fabio de vidéos plus travaillées)
+Moteur : outils/chat/ (chat.html + render_chat.py). Écran de messagerie animé (sans marque) : bulles qui pop avec son, « Vu par N », « X écrit… », notification avec vibration, secousse + boom, en-tête qui clignote (hhl), musique coupée (duck) avant la chute.
+Script : groupe_in.json (exemple). Chaîne : tts/voice_beats.py in.json out.json voix.wav, post-traitement (t0=0, music 0.14, nbsp), puis render_chat.py out.json vidéo.mp4. Polices : Unbounded + Inter (npm pack @fontsource/inter@5 dans /home/claude/fonts/inter).
+Champs d'un beat : say, cap, glow, hl, pause, duck, flash, ev:[{at, out|in(+who)|seen|typing|notif(+body,dur)|shake|hhl|head}]. at négatif = message déjà là au début.
+Pré-remplir la conversation pour qu'elle ait l'air réelle dès la 1re image.
